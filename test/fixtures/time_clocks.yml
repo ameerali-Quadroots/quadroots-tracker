@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  clock_in: 2025-08-22 01:10:10
+  clock_out: 2025-08-22 01:10:10
+
+two:
+  user: two
+  clock_in: 2025-08-22 01:10:10
+  clock_out: 2025-08-22 01:10:10

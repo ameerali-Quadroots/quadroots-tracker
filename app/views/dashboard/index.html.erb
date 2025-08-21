@@ -1,0 +1,125 @@
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold">Dashboard</h3>
+    <span class="text-muted">Today: <%= Date.today.strftime("%Y-%m-%d") %></span>
+  </div>
+
+  <!-- Greeting -->
+  <h5 class="mb-4">Good morning, <%= current_user.name || "Admin User" %></h5>
+
+  <div class="row g-4">
+    <!-- Current Status Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">Current Status</h6>
+          <% if @time_clock.nil? || @time_clock.clock_out.present? %>
+            <p class="text-muted">Not Clocked In</p>
+            <%= button_to clock_in_path, method: :post, class: "btn btn-success me-2" do %>
+              <i class="bi bi-box-arrow-in-right"></i> Clock In
+            <% end %>
+            <button class="btn btn-danger" disabled>
+              <i class="bi bi-box-arrow-right"></i> Clock Out
+            </button>
+          <% else %>
+            <p class="text-success">Clocked In</p>
+            <%= button_to clock_out_path, method: :post, class: "btn btn-danger" do %>
+              <i class="bi bi-box-arrow-right"></i> Clock Out
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Summary -->
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">Today's Summary</h6>
+          <p><strong>Clock In:</strong> <%= @time_clock&.clock_in&.strftime("%H:%M") || "--:--" %></p>
+          <p><strong>Clock Out:</strong> <%= @time_clock&.clock_out&.strftime("%H:%M") || "--:--" %></p>
+          <p><strong>Break Time:</strong> 60 min</p>
+          <p><strong>Total Working Hours:</strong>
+            <% if @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
+              <span id="clock-duration">Loading...</span>
+              <div id="clock-in-time" data-clock-in-time="<%= @time_clock.clock_in.iso8601 %>" hidden></div>
+            <% else %>
+              <%= @time_clock&.duration || "0h 0m" %>
+            <% end %>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timesheets -->
+  <div class="card shadow-sm mt-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold">Timesheets</h6>
+        <div>
+          <button class="btn btn-primary btn-sm">Daily View</button>
+          <button class="btn btn-outline-secondary btn-sm">Weekly View</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Duration</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if @timesheets.present? %>
+              <% @timesheets.each do |t| %>
+                <tr>
+                  <td><%= t.date.strftime("%Y-%m-%d") %></td>
+                  <td><%= t.clock_in.strftime("%H:%M") %></td>
+                  <td><%= t.clock_out.present? ? t.clock_out.strftime("%H:%M") : "--:--" %></td>
+                  <td><%= t.duration %></td>
+                  <td><%= t.clock_out.present? ? "Completed" : "In Progress" %></td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="5" class="text-center text-muted">No records found</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Duration Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const clockInElement = document.getElementById('clock-in-time');
+  const clockDurationElement = document.getElementById('clock-duration');
+
+  if (clockInElement && clockDurationElement) {
+    const clockInDate = new Date(clockInElement.dataset.clockInTime);
+
+    function updateClockDuration() {
+      const now = new Date();
+      const elapsedTime = now - clockInDate;
+
+      const hours = Math.floor(elapsedTime / 1000 / 60 / 60);
+      const minutes = Math.floor((elapsedTime / 1000 / 60) % 60);
+      const seconds = Math.floor((elapsedTime / 1000) % 60);
+
+      clockDurationElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    updateClockDuration();
+    setInterval(updateClockDuration, 1000);
+  }
+});
+</script>

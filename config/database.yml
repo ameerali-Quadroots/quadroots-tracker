@@ -1,0 +1,25 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: localhost
+  username: ameer
+  password: QuikrAi@!
+  pool: 5
+
+development:
+  <<: *default
+  database: clock_in_clock_out  # Database name for local development
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  <<: *default
+  database: clock_in_clock_out_test  # Separate database for testing
+
+production:
+  <<: *default
+  database: andre_production  # Use PostgreSQL in production (change based on your actual production database name)
+  username: <%= ENV['POSTGRES_USERNAME'] %>  # Use environment variables for production credentials
+  password: <%= ENV['POSTGRES_PASSWORD'] %>
+  host: <%= ENV['POSTGRES_HOST'] %>  # Ensure your production DB is accessible from your environment

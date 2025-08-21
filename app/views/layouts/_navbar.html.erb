@@ -1,0 +1,47 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
+      <%= image_tag "quadroots.webp", alt: "Logo", class: "me-2", height: "30" %>
+      <span>QuadRoots Tracker</span>
+    <% end %>
+
+    <!-- Hamburger / Toggle button for mobile -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Navbar links -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-center">
+
+        <% if user_signed_in? %>
+          <!-- User name -->
+          <li class="nav-item me-3">
+            <span class="navbar-text text-white">
+              👤 <%= current_user.name %>
+            </span>
+          </li>
+
+          <!-- Logout button styled as link -->
+          <li class="nav-item">
+            <%= button_to "Logout",
+                destroy_user_session_path,
+                method: :delete,
+                class: "btn btn-link nav-link p-0 text-white",
+                form: { class: "d-inline" } %>
+          </li>
+        <% else %>
+          <!-- Login/Sign up if user not logged in -->
+          <li class="nav-item">
+            <%= link_to "Login", new_user_session_path, class: "nav-link" %>
+          </li>
+          <li class="nav-item">
+            <%= link_to "Sign Up", new_user_registration_path, class: "nav-link" %>
+          </li>
+        <% end %>
+
+      </ul>
+    </div>
+  </div>
+</nav>
