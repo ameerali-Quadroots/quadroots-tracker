@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  enum role: { admin: "admin", executive: "executive", manager: "manager" }
+  enum role: { executive: "executive", manager: "manager" }
 
   has_many :time_clocks
 

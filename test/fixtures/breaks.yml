@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  time_clock: one
+  break_in: 2025-08-22 19:21:30
+  break_out: 2025-08-22 19:21:30
+
+two:
+  time_clock: two
+  break_in: 2025-08-22 19:21:30
+  break_out: 2025-08-22 19:21:30

@@ -161,7 +161,7 @@ ActiveAdmin.setup do |config|
   # Enable and disable Batch Actions
   #
   config.batch_actions = true
-
+  config.comments = false
   # == Controller Filters
   #
   # You can add before, after and around filters to all of your

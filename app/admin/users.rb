@@ -5,19 +5,21 @@ ActiveAdmin.register User do
     filter :email
   
     # Correctly filter on the TimeClock association
-    filter :time_clocks_clock_in_gteq, label: 'Clock In After'  # Use the association + attribute name
-    filter :time_clocks_clock_out_lteq, label: 'Clock Out Before'
-    filter :time_clocks_user_id_eq, label: 'User ID for TimeClock'  # Correct filter for user_id on TimeClock
-    filter :time_clocks_hours_worked_eq, label: 'Hours Worked'  # Filter based on hours worked in time_clocks
+    filter :time_clocks_clock_in
+    filter :time_clocks_clock_out
+    filter :time_clocks_created_at
   
 
     index do
       selectable_column
       id_column
-      column :name
       column :email
-      column :role
-      actions
+      column :created_at
+      column :updated_at
+      
+      actions defaults: true do |user|
+        link_to "View Timesheets", admin_user_time_clocks_path(user), class: "member_link"
+      end
     end
 
 
@@ -34,6 +36,9 @@ ActiveAdmin.register User do
         end
         f.actions
       end
+
+
+      
 
   end
   
