@@ -2,15 +2,15 @@ class TimeClock < ApplicationRecord
   belongs_to :user
   has_many :breaks, dependent: :destroy
 
-  def break_duration
-    breaks.sum do |b|
-      if b.break_in.present? && b.break_out.present?
-        (b.break_out - b.break_in) / 60
-      else
-        0
-      end
-    end.round
-  end
+  # def break_duration
+  #   breaks.sum do |b|
+  #     if b.break_in.present? && b.break_out.present?
+  #       (b.break_out - b.break_in) / 60
+  #     else
+  #       0
+  #     end
+  #   end.round
+  # end
 
   def calculate_total_duration
     return nil unless clock_in && clock_out
@@ -26,14 +26,14 @@ class TimeClock < ApplicationRecord
     (total / 3600).round(2)
   end
 
-
   def formatted_duration(seconds)
     return "N/A" if seconds.blank? || seconds <= 0
+  
+    seconds = seconds.to_i  # ensure integer
     hours = seconds / 3600
     minutes = (seconds % 3600) / 60
     "#{hours}h #{minutes}m"
   end
-
 
   def on_break?
     breaks.any? && breaks.last.break_out.blank?

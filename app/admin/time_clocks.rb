@@ -18,8 +18,19 @@ ActiveAdmin.register TimeClock do
     column :user
     column :clock_in
     column :clock_out
-    column :total_duration
-    column :status
+    column "Total Duration" do |time_clock|
+      time_clock.formatted_duration(time_clock.total_duration)
+    end
+    column :status do |tc|
+      case tc.status
+      when "late"
+        span "Late", style: "background-color: #e74c3c; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+      when "on_time"
+        span "On Time", style: "background-color: #2ecc71; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+      else
+        span tc.status || "N/A", style: "background-color: #bdc3c7; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+      end
+    end
     actions
   end
 end

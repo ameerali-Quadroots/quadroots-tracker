@@ -18,7 +18,7 @@
           <% if @time_clock.nil? || @time_clock.clock_out.present? %>
             <p class="badge bg-secondary">Not Clocked In</p>
             <div class="d-flex gap-2 mt-3">
-              <%= button_to clock_in_path, method: :post, class: "btn btn-success" do %>
+              <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
                 <i class="bi bi-box-arrow-in-right"></i> Clock In
               <% end %>
             </div>
@@ -57,9 +57,9 @@
       <div class="card shadow-sm h-100">
         <div class="card-body">
           <h6 class="fw-bold mb-3">Today's Summary</h6>
-          <p><strong>Clock In:</strong> <%= @time_clock&.clock_in&.strftime("%H:%M") || "--:--" %></p>
-          <p><strong>Clock Out:</strong> <%= @time_clock&.clock_out&.strftime("%H:%M") || "--:--" %></p>
-          <p><strong>Total Break Time:</strong> <%= @time_clock&.break_duration || "0 min" %></p>
+          <p><strong>Clock In:</strong> <%= @time_clock&.clock_in&.strftime("%I:%M %p") || "--:--" %></p>
+          <p><strong>Clock Out:</strong> <%= @time_clock&.clock_out&.strftime("%I:%M %p") || "--:--" %></p>
+          <p><strong>Total Break Time:</strong> <%= @time_clock&.formatted_duration(@time_clock.break_duration) || "0 min" %></p>
           <p><strong>Total Working Duration:</strong> <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "-:-" %></p>
           <p><strong>Total Working Hours:</strong>
             <% if @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
@@ -69,7 +69,7 @@
      data-break-seconds="<%= @time_clock.total_break_seconds %>" 
      data-on-break="<%= @time_clock.on_break? %>"
      hidden></div>        <% else %>
-              <%= @time_clock&.duration_in_hours || "0h 0m" %>
+              <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "0h 0m" %>
             <% end %>
           </p>
 
@@ -87,7 +87,7 @@
                     <%= b.break_out&.strftime("%H:%M") || "In Progress" %>
                   </span>
                   <span class="badge bg-light text-dark">
-                    <%= b.duration > 0 ? "#{(b.duration / 60).round} min" : "--" %>
+                    <%= b.duration > 0 ? "#{(b.duration / 60).round(1)} min" : "--" %>
                   </span>
                 </li>
               <% end %>
