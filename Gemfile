@@ -74,3 +74,4 @@ gem 'rails-ujs' # If using clock-in button
 gem 'sassc-rails'
 gem 'pry', groups: [:development, :test]
 gem 'arctic_admin'
+gem 'whenever', require: false
