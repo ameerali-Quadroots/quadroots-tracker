@@ -9,49 +9,47 @@
   <h5 class="mb-4">Hello, <%= current_user.name || "Admin User" %></h5>
 
   <div class="row g-4">
-    <!-- Current Status Card -->
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <h6 class="fw-bold mb-3">Current Status</h6>
+  <!-- Current Status Card -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Current Status</h6>
 
-          <% if @time_clock.nil? || @time_clock.clock_out.present? %>
-            <p class="badge bg-secondary">Not Clocked In</p>
-            <div class="d-flex gap-2 mt-3">
-              <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
-                <i class="bi bi-box-arrow-in-right"></i> Clock In
-              <% end %>
-            </div>
+        <% if @time_clock.nil? || @time_clock.clock_out.present? %>
+          <div class="d-flex align-items-center gap-3">
+            <p class="badge bg-secondary fs-4 mb-0">Not Clocked In</p>
+            <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
+              <i class="bi bi-box-arrow-in-right"></i> Clock In
+            <% end %>
+          </div>
 
-          <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
-            <p class="badge bg-warning text-dark">On Break</p>
-            <div class="d-flex gap-2 mt-3">
-           <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
+        <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
+          <div class="d-flex align-items-center gap-3">
+            <p class="badge bg-warning text-dark fs-4 mb-0">On Break</p>
+            <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
               method: :post,
               class: "btn btn-primary" do %>
-  <i class="bi bi-play-circle"></i> End Break
-<% end %>
+              <i class="bi bi-play-circle"></i> End Break
+            <% end %>
+            <%= button_to clock_out_path, method: :post, class: "btn btn-danger" do %>
+              <i class="bi bi-box-arrow-right"></i> Clock Out
+            <% end %>
+          </div>
 
-              <%= button_to clock_out_path, method: :post, class: "btn btn-danger" do %>
-                <i class="bi bi-box-arrow-right"></i> Clock Out
-              <% end %>
-            </div>
-
-          <% else %>
-            <p class="badge bg-success">Working</p>
-            <div class="d-flex gap-2 mt-3">
-              <%= button_to break_in_time_clock_breaks_path(@time_clock), method: :post, class: "btn btn-warning" do %>
-  <i class="bi bi-pause-circle"></i> Take Break
-<% end %>
-              <%= button_to clock_out_path, method: :post, class: "btn btn-danger" do %>
-                <i class="bi bi-box-arrow-right"></i> Clock Out
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+        <% else %>
+          <div class="d-flex align-items-center gap-3">
+            <p class="badge bg-success fs-4 mb-0">Working</p>
+            <%= button_to break_in_time_clock_breaks_path(@time_clock), method: :post, class: "btn btn-warning" do %>
+              <i class="bi bi-pause-circle"></i> Take Break
+            <% end %>
+            <%= button_to clock_out_path, method: :post, class: "btn btn-danger" do %>
+              <i class="bi bi-box-arrow-right"></i> Clock Out
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
-
+  </div>
     <!-- Today's Summary -->
     <div class="col-md-6">
       <div class="card shadow-sm h-100">

@@ -3,12 +3,14 @@ class BreaksController < ApplicationController
 
   def break_in
     @time_clock.breaks.create!(break_in: Time.current)
+    @time_clock.update!(current_state: "on_break")   # <-- Update state
     redirect_to root_path, notice: "Break started!"
   end
 
   def break_out
     break_record = @time_clock.breaks.find(params[:id])
     break_record.update!(break_out: Time.current)
+    @time_clock.update!(current_state: "working")    # <-- Update state
     redirect_to root_path, notice: "Break ended!"
   end
 

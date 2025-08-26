@@ -105,5 +105,39 @@ ActiveAdmin.register_page "Dashboard" do
         end
       end
     end
+
+    # === Live Current State of Users ===
+    current_states = User.includes(:time_clocks).map do |user|
+      last_clock = user.time_clocks.order(clock_in: :desc).first
+      state = last_clock&.current_state || "off"
+      [user, state]
+    end
+
+    panel "Live Current State of Users" do
+      current_states = User.includes(:time_clocks).map do |user|
+        last_clock = user.time_clocks.order(clock_in: :desc).first
+        {
+          user: user,
+          state: last_clock&.current_state || "off"
+        }
+      end
+    
+      table_for current_states do
+        column "User" do |row|
+          link_to row[:user].email, admin_user_path(row[:user])
+        end
+        column "Current State" do |row|
+          state = row[:state]
+          status_tag(state.titleize,
+            class: case state
+                   when "working"  then "ok"       # green
+                   when "on_break" then "warning"  # yellow
+                   else "error"                    # red / off
+                   end
+          )
+        end
+      end
+    end
+    
   end
 end
