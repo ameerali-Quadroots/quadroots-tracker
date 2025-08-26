@@ -4,20 +4,88 @@ ActiveAdmin.register_page "Dashboard" do
     div do
       raw "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
     end
-    today_range = Time.zone.now.beginning_of_day..Time.zone.now.end_of_day
+    now = Time.zone.now
+    if now.hour < 3
+      shift_start = (now - 1.day).change(hour: 18, min: 0, sec: 0)
+      shift_end   = now.change(hour: 3, min: 0, sec: 0)
+    else
+      shift_start = now.change(hour: 18, min: 0, sec: 0)
+      shift_end   = (now + 1.day).change(hour: 3, min: 0, sec: 0)
+    end
+    shift_range = shift_start..shift_end
+    
     month_range = Time.zone.now.beginning_of_month..Time.zone.now.end_of_month
-
+    
     total_users   = User.count
-    on_time_today = TimeClock.where(status: 'on_time', clock_in: today_range).count
-    late_today    = TimeClock.where(status: 'late', clock_in: today_range).count
+    on_time_today = TimeClock.where(status: 'on_time', clock_in: shift_range).count
+    late_today    = TimeClock.where(status: 'late', clock_in: shift_range).count
     on_time_month = TimeClock.where(status: 'on_time', clock_in: month_range).count
     late_month    = TimeClock.where(status: 'late', clock_in: month_range).count
+    
+    working_now     = TimeClock.where(clock_out: nil).count
+    on_break_now    = Break.where(break_out: nil).count
+    not_clocked_in  = total_users - (working_now + on_break_now)
+    # =========================
+    # Live Current State of Users
+    # =========================
+    current_states = User.includes(:time_clocks).map do |user|
+      last_clock = user.time_clocks.order(clock_in: :desc).first
+      {
+        user: user,
+        state: last_clock&.current_state || "off"
+      }
+    end
 
+    panel "Live Current State of Users" do
+      table_for current_states do
+        column "User" do |row| link_to row[:user].email, admin_user_path(row[:user]) end
+        column "Current State" do |row|
+          state = row[:state]
+          status_tag(state.titleize,
+            class: case state
+                   when "working"  then "ok"
+                   when "on_break" then "warning"
+                   else "error"
+                   end
+          )
+        end
+      end
+    end
+    panel "Current State" do
+      div style: "width: 300px; height: 300px; margin: auto;" do
+        "<canvas id='currentStateChart'></canvas>".html_safe
+      end
+
+      current_state_data = {
+        labels: ["Working", "On Break", "Not Clocked In"],
+        datasets: [{
+          data: [working_now, on_break_now, not_clocked_in],
+          backgroundColor: ["#2ecc71", "#f1c40f", "#e74c3c"]
+        }]
+      }.to_json
+
+      script do
+        raw <<-JS
+          document.addEventListener("DOMContentLoaded", function() {
+            var ctx = document.getElementById('currentStateChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'pie',
+              data: #{current_state_data},
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+              }
+            });
+          });
+        JS
+      end
+    end
     # =========================
     # Today’s Stats Panel
     # =========================
     panel "Today’s Stats" do
-      div style: "display: flex; gap: 30px; justify-content: space-around; margin: 20px 0;" do
+      div style: "display: flex; gap: 30px; justify-content: space-around; margin: 20px 0 mt-4;" do
         div style: "background:#3498db; color:white; padding:30px; border-radius:14px; flex:1; text-align:center;" do
           h2 style: "font-size:36px; margin-bottom:8px;" do total_users end
           span "Total Users"
@@ -153,31 +221,5 @@ ActiveAdmin.register_page "Dashboard" do
       end
     end
 
-    # =========================
-    # Live Current State of Users
-    # =========================
-    current_states = User.includes(:time_clocks).map do |user|
-      last_clock = user.time_clocks.order(clock_in: :desc).first
-      {
-        user: user,
-        state: last_clock&.current_state || "off"
-      }
-    end
-
-    panel "Live Current State of Users" do
-      table_for current_states do
-        column "User" do |row| link_to row[:user].email, admin_user_path(row[:user]) end
-        column "Current State" do |row|
-          state = row[:state]
-          status_tag(state.titleize,
-            class: case state
-                   when "working"  then "ok"
-                   when "on_break" then "warning"
-                   else "error"
-                   end
-          )
-        end
-      end
-    end
   end
 end
