@@ -16,20 +16,27 @@
       <ul class="navbar-nav ms-auto align-items-center">
 
         <% if user_signed_in? %>
-          <!-- User name -->
-          <li class="nav-item me-3">
-            <span class="navbar-text text-white">
+          <!-- User dropdown menu -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               👤 <%= current_user.name %>
-            </span>
-          </li>
-
-          <!-- Logout button styled as link -->
-          <li class="nav-item">
-            <%= button_to "Logout",
-                destroy_user_session_path,
-                method: :delete,
-                class: "btn btn-link nav-link p-0 text-white",
-                form: { class: "d-inline" } %>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li>
+                <%= link_to "Edit Profile", edit_user_path(current_user), class: "dropdown-item" %>
+                <% if current_user.role == "Manager" %>
+                <%= link_to "View Requests", edit_requests_path, class: "dropdown-item" %>
+                <% end %>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <%= button_to "Logout",
+                    destroy_user_session_path,
+                    method: :delete,
+                    class: "dropdown-item",
+                    form: { class: "d-inline" } %>
+              </li>
+            </ul>
           </li>
         <% else %>
           <!-- Login/Sign up if user not logged in -->

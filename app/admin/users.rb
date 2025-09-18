@@ -1,18 +1,22 @@
 ActiveAdmin.register User do
-    permit_params :name, :email, :phone_number, :address, :password, :password_confirmation, :role
+
+    permit_params :name, :email, :phone_number, :address, :password, :password_confirmation, :role, :department
   
     filter :name
     filter :email
+    filter :department
   
     # Correctly filter on the TimeClock association
     filter :time_clocks_clock_in
     filter :time_clocks_clock_out
     filter :time_clocks_created_at
+    filter :department
   
 
     index do
       selectable_column
-      id_column
+      
+      column :name
       column :email
       column :created_at
       column :updated_at
@@ -29,8 +33,9 @@ ActiveAdmin.register User do
           f.input :email
           f.input :phone_number
           f.input :address
+          f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'CORE'], prompt: "Select Department"
           f.input :role, as: :select, collection: User.roles.keys,
-          input_html: { class: "dropdown"}
+          input_html: { class: "dropdown", style: "width:50%"}
           f.input :password
           f.input :password_confirmation
         end

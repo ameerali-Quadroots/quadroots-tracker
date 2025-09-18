@@ -8,8 +8,10 @@
 // $sidebar-width: 242px;
 
 // Active Admin's got SASS!
-@import "active_admin/mixins";
+// @import "active_admin/mixins";
 // @import "active_admin/base";
+@import "arctic_admin/base";
+
 
 $primary-color: #1e40af;   // deep blue
 $secondary-color: #f59e0b; // amber
@@ -37,3 +39,86 @@ $text-color: #181127;
 #footer {
     display: none !important;
   }
+  .status_tag.warning {
+  background-color: #f1c40f; /* bright yellow */
+  color: #000; /* black text */
+}
+.height-class{
+  height: 500px;
+  overflow: auto;
+}
+#sidebar:hover {
+  right: 0 !important;
+}
+.height-class3{
+  height: 200px;
+  overflow: auto;
+}
+
+
+/* Ensure select2 renders inline in ActiveAdmin filters */
+.select2-container {
+  min-width: 200px;
+  max-width: 100%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.select2-selection {
+  height: 36px !important;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.select2-selection__rendered {
+  line-height: 26px !important;
+}
+
+.select2-selection__arrow {
+  height: 100% !important;
+}
+.select2-container .select2-selection--multiple .select2-selection__choice {
+  background-color: #3498db;         /* Blue tag background */
+  border: none;
+  color: #000;
+  border-radius: 4px;
+  padding: 4px 10px;
+  margin: 3px 5px 3px 0;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.select2-container .select2-selection--multiple .select2-selection__choice:hover {
+  background-color: #0b0c0c;
+  color: #fff;
+  /* Darker on hover */
+}
+
+.select2-container .select2-selection--multiple .select2-selection__choice__remove {
+  color: rgba(12, 11, 11, 0.7);
+  margin-right: 6px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  vertical-align: middle;
+  
+}
+
+.select2-container .select2-selection--multiple .select2-selection__choice__remove:hover {
+  color: white;
+}
+.select2-selection__choice{
+  margin: 0  !important;
+      color: black;
+
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove{
+  top: 4px !important;
+}

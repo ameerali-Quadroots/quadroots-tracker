@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  time_clock: one
+  requested_clock_in: 2025-09-17 20:22:43
+  reason: MyText
+  status: MyString
+  manager_note: MyText
+  resolved_at: 2025-09-17 20:22:43
+
+two:
+  user: two
+  time_clock: two
+  requested_clock_in: 2025-09-17 20:22:43
+  reason: MyText
+  status: MyString
+  manager_note: MyText
+  resolved_at: 2025-09-17 20:22:43

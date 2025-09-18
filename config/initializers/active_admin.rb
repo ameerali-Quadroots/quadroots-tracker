@@ -5,6 +5,9 @@ ActiveAdmin.setup do |config|
   # for each of the active admin pages.
   #
   config.site_title = "Clock In Clock Out"
+  config.register_stylesheet 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'
+  config.register_javascript 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'
+
 
   # Set the link url for the title. For example, to take
   # users to your main site. Defaults to no link.
@@ -79,8 +82,8 @@ ActiveAdmin.setup do |config|
   # method in a before filter of all controller actions to
   # ensure that there is a user with proper rights. You can use
   # CanCanAdapter or make your own. Please refer to documentation.
-  # config.authorization_adapter = ActiveAdmin::CanCanAdapter
-
+  config.authorization_adapter = ActiveAdmin::CanCanAdapter
+  # config.authorization_adapter = ActiveAdmin::AuthorizationAdapter
   # In case you prefer Pundit over other solutions you can here pass
   # the name of default policy class. This policy will be used in every
   # case when Pundit is unable to find suitable policy.

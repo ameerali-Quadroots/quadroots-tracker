@@ -1,6 +1,9 @@
-set :output, "log/cron.log"
-set :environment, "production"
+set :environment, "development"
+set :output, "/home/qrt-lh-len-17/Desktop/tracker/clock_in_clock_out/log/cron.log"
 
-every 1.day, at: '3:00 am' do
-  rake "time_clocks:auto_clock_out"
+every :day, at: '3:00am' do  command "
+    cd /home/qrt-lh-len-17/Desktop/tracker/clock_in_clock_out && 
+    export PATH=\"$HOME/.rbenv/bin:$PATH\" && 
+    eval \"\$(rbenv init -)\" && 
+    /home/qrt-lh-len-17/.rbenv/shims/bundle exec rails runner 'AutoClockJob.perform_now'"
 end

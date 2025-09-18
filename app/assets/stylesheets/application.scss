@@ -1,0 +1,124 @@
+
+/* Main Calendar Container */
+.calendar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;  /* Reduced padding around the calendar */
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+  width: 100%;
+  font-size: 14px; /* Reduced font size for the whole calendar */
+}
+
+/* Calendar Header (Days of the Week) */
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 equal columns */
+  font-weight: bold;
+  background-color: #3b8a9a; /* Deep blue */
+  color: white;
+  padding: 5px 0;  /* Reduced padding for header */
+  border-radius: 8px;  /* Slightly smaller radius */
+  margin-bottom: 5px;
+  width: 100%; /* Ensure header spans full width */
+  text-align: center;
+  font-size: 12px; /* Reduced font size for the header */
+}
+
+/* Styling for each day name (Sun, Mon, etc.) */
+.calendar-day {
+  font-size: 12px;  /* Reduced font size */
+  text-align: center;
+  font-weight: bold;
+  color: white; 
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 equal columns for the days of the week */
+  grid-gap: 5px;  /* Reduced space between cells */
+  width: 100%;
+  text-align: center;
+}
+
+/* Each Calendar Cell (Day) Styling */
+.calendar-cell {
+  padding: 10px;  /* Reduced padding inside each cell */
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px; /* Reduced font size for calendar cells */
+  font-weight: 600;
+  background-color: #fff;
+  transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+  position: relative;
+  height: 40px; /* Reduced height of the cells */
+  box-sizing: border-box;
+}
+
+/* Hover Effect */
+// .calendar-cell:hover {
+//   background-color: #f0f0f0;
+//   transform: scale(1.05); /* Slight zoom effect on hover */
+// }
+
+/* Highlight Today */
+.calendar-cell.today {
+  background-color: transparent; /* Highlight today in a bright yellow */
+  color: #000;
+  border: 0.5px solid #000; /* Border color for today's date */
+}
+
+/* Specific classes for status: Late and On Time */
+.calendar-late {
+  background-color: #f44336; /* Red for late */
+  color: white;
+}
+
+.calendar-on-time {
+  background-color: #4caf50; /* Green for on-time */
+  color: white;
+}
+.calendar-off {
+  background-color: #dcdcdc; /* grey */
+}
+.calendar-future {
+  color: #999999;
+  background-color: #f0f0f0;
+  pointer-events: none; /* optional: disables clicks */
+  opacity: 0.4;
+}
+
+/* Empty Cells for Space */
+.calendar-cell.empty {
+  background-color: transparent;
+  border: none;
+  cursor: default;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr); /* Keep the 7 columns layout */
+    grid-gap: 6px;  /* Slightly more space on smaller screens */
+  }
+
+  .calendar-header {
+    font-size: 10px;  /* Smaller font size on mobile */
+    padding: 5px 0;  /* Reduced padding for mobile view */
+  }
+
+  .calendar-cell {
+    padding: 8px;  /* Reduced padding for mobile */
+    font-size: 12px;  /* Smaller font size on mobile */
+    height: 35px;  /* Smaller cell height on mobile */
+  }
+}
+.height-315{
+  height: 315px
+}

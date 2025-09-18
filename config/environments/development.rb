@@ -73,4 +73,28 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions
   config.action_controller.raise_on_missing_callback_actions = true
+# Email settings for SMTP
+# === BEGIN SMTP DEBUGGING ===
+puts "[DEBUG] Loading development.rb..."
+
+config.action_mailer.delivery_method = :smtp
+config.action_mailer.perform_deliveries = true
+config.action_mailer.raise_delivery_errors = true
+
+config.action_mailer.smtp_settings = {
+  address:              'mail.quikraistaging.com',
+  port:                 587,
+  domain:               'quikraistaging.com',
+  user_name:            'development@quikraistaging.com',
+  password:             'Dnmifhja@1',
+  authentication:       'plain',
+  enable_starttls_auto: true
+}
+
+config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
+
+puts "[DEBUG] Mailer delivery method set to: #{config.action_mailer.delivery_method.inspect}"
+# === END SMTP DEBUGGING ===
+
+
 end

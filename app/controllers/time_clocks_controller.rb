@@ -8,7 +8,7 @@ class TimeClocksController < ApplicationController
     now = Time.current
 
     # Determine shift start and end (6 PM → 3 AM next day)
-    shift_start_today = now.change(hour: 18, min: 0, sec: 0)
+    shift_start_today = now.change(hour: 17, min: 45, sec: 0)
     shift_end_today   = shift_start_today + 9.hours
 
     shift_start_yesterday = shift_start_today - 1.day
@@ -33,14 +33,15 @@ class TimeClocksController < ApplicationController
     end
 
     # Determine late or on_time
-    late_time = shift_start + 10.minutes
+    late_time = shift_start + 16.minutes
     status = now > late_time ? "late" : "on_time"
 
     # Create the clock record
     current_user.time_clocks.create!(
       clock_in: now,
       status: status,
-      current_state: "working"
+      current_state: "working",
+      ip_address: request.remote_ip
     )
 
     redirect_to root_path, notice: "Clocked in successfully (#{status})."
@@ -50,30 +51,52 @@ class TimeClocksController < ApplicationController
   # CLOCK OUT
   # ------------------------
   def clock_out
-    time_clock = current_user.time_clocks.where(clock_out: nil).last
+     time_clock = current_user.time_clocks.where(clock_out: nil).last
 
-    if time_clock.present?
-      now = Time.current
-      total_worked_seconds = now - time_clock.clock_in
+  if time_clock.present?
+    now = Time.current
+    total_worked_seconds = now - time_clock.clock_in
 
-      # Subtract breaks
-      break_seconds = 0
-      if time_clock.respond_to?(:breaks) && time_clock.breaks.any?
-        break_seconds = time_clock.breaks.sum do |br|
-          (br.break_out || now) - br.break_in
-        end
-        total_worked_seconds -= break_seconds
+    # Subtract only non-meeting breaks
+    break_seconds = 0
+    if time_clock.respond_to?(:breaks) && time_clock.breaks.any?
+      non_meeting_breaks = time_clock.breaks.where.not(break_type: "Meeting")
+      break_seconds = non_meeting_breaks.sum do |br|
+        (br.break_out || now) - br.break_in
       end
 
-      # Update the clock record
-      time_clock.update!(
-        clock_out: now,
-        total_duration: total_worked_seconds.to_i,
-        break_duration: break_seconds.to_i,
-        current_state: "off"
-      )
+      total_worked_seconds -= break_seconds
     end
+
+    # Update the time clock record
+    time_clock.update!(
+      clock_out: now,
+      total_duration: [total_worked_seconds.to_i, 0].max,
+      break_duration: break_seconds.to_i,
+      current_state: "off"
+    )
+  end
 
     redirect_to root_path, notice: "Clocked out successfully."
   end
+
+
+  def show
+    @date = params[:date]
+
+    begin
+      date = Date.parse(@date)
+    rescue ArgumentError
+      return render plain: "Invalid date", status: 400
+    end
+
+    @time_clock = current_user.time_clocks.find_by(clock_in: date.beginning_of_day..date.end_of_day)
+
+    if @time_clock.nil?
+      return render plain: "No time clock record found for #{@date}", status: 404
+    end
+
+    # @time_clock.breaks assumed to exist and be associated
+  end
+
 end

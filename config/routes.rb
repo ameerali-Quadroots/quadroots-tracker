@@ -18,9 +18,25 @@ Rails.application.routes.draw do
       end
     end
   end
+  namespace :admin do
+  resources :time_clocks do
+    collection do
+      get :export_xlsx
+    end
+  end
+end
+resources :edit_requests, only: [:index, :create] do
+  member do
+    patch :approve
+    patch :reject
+  end
+end
+resources :users, only: [:edit, :update]
 
   root 'dashboard#index'
 
   post '/clock_in', to: 'time_clocks#clock_in', as: 'clock_in'
   post '/clock_out', to: 'time_clocks#clock_out', as: 'clock_out'
+  get '/time_clocks/:date', to: 'time_clocks#show', as: 'time_clock'
+
 end

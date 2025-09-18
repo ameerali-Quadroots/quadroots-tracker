@@ -1,0 +1,120 @@
+<div class="container my-5">
+  <h2 class="mb-5 text-primary text-center fw-bold">Time Clock Details</h2>
+
+ <div class="mb-3">
+    <%= link_to "← Back", root_path, class: "btn btn-outline-secondary" %>
+  </div>
+
+
+  <div class="row mb-5">
+  <div class="col-md-4">
+    <div class="card border-primary shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold">
+        Date
+      </div>
+      <div class="card-body fs-4 text-center">
+        <%= @time_clock.clock_in.strftime("%A, %d %B %Y") %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="card border-success shadow-sm">
+      <div class="card-header bg-success text-white fw-semibold">
+        Clock In
+      </div>
+      <div class="card-body fs-5 text-center">
+        <%= @time_clock.clock_in.strftime("%I:%M %p") %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="card border-danger shadow-sm">
+      <div class="card-header bg-danger text-white fw-semibold">
+        Clock Out
+      </div>
+      <div class="card-body fs-5 text-center">
+        <% if @time_clock.clock_out.present? %>
+          <%= @time_clock.clock_out.strftime("%I:%M %p") %>
+        <% else %>
+          Not clocked out yet
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <% status = @time_clock.status %>
+    <% status_class = status == 'on_time' ? 'bg-success' : 'bg-danger' %>
+    <% status_text = status == 'on_time' ? 'On Time' : 'Late' %>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header <%= status_class %> text-white fw-semibold">
+        Status
+      </div>
+      <div class="card-body text-center">
+        <span class="fs-4 fw-bold <%= status == 'on_time' ? 'text-success' : 'text-danger' %>">
+          <%= status_text %>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Work Summary -->
+  <div class="card mb-5 shadow-sm">
+    <div class="card-header bg-info text-white fw-semibold fs-5">
+      Work Summary
+    </div>
+    <div class="card-body row text-center">
+      <div class="col-md-6 border-end">
+        <h6>Total Work Duration</h6>
+        <p class="fs-5 text-success fw-bold">
+          <%= @time_clock.formatted_duration(@time_clock.total_duration) || "Not calculated" %>
+        </p>
+      </div>
+      <div class="col-md-6">
+        <h6>Total Break Time</h6>
+        <p class="fs-5 text-warning fw-bold">
+          <%= @time_clock.formatted_duration(@time_clock.break_duration) || "No breaks" %>
+        </p>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Breaks Section -->
+  <h3 class="mb-4 text-secondary fw-semibold">Breaks</h3>
+
+  <% if @time_clock.breaks.any? %>
+    <div class="row g-4">
+      <% @time_clock.breaks.each_with_index do |brk, i| %>
+        <div class="col-md-4">
+          <div class="card border-warning h-100 shadow-sm">
+            <div class="card-header bg-warning text-dark fw-bold">
+              Break <%= i + 1 %>
+            </div>
+            <div class="card-body">
+              <p><strong>Start Time:</strong> <%= brk.break_in&.strftime("%I:%M %p") || "N/A" %></p>
+              <p><strong>End Time:</strong> <%= brk.break_out&.strftime("%I:%M %p") || "N/A" %></p>
+              <p><strong>Duration:</strong>
+                <% if brk.break_in && brk.break_out %>
+                  <%= distance_of_time_in_words(brk.break_out - brk.break_in) %>
+                <% else %>
+                  N/A
+                <% end %>
+              </p>
+              
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="alert alert-warning" role="alert">
+      No breaks recorded for this time clock.
+    </div>
+  <% end %>
+</div>
