@@ -30,6 +30,10 @@ resources :edit_requests, only: [:index, :create] do
     patch :approve
     patch :reject
   end
+  collection do
+      get :my_requests
+
+  end
 end
 resources :users, only: [:edit, :update]
 

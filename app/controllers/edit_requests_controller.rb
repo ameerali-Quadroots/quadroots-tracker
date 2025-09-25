@@ -4,9 +4,10 @@ class EditRequestsController < ApplicationController
 
   def create
     @edit_request = current_user.edit_requests.new(edit_request_params)
+    email = User.where(department: @edit_request.department, role: "Manager")
 
     if @edit_request.save
-        EditRequestMailer.new_request_notification(@edit_request).deliver_now
+        EditRequestMailer.new_request_notification(@edit_request).deliver_later
       redirect_back fallback_location: root_path, notice: "Request submitted successfully."
     else
       redirect_back fallback_location: root_path, alert: @edit_request.errors.full_messages.to_sentence
@@ -29,6 +30,10 @@ class EditRequestsController < ApplicationController
       approved_by_manager: "no",
     )
     redirect_back fallback_location: edit_requests_path, notice: "Request rejected."
+  end
+
+  def my_requests
+    @edit_requests = current_user.edit_requests
   end
 
   private

@@ -2,8 +2,8 @@ default: &default
   adapter: postgresql
   encoding: unicode
   host: localhost
-  username: server
-  password: QuadR@@ts
+  username: ameer
+  password: Quadroots
   pool: 5
 
 development:

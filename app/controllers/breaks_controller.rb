@@ -6,7 +6,15 @@ class BreaksController < ApplicationController
     @time_clock.breaks.create!(break_in: Time.current, break_type: break_type)
 
     # Set the appropriate state
-    new_state = break_type == "Meeting" ? "Meeting" : "On break"
+   new_state = case break_type
+      when "Meeting"
+        "Meeting"
+      when "Downtime"
+        "Downtime"
+      else
+        "On break"
+      end
+
     @time_clock.update!(current_state: new_state)
 
     redirect_to root_path, notice: "Break started!"

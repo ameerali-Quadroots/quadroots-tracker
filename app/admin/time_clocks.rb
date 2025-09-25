@@ -129,6 +129,10 @@ ActiveAdmin.register TimeClock do
       tc.formatted_break_duration
     end
 
+column "Downtime Duration" do |tc|
+      tc.calculate_downtime
+    end
+    
     # Duplicate IP logic
     shift_start = if Time.current.hour >= 17
                     Time.current.change(hour: 17, min: 45)

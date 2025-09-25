@@ -80,6 +80,22 @@ end
   (now - clock_in - break_seconds).to_i
 end
 
+def calculate_downtime(now = Time.current)
+  downtime_seconds = 0
+
+  if respond_to?(:breaks) && breaks.any?
+    downtime_breaks = breaks.where(break_type: "Downtime")
+    downtime_seconds = downtime_breaks.sum do |br|
+      (br.break_out || now) - br.break_in
+    end
+  end
+
+  # convert to hours and minutes
+  hours   = downtime_seconds.to_i / 3600
+  minutes = (downtime_seconds.to_i % 3600) / 60
+
+  format("%02d:%02d", hours, minutes) # => "HH:MM"
+end
 
 
 
