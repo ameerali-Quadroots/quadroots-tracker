@@ -43,6 +43,6 @@ class EditRequestsController < ApplicationController
   end
 
   def edit_request_params
-    params.require(:edit_request).permit(:name, :email, :time_clock_id, :requested_clock_in, :reason, :department, :request_type)
+    params.require(:edit_request).permit(:name, :email, :time_clock_id, :requested_clock_in, :reason, :department, :request_type,:break_reason)
   end
 end

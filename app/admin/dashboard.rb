@@ -1,13 +1,7 @@
 ActiveAdmin.register_page "Dashboard" do
   
   content do
-     script do
-        raw <<-JS
-           setInterval(function() {
-    location.reload();
-  }, 15000); 
-        JS
-      end
+     
     div do
       raw "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
     end
@@ -43,16 +37,25 @@ ActiveAdmin.register_page "Dashboard" do
         last_clock = user.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
 
         state =
-          if last_clock.nil?
-            "off"
-          elsif last_clock.breaks.where(break_out: nil).exists?
-            last_break = last_clock.breaks.where(break_out: nil).last
-            last_break.break_type == "Meeting" ? "Meeting" : "on_break"
-          elsif last_clock.clock_out.nil?
-            "working"
-          else
-            "off"
-          end
+  if last_clock.nil?
+    "off"
+  elsif last_clock.breaks.where(break_out: nil).exists?
+    last_break = last_clock.breaks.where(break_out: nil).last
+
+    case last_break.break_type
+    when "Meeting"
+      "meeting"
+    when "Downtime"
+      "downtime"
+    else
+      "on_break"
+    end
+
+  elsif last_clock.clock_out.nil?
+    "working"
+  else
+    "off"
+  end
 
 
         { user: user, state: state }

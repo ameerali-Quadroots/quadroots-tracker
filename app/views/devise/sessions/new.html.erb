@@ -5,7 +5,7 @@
     <h2 class="text-center mb-3">Welcome Back</h2>
     <p class="text-muted text-center">Sign in to your account</p>
 
-    <%= form_with scope: :user, url: session_path(:user), class: "mt-4 w-100" do |f| %>
+    <%= form_with scope: :user, url: session_path(:user), class: "mt-4 w-100", local: true do |f| %>
       <div class="mb-3">
         <%= f.label :email, class: "form-label" %>
         <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control" %>

@@ -11,7 +11,7 @@ class EditRequest < ApplicationRecord
 
 
  def self.ransackable_attributes(auth_object = nil)
-    ["request_type","approved_by_admin","approved_by_manager", "created_at", "department", "email", "id", "id_value", "manager_note",  "reason", "requested_clock_in", "resolved_at", "status", "time_clock_id", "updated_at", "user_id"]
+    ["request_type","approved_by_admin","approved_by_manager", "created_at", "department", "email", "id", "id_value", "manager_note", "break_reason" , "reason", "requested_clock_in", "resolved_at", "status", "time_clock_id", "updated_at", "user_id"]
   end
 
 def self.ransackable_associations(auth_object = nil)

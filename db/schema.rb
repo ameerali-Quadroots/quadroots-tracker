@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_09_17_152243) do
+ActiveRecord::Schema[7.1].define(version: 2025_09_25_201416) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -66,6 +66,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_17_152243) do
     t.string "request_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "break_reason"
     t.index ["time_clock_id"], name: "index_edit_requests_on_time_clock_id"
     t.index ["user_id"], name: "index_edit_requests_on_user_id"
   end

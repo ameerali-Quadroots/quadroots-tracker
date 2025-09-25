@@ -20,6 +20,11 @@ ActiveAdmin.register EditRequest do
     column :email do |name|
       name.user.email
     end
+    column :department do |dep|
+      dep.user.department
+    end
+    column :request_type    
+    column :break_reason    
     column :requested_clock_in do |r|
       r.requested_clock_in&.strftime("%b %d, %Y %I:%M %p")
     end
@@ -41,6 +46,7 @@ ActiveAdmin.register EditRequest do
   else
     status_tag "No", class: "error"   # ❌ Red
   end
+
 end
 
 
@@ -115,6 +121,7 @@ end
     f.semantic_errors
     f.inputs "Edit Request Details" do
       f.input :time_clock
+      f.input :break_reason
      f.input :requested_clock_in, as: :datetime_picker
       f.input :reason
       f.input :status, as: :select, collection: %w[pending approved rejected]
@@ -125,14 +132,20 @@ end
 
   # ✅ Custom Approve action
   member_action :approve, method: :patch do
-    if resource.requested_clock_in.present?
-      if resource.time_clock.present?
+    if resource.requested_clock_in.present? 
+      if resource.time_clock.present? && resource.request_type == "Clock tower not working"
         resource.time_clock.update(clock_in: resource.requested_clock_in, status: "on_time" )
       end
+      if resource.time_clock.present? && resource.request_type == "Forgot to end break"  || resource.request_type == "Forgot to add break"
+        resource.time_clock.breaks.where(break_type: resource.break_reason).update(break_out: resource.requested_clock_in)
+        
+     end
+
 
       resource.update(status: "approved", resolved_at: Time.current, approved_by_admin: true)
       redirect_to resource_path, notice: "Request approved and time clock updated."
     else
+
       redirect_to resource_path, alert: "No requested clock-in time present."
     end
   end
