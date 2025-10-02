@@ -1,0 +1,98 @@
+<%# --- Calculate shift range as a local variable --- %>
+<%
+now = Time.zone.now
+if now.hour < 3
+  shift_start = (now - 1.day).change(hour: 17, min: 45)
+  shift_end = now.change(hour: 3)
+else
+  shift_start = now.change(hour: 17, min: 45)
+  shift_end = (now + 1.day).change(hour: 3)
+end
+shift_range = shift_start..shift_end
+%>
+
+<h2>Live Current State of Users by Department</h2>
+
+<% if departments.empty? %>
+  <div style="padding: 15px; text-align:center; color: #888;">
+    No departments found.
+  </div>
+<% else %>
+  <%# Prepare user states grouped by department %>
+  <%
+    current_states_by_department = {}
+
+    departments.each do |dept|
+      users = User.includes(time_clocks: :breaks).where(department: dept)
+      states = users.map do |user|
+        last_clock = user.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
+
+        state =
+          if last_clock.nil?
+            "off"
+          elsif last_clock.breaks.where(break_out: nil).exists?
+            last_break = last_clock.breaks.where(break_out: nil).last
+            case last_break.break_type
+            when "Meeting"
+              "meeting"
+            when "Downtime"
+              "downtime"
+            else
+              "on_break"
+            end
+          elsif last_clock.clock_out.nil?
+            "working"
+          else
+            "off"
+          end
+
+        { user: user, state: state }
+      end
+
+      current_states_by_department[dept] = states
+    end
+  %>
+
+  <%# Render departments in groups of 4 side-by-side %>
+  <% departments.each_slice(4) do |dept_group| %>
+    <div style="display: flex; gap: 30px; justify-content: space-between; margin-bottom: 30px;">
+      <% dept_group.each do |dept| %>
+        <% states = current_states_by_department[dept] || [] %>
+        <div style="flex: 1;" class="">
+          <h3><%= dept.upcase %> Department (<%= states.size %> users)</h3>
+
+          <% if states.empty? %>
+            <p>No users found in this department.</p>
+          <% else %>
+            <table class="index_table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; border-bottom: 1px solid #ccc;">User</th>
+                  <th style="text-align:left; border-bottom: 1px solid #ccc;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% states.each do |row| %>
+                  <tr>
+                    <td style="padding: 8px 4px; border-bottom: 1px solid #eee;">
+                      <%= link_to row[:user].name, admin_user_path(row[:user]) %>
+                    </td>
+                    <td style="padding: 8px 4px; border-bottom: 1px solid #eee;">
+                      <span class="status_tag <%= case row[:state]
+                        when "working" then "ok"
+                        when "on_break", "meeting", "downtime" then "warning"
+                        else "error"
+                      end %>">
+                        <%= row[:state].titleize %>
+                      </span>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

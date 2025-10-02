@@ -33,7 +33,7 @@ ActiveAdmin.register User do
           f.input :email
           f.input :phone_number
           f.input :address
-          f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'CORE'], prompt: "Select Department"
+          f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'Executive Board', "HOD'S"], prompt: "Select Department"
           f.input :role, as: :select, collection: User.roles.keys,
           input_html: { class: "dropdown", style: "width:50%"}
           f.input :shift_time

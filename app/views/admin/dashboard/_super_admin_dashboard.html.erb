@@ -1,0 +1,1 @@
+  <%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>

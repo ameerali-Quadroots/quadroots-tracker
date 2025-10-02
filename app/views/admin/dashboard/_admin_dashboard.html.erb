@@ -1,0 +1,8 @@
+departments_to_show =
+  if current_admin_user.department == "HOD'S"
+    %w[WEB SEO ADS CONTENT]
+  else
+    [current_admin_user.department].compact
+  end
+
+render partial: "admin/dashboard/live_state", locals: { departments: departments_to_show }

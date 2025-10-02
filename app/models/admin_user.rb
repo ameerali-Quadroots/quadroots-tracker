@@ -4,6 +4,7 @@ class AdminUser < ApplicationRecord
   # Devise modules
   devise :database_authenticatable, 
          :recoverable, :rememberable, :validatable
+  validates :password, presence: true, confirmation: true, if: :password_required?
 
   # Role check helpers (recommended style)
   def super_admin?
@@ -20,6 +21,10 @@ class AdminUser < ApplicationRecord
 
   def qa_admin?
     role == 'qa_admin'
+  end
+
+     def password_required?
+    new_record? || password.present?
   end
 
   # For ransack gem (if used in admin dashboards like ActiveAdmin)

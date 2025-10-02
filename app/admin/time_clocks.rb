@@ -1,11 +1,18 @@
 ActiveAdmin.register TimeClock do
 
-controller do
-  def scoped_collection
-    super.joins(:user) # joins the users table so 'users.name' is available for sorting
-  end
-end
+  controller do
+    def scoped_collection
+      scope = super.joins(:user)
 
+      if current_admin_user.super_admin?
+        scope
+      elsif current_admin_user.department&.upcase == "HOD'S"
+        scope.where(users: { department: %w[WEB SEO ADS CONTENT] })
+      else
+        scope.where(users: { department: current_admin_user.department })
+      end
+    end
+  end
 
   belongs_to :user, optional: true
 
@@ -23,18 +30,20 @@ end
          multiple: true,
          input_html: { class: 'select2-filter' },
          collection: -> {
-           TimeClock.joins(:user)
-                    .distinct
-                    .pluck('users.department')
-                    .compact
-                    .uniq
-                    .sort
+           if current_admin_user.super_admin?
+             TimeClock.joins(:user).distinct.pluck('users.department').compact.uniq.sort
+           elsif current_admin_user.department&.upcase == "HOD'S"
+             %w[WEB SEO ADS CONTENT]
+           else
+             [current_admin_user.department]
+           end
          }
 
   filter :clock_in
   filter :clock_out
   filter :status, as: :select, collection: -> { TimeClock.distinct.pluck(:status).compact }
   filter :current_state, as: :select, collection: -> { TimeClock.distinct.pluck(:current_state).compact }
+
   # Export as XLSX
   collection_action :export_xlsx do
     require 'caxlsx'
@@ -46,7 +55,7 @@ end
     workbook = package.workbook
 
     workbook.add_worksheet(name: "Timeclocks") do |sheet|
-      sheet.add_row ["Date","User", "Department", "IP Address", "Clock In", "Clock Out", "Break Duration", "Total Duration", "Status"]
+      sheet.add_row ["Date", "User", "Department", "IP Address", "Clock In", "Clock Out", "Break Duration", "Total Duration", "Status"]
       timeclocks.find_each do |tc|
         sheet.add_row [
           tc.clock_in&.strftime("%d-%m-%Y"),
@@ -75,8 +84,8 @@ end
   index do
     selectable_column
     column "User", sortable: 'users.name' do |tc|
-  tc.user&.name
-end
+      tc.user&.name
+    end
     column "Department" do |tc|
       tc.user&.department&.upcase || "N/A"
     end
@@ -141,10 +150,10 @@ end
       tc.formatted_break_duration
     end
 
-column "Downtime Duration" do |tc|
+    column "Downtime Duration" do |tc|
       tc.calculate_downtime
     end
-    
+
     # Duplicate IP logic
     shift_start = if Time.current.hour >= 17
                     Time.current.change(hour: 17, min: 45)
