@@ -23,7 +23,11 @@
             <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
               <i class="bi bi-box-arrow-in-right"></i> Clock In
             <% end %>
-          </div>
+              <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+  Request Clock-In Edit
+</button>
+            </div>
+         
 
         <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
         <% end_text =

@@ -47,8 +47,8 @@ $text-color: #181127;
   height: 500px;
   overflow: auto;
 }
-#sidebar:hover {
-  right: 0 !important;
+#sidebar.active {
+  right: 0 !important; /* Show when toggled */
 }
 .height-class3{
   height: 200px;
@@ -121,4 +121,17 @@ $text-color: #181127;
 }
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove{
   top: 4px !important;
+}
+
+.select2-container--default .select2-selection--multiple {
+  min-height: 36px; // Adjust as needed
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.select2-container--default .select2-selection--multiple .select2-search--inline .select2-search__field {
+  height: 24px !important;     // Fixes height of the inline search input
+  min-height: 24px !important;
+  line-height: 24px !important;
+  font-size: 14px;
 }

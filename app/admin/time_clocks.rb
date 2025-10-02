@@ -1,4 +1,12 @@
 ActiveAdmin.register TimeClock do
+
+controller do
+  def scoped_collection
+    super.joins(:user) # joins the users table so 'users.name' is available for sorting
+  end
+end
+
+
   belongs_to :user, optional: true
 
   permit_params :user_id, :clock_in, :clock_out, :total_duration, :status, :break_duration, :current_state,
@@ -38,16 +46,18 @@ ActiveAdmin.register TimeClock do
     workbook = package.workbook
 
     workbook.add_worksheet(name: "Timeclocks") do |sheet|
-      sheet.add_row ["User", "Department", "IP Address", "Clock In", "Clock Out", "Break Duration", "Total Duration"]
+      sheet.add_row ["Date","User", "Department", "IP Address", "Clock In", "Clock Out", "Break Duration", "Total Duration", "Status"]
       timeclocks.find_each do |tc|
         sheet.add_row [
+          tc.clock_in&.strftime("%d-%m-%Y"),
           tc.user&.name,
           tc.user&.department,
           tc.ip_address,
           tc.clock_in&.strftime("%I:%M %p"),
           tc.clock_out&.strftime("%I:%M %p"),
           tc.formatted_break_duration,
-          tc.formatted_duration(tc.total_duration)
+          tc.formatted_duration(tc.total_duration),
+          tc.status
         ]
       end
     end
@@ -64,7 +74,9 @@ ActiveAdmin.register TimeClock do
   # Index Page
   index do
     selectable_column
-    column :user
+    column "User", sortable: 'users.name' do |tc|
+  tc.user&.name
+end
     column "Department" do |tc|
       tc.user&.department&.upcase || "N/A"
     end

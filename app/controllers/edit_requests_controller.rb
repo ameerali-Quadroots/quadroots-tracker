@@ -4,7 +4,6 @@ class EditRequestsController < ApplicationController
 
   def create
     @edit_request = current_user.edit_requests.new(edit_request_params)
-    email = User.where(department: @edit_request.department, role: "Manager")
 
     if @edit_request.save
         EditRequestMailer.new_request_notification(@edit_request).deliver_later

@@ -1,6 +1,6 @@
 ActiveAdmin.register User do
 
-    permit_params :name, :email, :phone_number, :address, :password, :password_confirmation, :role, :department
+    permit_params :name, :email, :phone_number, :address, :password, :password_confirmation, :role, :department, :shift_time
   
     filter :name
     filter :email
@@ -36,6 +36,7 @@ ActiveAdmin.register User do
           f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'CORE'], prompt: "Select Department"
           f.input :role, as: :select, collection: User.roles.keys,
           input_html: { class: "dropdown", style: "width:50%"}
+          f.input :shift_time
           f.input :password
           f.input :password_confirmation
         end
@@ -44,6 +45,9 @@ ActiveAdmin.register User do
 
 
       
+action_item :view_time_clocks, only: :show do
+  link_to 'View Time Clocks', admin_user_time_clocks_path(resource)
+end
 
   end
   
