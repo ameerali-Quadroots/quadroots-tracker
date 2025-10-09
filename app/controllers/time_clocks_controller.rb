@@ -39,7 +39,7 @@ class TimeClocksController < ApplicationController
   end
 
   # Late threshold: 16 minutes after actual shift start
-  late_time = shift_start + 16.minutes
+  late_time = shift_start + 1.minutes
   status = now > late_time ? "late" : "on_time"
 
   current_user.time_clocks.create!(

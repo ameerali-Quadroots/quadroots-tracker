@@ -4,7 +4,7 @@ ActiveAdmin.register TimeClock do
     def scoped_collection
       scope = super.joins(:user)
 
-      if current_admin_user.super_admin?
+      if current_admin_user.super_admin? || current_admin_user.qa_admin?
         scope
       elsif current_admin_user.department&.upcase == "HOD'S"
         scope.where(users: { department: %w[WEB SEO ADS CONTENT] })
@@ -30,7 +30,7 @@ ActiveAdmin.register TimeClock do
          multiple: true,
          input_html: { class: 'select2-filter' },
          collection: -> {
-           if current_admin_user.super_admin?
+           if current_admin_user.super_admin? || current_admin_user.qa_admin?
              TimeClock.joins(:user).distinct.pluck('users.department').compact.uniq.sort
            elsif current_admin_user.department&.upcase == "HOD'S"
              %w[WEB SEO ADS CONTENT]

@@ -1,3 +1,4 @@
+
 <%# --- Calculate shift range as a local variable --- %>
 <%
 now = Time.zone.now
@@ -11,7 +12,6 @@ end
 shift_range = shift_start..shift_end
 %>
 
-<h2>Live Current State of Users by Department</h2>
 
 <% if departments.empty? %>
   <div style="padding: 15px; text-align:center; color: #888;">
@@ -55,7 +55,7 @@ shift_range = shift_start..shift_end
 
   <%# Render departments in groups of 4 side-by-side %>
   <% departments.each_slice(4) do |dept_group| %>
-    <div style="display: flex; gap: 30px; justify-content: space-between; margin-bottom: 30px;">
+    <div class="height-class3" style="display: flex; gap: 30px; justify-content: space-between; margin-bottom: 30px;">
       <% dept_group.each do |dept| %>
         <% states = current_states_by_department[dept] || [] %>
         <div style="flex: 1;" class="">
@@ -71,7 +71,7 @@ shift_range = shift_start..shift_end
                   <th style="text-align:left; border-bottom: 1px solid #ccc;">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody class="">
                 <% states.each do |row| %>
                   <tr>
                     <td style="padding: 8px 4px; border-bottom: 1px solid #eee;">

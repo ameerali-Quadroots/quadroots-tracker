@@ -14,8 +14,6 @@ class Ability
       can :read, :all
       cannot :manage, AdminUser
       cannot :manage, EditRequest
-      can :manage ,:all
-
     when "admin"
       can :read, :all
       cannot :manage, User
@@ -26,7 +24,7 @@ class Ability
       can :read, :all
       cannot :manage, User
       cannot :manage, AdminUser
-      can :manage, EditRequest
+      cannot :manage, EditRequest
     else
       can :read, :all
     end

@@ -11,6 +11,7 @@ ActiveAdmin.register User do
     filter :time_clocks_clock_out
     filter :time_clocks_created_at
     filter :department
+    filter :role
   
 
     index do
@@ -18,8 +19,8 @@ ActiveAdmin.register User do
       
       column :name
       column :email
-      column :created_at
-      column :updated_at
+      column :department
+      column :role
       
       actions defaults: true do |user|
         link_to "View Timesheets", admin_user_time_clocks_path(user), class: "member_link"

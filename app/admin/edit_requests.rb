@@ -57,7 +57,7 @@ end
       r.resolved_at ? r.resolved_at.strftime("%b %d, %Y %I:%M %p") : "-"
     end
 
-    actions defaults: false do |r|
+    actions defaults: true do |r|
       if !r.approved_by_admin
         span do
           link_to "✅ Approve", approve_admin_edit_request_path(r), method: :patch,
@@ -100,20 +100,20 @@ end
       row :resolved_at
     end
 
-    if !resource.approved_by_admin
-      panel "Actions" do
-        div class: "action-buttons" do
-          span do
-            link_to "✅ Approve", approve_admin_edit_request_path(resource), method: :patch,
-              class: "button green", data: { confirm: "Approve this request?" }
-          end
-          span do
-            link_to "❌ Reject", reject_admin_edit_request_path(resource), method: :patch,
-              class: "button red", data: { confirm: "Reject this request?" }
-          end
-        end
-      end
-    end
+    # if !resource.approved_by_admin
+    #   panel "Actions" do
+    #     div class: "action-buttons" do
+    #       span do
+    #         link_to "✅ Approve", approve_admin_edit_request_path(resource), method: :patch,
+    #           class: "button green", data: { confirm: "Approve this request?" }
+    #       end
+    #       span do
+    #         link_to "❌ Reject", reject_admin_edit_request_path(resource), method: :patch,
+    #           class: "button red", data: { confirm: "Reject this request?" }
+    #       end
+    #     end
+    #   end
+    # end
   end
 
   # ✅ Form (create/edit)
@@ -143,16 +143,16 @@ end
 
 
       resource.update(status: "approved", resolved_at: Time.current, approved_by_admin: true)
-      redirect_to resource_path, notice: "Request approved and time clock updated."
+      redirect_to collection_path, notice: "Request approved and time clock updated."
     else
 
-      redirect_to resource_path, alert: "No requested clock-in time present."
+      redirect_to collection_path, alert: "No requested clock-in time present."
     end
   end
 
   # ✅ Custom Reject action
   member_action :reject, method: :patch do
     resource.update(status: "rejected", resolved_at: Time.current)
-    redirect_to resource_path, notice: "Request rejected."
+    redirect_to collection_path, notice: "Request rejected."
   end
 end

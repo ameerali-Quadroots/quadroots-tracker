@@ -2,9 +2,12 @@ ActiveAdmin.register_page "Dashboard" do
   content do
     div do
       raw "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
+      raw "<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css' rel='stylesheet'>"
+      raw "<script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'></script>"
     end
+  
 
-    if current_admin_user.super_admin?
+    if current_admin_user.super_admin? || current_admin_user.qa_admin?
       panel "Live Current State of Users by Department", class: "height-class2" do
         render partial: 'admin/dashboard/super_admin_dashboard', locals: { current_admin_user: current_admin_user }
       end

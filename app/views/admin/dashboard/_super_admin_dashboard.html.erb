@@ -1,1 +1,55 @@
+  
+      <%
+  start_time = Time.zone.now.beginning_of_day
+  end_time = Time.zone.now.end_of_day
+
+  @late_time_clocks = TimeClock.where(clock_in: start_time..end_time, status: 'late')
+  @on_time_time_clocks = TimeClock.where(clock_in: start_time..end_time, status: 'on_time')
+  %>
+ <div class="container mt-5">
+  <h2 class="mb-4">Time Clock Summary for <%= Time.zone.today.strftime('%B %d, %Y') %></h2>
+
+  <div class="row">
+    <!-- Late Card -->
+    <div class="col-md-6">
+      <a href="<%= admin_time_clocks_url(
+                  q: {
+                    clock_in_gteq: Date.today,
+                    clock_in_lteq: Date.today + 1,
+                    status_eq: 'late'
+                  },
+                  commit: 'Filter',
+                  order: 'id_desc'
+                ) %>" class="text-decoration-none">
+        <div class="card text-white bg-danger mb-3 shadow-sm" style="cursor: pointer;">
+          <div class="card-body text-center">
+            <h3 class="card-title"><%= @late_count %></h3>
+            <p class="card-text">Users Late Today</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- On Time Card -->
+    <div class="col-md-6">
+      <a href="<%= admin_time_clocks_url(
+                  q: {
+                    clock_in_gteq: Date.today,
+                    clock_in_lteq: Date.today + 1,
+                    status_eq: 'on_time'
+                  },
+                  commit: 'Filter',
+                  order: 'id_desc'
+                ) %>" class="text-decoration-none">
+        <div class="card text-white bg-success mb-3 shadow-sm" style="cursor: pointer;">
+          <div class="card-body text-center">
+            <h3 class="card-title"><%= @on_time_count %></h3>
+            <p class="card-text">Users On Time Today</p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
   <%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
+
