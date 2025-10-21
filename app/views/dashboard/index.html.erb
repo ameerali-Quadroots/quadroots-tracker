@@ -64,7 +64,16 @@
                             Request Clock-In Edit
                         </button>
                     </div>
-
+     <div class="d-flex align-items-center gap-3 mt-4">
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            <i class="bi bi-calendar-check"></i> Request Leave
+                        </button>
+                        <% if current_user.role == "Manager"%>
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+                            <i class="bi bi-person-plus"></i> Request Leave for Executive
+                        </button>
+                        <%end%>
+                    </div>
 
                     <% else %>
                     <div class="d-flex align-items-center gap-3">
@@ -91,6 +100,16 @@
                             </ul>
                         </div>
 
+                    </div>
+                         <div class="d-flex align-items-center gap-3 mt-4">
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            <i class="bi bi-calendar-check"></i> Request Leave
+                        </button>
+                        <% if current_user.role == "Manager"%>
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+                            <i class="bi bi-person-plus"></i> Request Leave for Executive
+                        </button>
+                        <%end%>
                     </div>
                     <% end %>
                 </div>
@@ -274,7 +293,7 @@
                 <div class="mb-3">
                     <%= f.label :leave_type, "Leave Type" %>
                     <%= f.select :leave_type, 
-                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"]]), 
+                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"], ["Maternity Leave", "maternity"]]), 
                   { include_blank: "Select Leave Type" }, 
                   class: "form-control", required: true %>
                 </div>
@@ -370,13 +389,13 @@
 
         // Calculate yesterday by subtracting 1 day (24 * 60 * 60 * 1000 ms)
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        flatpickr(".datetime-field", {
-            enableTime: true,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: false,
-            minDate: yesterday //
-        });
-
+       flatpickr(".datetime-field", {
+  enableTime: true,
+  dateFormat: "Y-m-d h:i K", // 12-hour format with AM/PM
+  time_24hr: false,          // Use 12-hour time
+  allowInput: true,          // Allow manual input
+  minuteIncrement: 1         // Allow minute-level precision
+});
 
         const requestTypeSelect = document.getElementById("edit_request_request_type");
         const breakReasonContainer = document.getElementById("break_reason_container");

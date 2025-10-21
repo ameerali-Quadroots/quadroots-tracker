@@ -18,8 +18,8 @@ class TimeClocksController < ApplicationController
   shift_end_yesterday   = shift_start_yesterday + 9.hours
 
   # Allow clock-in 15 minutes before shift starts
-  early_start_today     = shift_start_today - 15.minutes
-  early_start_yesterday = shift_start_yesterday - 15.minutes
+  early_start_today     = shift_start_today - 30.minutes
+  early_start_yesterday = shift_start_yesterday - 30.minutes
 
   if (early_start_yesterday..shift_end_yesterday).cover?(now)
     shift_start = shift_start_yesterday
@@ -33,6 +33,7 @@ class TimeClocksController < ApplicationController
   end
 
   # Prevent duplicate clock-in
+  prevent_duplicate = shift_start - 30.minutes
   if current_user.time_clocks.where(clock_in: shift_start..shift_end).exists?
     redirect_to root_path, alert: "You have already clocked in for this shift."
     return
