@@ -1,36 +1,49 @@
 <div class="container py-4">
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold">Dashboard</h3>
-<% server_time = Time.current %>
-<span class="text-muted">
-  Today: <span id="live-clock" data-server-time="<%= server_time.iso8601 %>"></span>
-</span>  </div>
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Dashboard</h3>
+        <% server_time = Time.current %>
+        <span class="text-muted">
+            Today: <span id="live-clock" data-server-time="<%= server_time.iso8601 %>"></span>
+        </span>
+    </div>
 
-  <!-- Greeting -->
-  <h5 class="mb-4">Hello, <%= current_user.name || "Admin User" %></h5>
+    <!-- Greeting -->
+    <h5 class="mb-4">Hello, <%= current_user.name || "Admin User" %></h5>
 
-  <div class="row g-4">
-  <!-- Current Status Card -->
-  <div class="col-md-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h6 class="fw-bold mb-3">Current Status</h6>
+    <div class="row g-4">
+        <!-- Current Status Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Current Status</h6>
 
-        <% if @time_clock.nil? || @time_clock.clock_out.present? %>
-          <div class="d-flex align-items-center gap-3">
-            <p class="badge bg-secondary fs-4 mb-0">Not Clocked In</p>
-            <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
-              <i class="bi bi-box-arrow-in-right"></i> Clock In
-            <% end %>
-              <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
-  Request Clock-In Edit
-</button>
-            </div>
-         
+                    <% if @time_clock.nil? || @time_clock.clock_out.present? %>
+                    <div class="d-flex align-items-center gap-3">
+                        <p class="badge bg-secondary fs-4 mb-0">Not Clocked In</p>
+                        <%= button_to clock_in_path, method: :post, class: "btn btn-success px-4" do %>
+                        <i class="bi bi-box-arrow-in-right"></i> Clock In
+                        <% end %>
+                        <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+                            Request Clock-In Edit
+                        </button>
+                    </div>
 
-        <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
-        <% end_text =
+                    <div class="d-flex align-items-center gap-3 mt-4">
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            <i class="bi bi-calendar-check"></i> Request Leave
+                        </button>
+                        <% if current_user.role == "Manager"%>
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+                            <i class="bi bi-person-plus"></i> Request Leave for Executive
+                        </button>
+                        <%end%>
+                    </div>
+
+
+
+                    <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
+                    <% end_text =
         case @time_clock.current_state
         when "Downtime"
           "End downtime"
@@ -40,389 +53,486 @@
           "End break"
         end
         %>
-          <div class="d-flex align-items-center gap-3">
-            <p class="badge bg-warning text-light fs-4 mb-0"><%= @time_clock.current_state %></p>
-            <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
+                    <div class="d-flex align-items-center gap-3">
+                        <p class="badge bg-warning text-light fs-4 mb-0"><%= @time_clock.current_state %></p>
+                        <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
               method: :post,
               class: "btn btn-primary" do %>
-              <i class="bi bi-play-circle"></i> <%= end_text %>
-            <% end %>
-             <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
-  Request Clock-In Edit
-</button>
-          </div>
-         
+                        <i class="bi bi-play-circle"></i> <%= end_text %>
+                        <% end %>
+                        <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+                            Request Clock-In Edit
+                        </button>
+                    </div>
 
-        <% else %>
-          <div class="d-flex align-items-center gap-3">
-            <p class="badge bg-success fs-4 mb-0">Working</p>
-            <div class="dropdown">
-  <button class="btn btn-warning dropdown-toggle" type="button" id="breakDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="bi bi-pause-circle"></i> Pause Work
-  </button>
 
-  <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
-  Request Clock-In Edit
-</button>
- <ul class="dropdown-menu" aria-labelledby="breakDropdown">
-  <% ["Meal Break - 40 Minutes ","Second Break - 30 minutes", "Meeting", "Extra Break", "Downtime"].each do |break_type| %>
-    <li style="list-style: none;">
-      <%= button_to break_in_time_clock_breaks_path(@time_clock, break_type: break_type), 
+                    <% else %>
+                    <div class="d-flex align-items-center gap-3">
+                        <p class="badge bg-success fs-4 mb-0">Working</p>
+                        <div class="dropdown">
+                            <button class="btn btn-warning dropdown-toggle" type="button" id="breakDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-pause-circle"></i> Pause Work
+                            </button>
+
+                            <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+                                Request Clock-In Edit
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="breakDropdown">
+                                <% ["Meal Break - 40 Minutes ","Second Break - 30 minutes", "Meeting", "Extra Break", "Downtime"].each do |break_type| %>
+                                <li style="list-style: none;">
+                                    <%= button_to break_in_time_clock_breaks_path(@time_clock, break_type: break_type), 
                     method: :post, 
                     form_class: "dropdown-item", 
                     class: "dropdown-item bg-white text-start border-0 w-100" do %>
-        <%= break_type %>
-      <% end %>
-    </li>
-  <% end %>
-</ul>
-</div>
-            
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </div>
-    <!-- Today's Summary -->
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <h6 class="fw-bold mb-3">Today's Summary</h6>
-          <p><strong>Clock In:</strong> <%= @time_clock&.clock_in&.strftime("%I:%M %p") || "--:--" %></p>
-          <p><strong>Clock Out:</strong> <%= @time_clock&.clock_out&.strftime("%I:%M %p") || "--:--" %></p>
-          <p><strong>Total Break Time:</strong> <%= @time_clock&.formatted_duration(@time_clock.break_duration) || "0 min" %></p>
-          <p><strong>Total DownTime:</strong> <%= @time_clock&.calculate_downtime() || "0 min" %></p>
-          <p><strong>Total Working Duration:</strong> <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "-:-" %></p>
-          <p><strong>Total Working Hours:</strong>
-            <% if @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
-              <span id="clock-duration">Loading...</span>
-<div id="clock-in-time" 
-     data-clock-in-time="<%= @time_clock.clock_in.iso8601 %>" 
-     data-break-seconds="<%= @time_clock.total_break_seconds %>" 
-     data-on-break="<%= @time_clock.on_break? %>"
-     hidden></div>        <% else %>
-              <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "0h 0m" %>
-            <% end %>
-          </p>
+                                    <%= break_type %>
+                                    <% end %>
+                                </li>
+                                <% end %>
+                            </ul>
+                        </div>
 
-          <!-- Breaks List -->
-          <% if @time_clock&.breaks.present? %>
-            <hr>
-            <h6 class="fw-bold">Breaks</h6>
-            <ul class="list-group">
-              <% @time_clock.breaks.order(:break_in).each_with_index do |b, i| %>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span>
-            <strong>Break <%= i + 1 %>:</strong> 
-            <%= b.break_in&.strftime("%H:%M") || "--:--" %> 
-            - 
-            <%= b.break_out&.strftime("%H:%M") || "In Progress" %>
-          </span>
-          <span class="badge bg-light text-dark">
-            <%= b.duration > 0 ? "#{(b.duration / 60).round(1)} min" : "--" %>
-          </span>
-          <span class="badge bg-light text-dark">
-            <%= b.break_type  %>
-          </span>
-        </li>
-      <% end %>
-            </ul>
-          <% end %>
+                    </div>
+                    <% end %>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
+        <!-- Today's Summary -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Today's Summary</h6>
+                    <p><strong>Clock In:</strong> <%= @time_clock&.clock_in&.strftime("%I:%M %p") || "--:--" %></p>
+                    <p><strong>Clock Out:</strong> <%= @time_clock&.clock_out&.strftime("%I:%M %p") || "--:--" %></p>
+                    <p><strong>Total Break Time:</strong> <%= @time_clock&.formatted_duration(@time_clock.break_duration) || "0 min" %></p>
+                    <p><strong>Total DownTime:</strong> <%= @time_clock&.calculate_downtime() || "0 min" %></p>
+                    <p><strong>Total Working Duration:</strong> <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "-:-" %></p>
+                    <p><strong>Total Working Hours:</strong>
+                        <% if @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
+                        <span id="clock-duration">Loading...</span>
+                    <div id="clock-in-time" data-clock-in-time="<%= @time_clock.clock_in.iso8601 %>" data-break-seconds="<%= @time_clock.total_break_seconds %>" data-on-break="<%= @time_clock.on_break? %>" hidden></div> <% else %>
+                    <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "0h 0m" %>
+                    <% end %>
+                    </p>
 
-  <!-- Timesheets -->
- <div class="row g-4 mt-4">
-    <!-- Timesheets -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body height-315">
-          <h6 class="fw-bold"> This Week Timesheets</h6>
-          <div class="table-responsive mt-4">
-            <table class="table table-hover table-striped align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Date</th>
-                  <th>Clock In</th>
-                  <th>Clock Out</th>
-                  <th>Duration</th>
-                  <th>Break</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if @time_clocks.present? %>
-                  <% @time_clocks.each do |tc| %>
-                    <tr>
-                      <td><%= tc.clock_in.strftime("%A, %d %b %Y") if tc.clock_in %></td>
-                      <td><%= tc.clock_in.strftime("%I:%M %p") if tc.clock_in %></td>
-                      <td><%= tc.clock_out.strftime("%I:%M %p") if tc.clock_out %></td>
-                      <td><%= tc.formatted_duration(tc.total_duration) %></td>
-                      <td><%= tc.formatted_duration(tc.break_duration) %></td>
-                      <td>
-                        <% if tc.status == "late" %>
-                          <span class="badge bg-danger">Late</span>
-                        <% elsif tc.status == "on_time" %>
-                          <span class="badge bg-success">On Time</span>
-                        <% else %>
-                          <span class="badge bg-secondary">N/A</span>
+                    <!-- Breaks List -->
+                    <% if @time_clock&.breaks.present? %>
+                    <hr>
+                    <h6 class="fw-bold">Breaks</h6>
+                    <ul class="list-group">
+                        <% @time_clock.breaks.order(:break_in).each_with_index do |b, i| %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <strong>Break <%= i + 1 %>:</strong>
+                                <%= b.break_in&.strftime("%H:%M") || "--:--" %>
+                                -
+                                <%= b.break_out&.strftime("%H:%M") || "In Progress" %>
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <%= b.duration > 0 ? "#{(b.duration / 60).round(1)} min" : "--" %>
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <%= b.break_type  %>
+                            </span>
+                        </li>
                         <% end %>
-                      </td>
-                    </tr>
-                  <% end %>
-                <% else %>
-                  <tr>
-                    <td colspan="6" class="text-center text-muted">No records found</td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
+                    </ul>
+                    <% end %>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Calendar -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h6 class="fw-bold">Calendar</h6>
-          <div id="calendar" class="calendar"></div>
+    <!-- Timesheets -->
+    <div class="row g-4 mt-4">
+        <!-- Timesheets -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body height-315">
+                    <h6 class="fw-bold"> This Week Timesheets</h6>
+                    <div class="table-responsive mt-4">
+                        <table class="table table-hover table-striped align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Duration</th>
+                                    <th>Break</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if @time_clocks.present? %>
+                                <% @time_clocks.each do |tc| %>
+                                <tr>
+                                    <td><%= tc.clock_in.strftime("%A, %d %b %Y") if tc.clock_in %></td>
+                                    <td><%= tc.clock_in.strftime("%I:%M %p") if tc.clock_in %></td>
+                                    <td><%= tc.clock_out.strftime("%I:%M %p") if tc.clock_out %></td>
+                                    <td><%= tc.formatted_duration(tc.total_duration) %></td>
+                                    <td><%= tc.formatted_duration(tc.break_duration) %></td>
+                                    <td>
+                                        <% if tc.status == "late" %>
+                                        <span class="badge bg-danger">Late</span>
+                                        <% elsif tc.status == "on_time" %>
+                                        <span class="badge bg-success">On Time</span>
+                                        <% else %>
+                                        <span class="badge bg-secondary">N/A</span>
+                                        <% end %>
+                                    </td>
+                                </tr>
+                                <% end %>
+                                <% else %>
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No records found</td>
+                                </tr>
+                                <% end %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <!-- Calendar -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="fw-bold">Calendar</h6>
+                    <div id="calendar" class="calendar"></div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 </div>
 <div class="modal fade" id="editRequestModal" tabindex="-1" aria-labelledby="editRequestModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <%= form_with(model: EditRequest.new, url: edit_requests_path, local: true) do |f| %>
-  <div class="modal-header">
-    <h5 class="modal-title">Request Clock-In Edit</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-  </div>
-  <div class="modal-body">
-    <%= f.hidden_field :time_clock_id, value: @time_clock.id if @time_clock.present? %>
-    <%= f.hidden_field :department, value: current_user.department %>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <%= form_with(model: EditRequest.new, url: edit_requests_path, local: true) do |f| %>
+            <div class="modal-header">
+                <h5 class="modal-title">Request Clock-In Edit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <%= f.hidden_field :time_clock_id, value: @time_clock.id if @time_clock.present? %>
+                <%= f.hidden_field :department, value: current_user.department %>
 
 
-        <!-- Dropdown for Request Type -->
-    <div class="mb-3">
-      <%= f.label :request_type, "Select Request Edit Type" %>
-      <%= f.select :request_type, options_for_select([
+                <!-- Dropdown for Request Type -->
+                <div class="mb-3">
+                    <%= f.label :request_type, "Select Request Edit Type" %>
+                    <%= f.select :request_type, options_for_select([
         ['Forgot to end break', 'Forgot to end break'],
         ['Forgot to add break', 'Forgot to add break'],
         ['Clock tower not working', 'Clock tower not working'],
       ]), { include_blank: "Please select..." }, class: "form-control",  required: true  %>
+                </div>
+                <div id="break_reason_container" style="display: none;" class="mt-3 mb-3">
+                    <label for="edit_request_break_reason">Select break</label>
+                    <select class="form-control" name="edit_request[break_reason]" id="edit_request_break_reason">
+                        <option value="">Please select a break...</option>
+                        <option value="Meal Break - 40 Minutes ">Meal Break - 40 Minutes </option>
+                        <option value="Second Break - 30 minutes">Second Break - 30 minutes</option>
+                        <option value="Extra Break">Extra Break</option>
+                    </select>
+                </div>
+
+
+                <div class="mb-3">
+                    <%= f.label :requested_clock_in, "New Clock-In Time/ Break Time / End Time" %>
+                    <%= f.text_field :requested_clock_in, class: "form-control datetime-field", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :reason, "Reason for Request" %>
+                    <%= f.text_area :reason, class: "form-control", rows: 3 ,  required: true  %>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <%= f.submit "Submit Request", class: "btn btn-primary" %>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+            <% end %>
+
+        </div>
     </div>
-      <div id="break_reason_container" style="display: none;" class="mt-3 mb-3">
-        <label for="edit_request_break_reason">Select break</label>
-        <select class="form-control" name="edit_request[break_reason]" id="edit_request_break_reason">
-          <option value="">Please select a break...</option>
-          <option value="Meal Break - 40 Minutes ">Meal Break - 40 Minutes </option>
-          <option value="Second Break - 30 minutes">Second Break - 30 minutes</option>
-          <option value="Extra Break">Extra Break</option>
-        </select>
-      </div>
-
-
-    <div class="mb-3">
-      <%= f.label :requested_clock_in, "New Clock-In Time/ Break Time / End Time" %>
-<%= f.text_field :requested_clock_in, class: "form-control datetime-field", required: true %>
-    </div>
-
-    <div class="mb-3">
-      <%= f.label :reason, "Reason for Request" %>
-      <%= f.text_area :reason, class: "form-control", rows: 3 ,  required: true  %>
-    </div>
-
-
-  </div>
-  <div class="modal-footer">
-    <%= f.submit "Submit Request", class: "btn btn-primary" %>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-  </div>
-<% end %>
-
-    </div>
-  </div>
 </div>
 
+<!-- Leave Request Modal -->
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <%= form_with(model: Leave.new, url: leaves_path, local: true) do |f| %>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="leaveRequestModalLabel">Request Leave</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
+            <div class="modal-body">
+                <div class="mb-3">
+                    <%= f.label :leave_type, "Leave Type" %>
+                    <%= f.select :leave_type, 
+                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"]]), 
+                  { include_blank: "Select Leave Type" }, 
+                  class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :start_date, "Start Date" %>
+                    <%= f.date_field :start_date, class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :end_date, "End Date" %>
+                    <%= f.date_field :end_date, class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :reason, "Reason for Leave" %>
+                    <%= f.text_area :reason, rows: 3, class: "form-control", placeholder: "Enter reason...", required: true %>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <%= f.submit "Submit Leave Request", class: "btn btn-primary" %>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+            <% end %>
+        </div>
+    </div>
+</div>
+
+<% if current_user.role == "Manager"%>
+
+<!-- Request Leave for Executive Modal -->
+<div class="modal fade" id="managerLeaveModal" tabindex="-1" aria-labelledby="managerLeaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <%= form_with(model: Leave.new, url: leaves_path, local: true) do |f| %>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="managerLeaveModalLabel">
+                    Request Leave for Executive
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <%= f.label :user_id, "Select Executive" %>
+                    <%= f.collection_select :user_id, 
+        User.where(role: "Executive", department: current_user.department),
+        :id, :name,
+        { prompt: "Choose Executive" },
+        { class: "form-control", required: true } %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :leave_type, "Leave Type" %>
+                    <%= f.select :leave_type, 
+                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"]]),
+                  { include_blank: "Select Leave Type" },
+                  class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :start_date, "Start Date" %>
+                    <%= f.date_field :start_date, class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :end_date, "End Date" %>
+                    <%= f.date_field :end_date, class: "form-control", required: true %>
+                </div>
+
+                <div class="mb-3">
+                    <%= f.label :reason, "Reason" %>
+                    <%= f.text_area :reason, rows: 3, class: "form-control", placeholder: "Enter reason..." %>
+                    <%= f.hidden_field :approved_by_manager, value: "true" %>
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <%= f.submit "Submit Leave Request", class: "btn btn-primary" %>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+            <% end %>
+        </div>
+    </div>
+</div>
+
+<% end %>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-const today = new Date();
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
 
-// Calculate yesterday by subtracting 1 day (24 * 60 * 60 * 1000 ms)
-const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-flatpickr(".datetime-field", {
-      enableTime: true,
-      dateFormat: "Y-m-d H:i",
-      time_24hr: false,
-      minDate: yesterday  //
+        // Calculate yesterday by subtracting 1 day (24 * 60 * 60 * 1000 ms)
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        flatpickr(".datetime-field", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: false,
+            minDate: yesterday //
+        });
+
+
+        const requestTypeSelect = document.getElementById("edit_request_request_type");
+        const breakReasonContainer = document.getElementById("break_reason_container");
+
+        requestTypeSelect.addEventListener("change", function() {
+            const selectedValue = this.value;
+
+            if (
+                selectedValue === "Forgot to end break" ||
+                selectedValue === "Forgot to add break"
+            ) {
+                breakReasonContainer.style.display = "block";
+            } else {
+                breakReasonContainer.style.display = "none";
+            }
+        });
+
+        const clockInElement = document.getElementById('clock-in-time');
+        const clockDurationElement = document.getElementById('clock-duration');
+
+        if (clockInElement && clockDurationElement) {
+            const clockInDate = new Date(clockInElement.dataset.clockInTime);
+            const totalBreakSeconds = parseInt(clockInElement.dataset.breakSeconds) || 0;
+            const onBreak = clockInElement.dataset.onBreak === "true";
+
+            function updateClockDuration() {
+                if (onBreak) {
+                    clockDurationElement.textContent = "On Break";
+                    return;
+                }
+
+                const now = new Date();
+                const elapsedTime = (now - clockInDate) / 1000; // seconds
+                const workTime = Math.max(elapsedTime - totalBreakSeconds, 0);
+
+                const hours = Math.floor(workTime / 3600);
+                const minutes = Math.floor((workTime % 3600) / 60);
+                const seconds = Math.floor(workTime % 60);
+
+                clockDurationElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            }
+
+            updateClockDuration();
+            setInterval(updateClockDuration, 1000);
+        }
+        const clockElement = document.getElementById("live-clock");
+        const serverTime = new Date(clockElement.dataset.serverTime); // Use server time from data attribute
+        let currentTime = new Date(serverTime.getTime()); // Clone to avoid mutation
+
+        function updateClock() {
+            const year = currentTime.getFullYear();
+            const month = String(currentTime.getMonth() + 1).padStart(2, "0");
+            const day = String(currentTime.getDate()).padStart(2, "0");
+            const hours = String(currentTime.getHours()).padStart(2, "0");
+            const minutes = String(currentTime.getMinutes()).padStart(2, "0");
+            const seconds = String(currentTime.getSeconds()).padStart(2, "0");
+
+            const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            clockElement.textContent = formatted;
+
+            // Increment time by 1 second
+            currentTime.setSeconds(currentTime.getSeconds() + 1);
+        }
+
+        updateClock(); // Show initial time
+        setInterval(updateClock, 1000);
+        const calendarElement = document.getElementById('calendar');
+        const timeClocks = <%= raw @time_clocks_current_month.to_json %> ;
+
+        const generateCalendar = (year, month) => {
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+
+            // Get the day of the week the 1st of the month falls on (0 = Sunday, 6 = Saturday)
+            const firstDayOfWeek = firstDayOfMonth.getDay();
+
+            // Get the current day (for highlighting today's date)
+            const today = new Date();
+            const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // Initialize the calendar HTML
+            let calendarHtml = '<div class="calendar-header">';
+            const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            daysOfWeek.forEach(day => {
+                calendarHtml += `<div class="calendar-day">${day}</div>`;
+            });
+            calendarHtml += '</div>';
+
+            // Start the grid for the calendar cells
+            calendarHtml += '<div class="calendar-grid">';
+
+            // Add empty cells for the days before the 1st day of the month
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                calendarHtml += '<div class="calendar-cell empty"></div>'; // Empty cell for leading days
+            }
+
+            // Generate the actual calendar cells (1 to daysInMonth)
+            let dayOfWeek = firstDayOfWeek; // Start on the correct weekday
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (dayOfWeek === 0 && day !== 1) {
+                    calendarHtml += '</div><div class="calendar-grid">'; // Start a new row after Saturday
+                }
+
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6); // Sunday = 0, Saturday = 6
+
+                const clockEntry = timeClocks.find(tc => {
+                    return tc.clock_in && new Date(tc.clock_in).toISOString().substring(0, 10) === dateString;
+                });
+
+                let className = '';
+
+                if (clockEntry) {
+                    if (clockEntry.status === 'late') {
+                        className = 'calendar-late';
+                    } else if (clockEntry.status === 'on_time') {
+                        className = 'calendar-on-time';
+                    }
+                } else if (!isWeekend) {
+                    className = 'calendar-off'; // Working day with no entry
+                }
+
+                // Grey out future dates
+                const calendarDate = new Date(year, month, day);
+                if (calendarDate > today) {
+                    className = 'calendar-future'; // Override with future date style
+                }
+
+                const todayClass = dateString === todayString ? 'today' : ''; // Add 'today' class if it's the current day
+
+                calendarHtml += `<div class="calendar-cell ${className} ${todayClass}" data-date="${dateString}" style="cursor: pointer;">${day}</div>`;
+                // Move to the next day in the week
+                dayOfWeek = (dayOfWeek + 1) % 7; // Reset to 0 (Sun) after Saturday
+            }
+
+            // Close the last row and calendar grid
+            calendarHtml += '</div>';
+            calendarElement.innerHTML = calendarHtml;
+        };
+
+        const currentDate = new Date();
+        generateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+
+
+        calendarElement.querySelectorAll('.calendar-cell[data-date]').forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (cell.classList.contains('calendar-off')) {
+                    return; // Do nothing if the cell has 'calendar-off' class
+                }
+                const selectedDate = cell.getAttribute('data-date');
+                window.location.href = `/time_clocks/${selectedDate}`;
+            });
+        });
+
+
     });
-
-
-     const requestTypeSelect = document.getElementById("edit_request_request_type");
-    const breakReasonContainer = document.getElementById("break_reason_container");
-
-    requestTypeSelect.addEventListener("change", function () {
-      const selectedValue = this.value;
-
-      if (
-        selectedValue === "Forgot to end break" ||
-        selectedValue === "Forgot to add break"
-      ) {
-        breakReasonContainer.style.display = "block";
-      } else {
-        breakReasonContainer.style.display = "none";
-      }
-    });
-
-  const clockInElement = document.getElementById('clock-in-time');
-  const clockDurationElement = document.getElementById('clock-duration');
-
-  if (clockInElement && clockDurationElement) {
-    const clockInDate = new Date(clockInElement.dataset.clockInTime);
-    const totalBreakSeconds = parseInt(clockInElement.dataset.breakSeconds) || 0;
-    const onBreak = clockInElement.dataset.onBreak === "true";
-
-    function updateClockDuration() {
-      if (onBreak) {
-        clockDurationElement.textContent = "On Break";
-        return;
-      }
-
-      const now = new Date();
-      const elapsedTime = (now - clockInDate) / 1000; // seconds
-      const workTime = Math.max(elapsedTime - totalBreakSeconds, 0);
-
-      const hours = Math.floor(workTime / 3600);
-      const minutes = Math.floor((workTime % 3600) / 60);
-      const seconds = Math.floor(workTime % 60);
-
-      clockDurationElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
-    }
-
-    updateClockDuration();
-    setInterval(updateClockDuration, 1000);
-  }
-  const clockElement = document.getElementById("live-clock");
-    const serverTime = new Date(clockElement.dataset.serverTime); // Use server time from data attribute
-    let currentTime = new Date(serverTime.getTime()); // Clone to avoid mutation
-
-    function updateClock() {
-      const year = currentTime.getFullYear();
-      const month = String(currentTime.getMonth() + 1).padStart(2, "0");
-      const day = String(currentTime.getDate()).padStart(2, "0");
-      const hours = String(currentTime.getHours()).padStart(2, "0");
-      const minutes = String(currentTime.getMinutes()).padStart(2, "0");
-      const seconds = String(currentTime.getSeconds()).padStart(2, "0");
-
-      const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      clockElement.textContent = formatted;
-
-      // Increment time by 1 second
-      currentTime.setSeconds(currentTime.getSeconds() + 1);
-    }
-
-    updateClock(); // Show initial time
-    setInterval(updateClock, 1000); 
-  const calendarElement = document.getElementById('calendar');
-const timeClocks = <%= raw @time_clocks_current_month.to_json %>; // Getting the time clocks from the server-side
-
-const generateCalendar = (year, month) => {
-  const firstDayOfMonth = new Date(year, month, 1);
-  const lastDayOfMonth = new Date(year, month + 1, 0);
-  const daysInMonth = lastDayOfMonth.getDate();
-
-  // Get the day of the week the 1st of the month falls on (0 = Sunday, 6 = Saturday)
-  const firstDayOfWeek = firstDayOfMonth.getDay();
-
-  // Get the current day (for highlighting today's date)
-  const today = new Date();
-  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  // Initialize the calendar HTML
-  let calendarHtml = '<div class="calendar-header">';
-  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  daysOfWeek.forEach(day => {
-    calendarHtml += `<div class="calendar-day">${day}</div>`;
-  });
-  calendarHtml += '</div>';
-
-  // Start the grid for the calendar cells
-  calendarHtml += '<div class="calendar-grid">';
-
-  // Add empty cells for the days before the 1st day of the month
-  for (let i = 0; i < firstDayOfWeek; i++) {
-    calendarHtml += '<div class="calendar-cell empty"></div>'; // Empty cell for leading days
-  }
-
-  // Generate the actual calendar cells (1 to daysInMonth)
-  let dayOfWeek = firstDayOfWeek;  // Start on the correct weekday
-  for (let day = 1; day <= daysInMonth; day++) {
-    if (dayOfWeek === 0 && day !== 1) {
-      calendarHtml += '</div><div class="calendar-grid">'; // Start a new row after Saturday
-    }
-
-    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6); // Sunday = 0, Saturday = 6
-
-    const clockEntry = timeClocks.find(tc => {
-      return tc.clock_in && new Date(tc.clock_in).toISOString().substring(0, 10) === dateString;
-    });
-
-    let className = '';
-
-    if (clockEntry) {
-      if (clockEntry.status === 'late') {
-        className = 'calendar-late';
-      } else if (clockEntry.status === 'on_time') {
-        className = 'calendar-on-time';
-      }
-    } else if (!isWeekend) {
-      className = 'calendar-off'; // Working day with no entry
-    }
-
-    // Grey out future dates
-    const calendarDate = new Date(year, month, day);
-    if (calendarDate > today) {
-      className = 'calendar-future'; // Override with future date style
-    }
-
-    const todayClass = dateString === todayString ? 'today' : ''; // Add 'today' class if it's the current day
-
-calendarHtml += `<div class="calendar-cell ${className} ${todayClass}" data-date="${dateString}" style="cursor: pointer;">${day}</div>`;
-    // Move to the next day in the week
-    dayOfWeek = (dayOfWeek + 1) % 7; // Reset to 0 (Sun) after Saturday
-  }
-
-  // Close the last row and calendar grid
-  calendarHtml += '</div>';
-  calendarElement.innerHTML = calendarHtml;
-};
-
-const currentDate = new Date();
-generateCalendar(currentDate.getFullYear(), currentDate.getMonth());
-
-
-calendarElement.querySelectorAll('.calendar-cell[data-date]').forEach(cell => {
-  cell.addEventListener('click', () => {
-    if (cell.classList.contains('calendar-off')) {
-      return; // Do nothing if the cell has 'calendar-off' class
-    }
-    const selectedDate = cell.getAttribute('data-date');
-    window.location.href = `/time_clocks/${selectedDate}`;
-  });
-});
-
-
-});
-
-
 </script>

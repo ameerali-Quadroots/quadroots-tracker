@@ -36,6 +36,15 @@ resources :edit_requests, only: [:index, :create] do
   end
 end
 resources :users, only: [:edit, :update]
+resources :leaves do
+  member do
+    patch :approve_by_admin
+    patch :approve
+    patch :reject_by_admin
+    patch :reject
+  end
+end
+
 
   root 'dashboard#index'
 
