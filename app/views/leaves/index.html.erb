@@ -1,0 +1,79 @@
+<div class="container-fluid my-5">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="card-title mb-4 text-primary text-center">Leave Requests</h1>
+
+      <% if @leaves.any? %>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>Executive Name</th>
+                <th>Email</th>
+                <th>Leave Type</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Requested At</th>
+                <th>Approved/Rejected At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @leaves.each do |leave| %>
+                <tr>
+                  <td class="align-middle"><%= leave.user.name %></td>
+                  <td class="align-middle"><%= leave.user.email %></td>
+                  <td class="align-middle text-capitalize"><%= leave.leave_type %></td>
+                  <td class="align-middle"><%= leave.start_date.strftime("%b %d, %Y") %></td>
+                  <td class="align-middle"><%= leave.end_date.strftime("%b %d, %Y") %></td>
+                  <td class="align-middle">
+                    <div class="m-0 p-0"><%= simple_format(leave.reason, {}, wrapper_tag: "span") %></div>
+                  </td>
+
+                  <td class="align-middle">
+                    <% status_class = case leave.status
+                      when "pending" then "bg-warning text-dark"
+                      when "approved" then "bg-success"
+                      when "rejected" then "bg-danger"
+                      else "bg-secondary"
+                    end %>
+                    <span class="badge rounded-pill <%= status_class %> px-3 py-2">
+                      <%= leave.status.capitalize %>
+                    </span>
+                  </td>
+
+                  <td class="align-middle"><%= leave.created_at.strftime("%b %d, %Y %I:%M %p") %></td>
+                  <td class="align-middle">
+                    <%= leave.updated_at ? leave.updated_at.strftime("%b %d, %Y %I:%M %p") : "-" %>
+                  </td>
+
+                  <td class="align-middle">
+                    <% unless leave.approved_by_manager  %>
+                      <div class="d-flex justify-content-center gap-2">
+                        <%= button_to approve_leave_path(leave), method: :patch, class: "btn btn-outline-success btn-sm", data: { confirm: "Approve this leave request?" } do %>
+                          ✅ Approve
+                        <% end %>
+
+                        <%= button_to reject_leave_path(leave), method: :patch, class: "btn btn-outline-danger btn-sm", data: { confirm: "Reject this leave request?" } do %>
+                          ❌ Reject
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <span class="text-muted fst-italic">No actions</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="alert alert-info text-center" role="alert">
+          <i class="bi bi-info-circle-fill me-2"></i>No leave requests found.
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  leave_type: MyString
+  start_date: 2025-10-18
+  end_date: 2025-10-18
+  reason: MyText
+  status: MyString
+  approved_by: 1
+
+two:
+  user: two
+  leave_type: MyString
+  start_date: 2025-10-18
+  end_date: 2025-10-18
+  reason: MyText
+  status: MyString
+  approved_by: 1
