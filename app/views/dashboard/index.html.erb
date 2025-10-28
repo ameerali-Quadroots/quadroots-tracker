@@ -90,10 +90,21 @@
                                 <% end %>
                             </ul>
                         </div>
-
                     </div>
                     <% end %>
+                     <div class="d-flex align-items-center gap-3 mt-4">
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            <i class="bi bi-calendar-check"></i> Request Leave
+                        </button>
+                        <% if current_user.role == "Manager"%>
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+                            <i class="bi bi-person-plus"></i> Request Leave for Executive
+                        </button>
+                        <%end%>
+                    </div>
+                    
                 </div>
+                
             </div>
         </div>
         <!-- Today's Summary -->

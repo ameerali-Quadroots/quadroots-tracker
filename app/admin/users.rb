@@ -131,10 +131,10 @@ member_action :mark_as_unemployed, method: :put do
   user = User.find(params[:id])
 
   if user.update(employeed: false)
-    redirect_back fallback_location: admin_users_path,
+    redirect_back fallback_location: admin_employee_path,
                   notice: "#{user.name || 'User'} has been marked as unemployed."
   else
-    redirect_back fallback_location: admin_users_path,
+    redirect_back fallback_location: admin_employee_path,
                   alert: "Failed to update employment status."
   end
 end
