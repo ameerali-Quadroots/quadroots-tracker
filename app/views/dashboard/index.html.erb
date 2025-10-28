@@ -29,17 +29,6 @@
                         </button>
                     </div>
 
-                    <div class="d-flex align-items-center gap-3 mt-4">
-                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
-                            <i class="bi bi-calendar-check"></i> Request Leave
-                        </button>
-                        <% if current_user.role == "Manager"%>
-                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
-                            <i class="bi bi-person-plus"></i> Request Leave for Executive
-                        </button>
-                        <%end%>
-                    </div>
-
 
 
                     <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
@@ -53,7 +42,7 @@
           "End break"
         end
         %>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-4">
                         <p class="badge bg-warning text-light fs-4 mb-0"><%= @time_clock.current_state %></p>
                         <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
               method: :post,
@@ -63,6 +52,16 @@
                         <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
                             Request Clock-In Edit
                         </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mt-4 mx-3">
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            <i class="bi bi-calendar-check"></i> Request Leave
+                        </button>
+                        <% if current_user.role == "Manager"%>
+                        <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+                            <i class="bi bi-person-plus"></i> Request Leave for Executive
+                        </button>
+                        <%end%>
                     </div>
 
 
@@ -74,7 +73,7 @@
                                 <i class="bi bi-pause-circle"></i> Pause Work
                             </button>
 
-                            <button type="button" class="btn btn-secondary text-white" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+                            <button type="button" class="btn btn-secondary text-white mx-3" data-bs-toggle="modal" data-bs-target="#editRequestModal">
                                 Request Clock-In Edit
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="breakDropdown">

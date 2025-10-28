@@ -3,7 +3,7 @@
     <div class="card-body">
       <h1 class="card-title mb-4 text-primary text-center">Your Edit Requests</h1>
 
-      <% if @edit_requests.any? %>
+      <% if @edit_requests.present? %>
         <div class="table-responsive">
           <table class="table table-striped table-hover align-middle text-center">
             <thead class="table-dark">

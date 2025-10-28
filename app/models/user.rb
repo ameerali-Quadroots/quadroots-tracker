@@ -48,15 +48,15 @@ class User < ApplicationRecord
   end
 
   # Calculate absent days: any rejected/pending leave with no time_clock record
-  def absent_days_count
-    absent_dates = leaves.where(status: ['rejected', 'pending']).flat_map do |l|
-      (l.start_date..l.end_date).to_a
-    end
+ def absent_days_count
+  absent_dates = leaves.where(status: ['rejected', 'pending']).flat_map do |l|
+    (l.start_date..l.end_date).to_a
+  end.uniq
 
-    absent_dates.count do |date|
-      !time_clocks.exists?(clock_in: date.beginning_of_day..date.end_of_day)
-    end
+  absent_dates.count do |date|
+    !time_clocks.exists?(clock_in: date.beginning_of_day..date.end_of_day)
   end
+end
 
 
   def self.ransackable_attributes(auth_object = nil)

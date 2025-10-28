@@ -14,17 +14,21 @@ class Ability
       can :read, :all
       cannot :manage, AdminUser
       cannot :manage, EditRequest
+      cannot :manage, Leave
+
     when "admin"
       can :read, :all
       cannot :manage, User
       cannot :manage, AdminUser
       cannot :manage, EditRequest
+      cannot :manage, Leave
 
     when "qa_admin"
       can :read, :all
       cannot :manage, User
       cannot :manage, AdminUser
       cannot :manage, EditRequest
+      cannot :manage, Leave
     else
       can :read, :all
     end

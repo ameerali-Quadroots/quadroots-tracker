@@ -6,11 +6,10 @@ class EditRequestsController < ApplicationController
   @edit_request = current_user.edit_requests.new(edit_request_params)
 
   # Check if the requested_clock_in falls within any time_clock range for this user
-  time_clock_exists = TimeClock.where(user_id: current_user.id)
-                               .where("clock_in <= ? AND clock_out >= ?", 
-                                      @edit_request.requested_clock_in, 
-                                      @edit_request.requested_clock_in)
-                               .exists?
+ time_clock_exists = TimeClock.where(user_id: current_user.id)
+                             .where("clock_in <= ?", @edit_request.requested_clock_in)
+                             .exists?
+
 
   unless time_clock_exists
     return redirect_back fallback_location: root_path, 
@@ -26,9 +25,22 @@ class EditRequestsController < ApplicationController
 end
 
 
+
   def index
-    @edit_requests = EditRequest.where(department: current_user.department)
+  if current_user.role == "Manager" && !current_user.department == "HOD'S"
+    @edit_requests = EditRequest
+      .where(department: current_user.department)
+      .where.not(user_id: current_user.id)
+
+  elsif current_user.department == "HOD'S"
+    departments = ["WEB", "SEO", "ADS", "CONTENT"]
+    manager_ids = User.where(role: "Manager", department: departments).pluck(:id)
+    @edit_requests = EditRequest.where(user_id: manager_ids)
+  else
+    @edit_requests = EditRequest.none
   end
+end
+
 
   def approve
     @edit_request.update(

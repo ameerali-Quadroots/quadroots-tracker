@@ -3,11 +3,25 @@ class LeavesController < ApplicationController
   before_action :authenticate_user!
 
   def index
-@leaves = Leave
-  .joins(:user)
-  .where(users: { role: "Executive", department: current_user.department })
-  .order(created_at: :desc)  end
+  if current_user.role == "Manager" && current_user.department != "HOD'S"
+    # Regular manager: sees executives in their department
+    @leaves = Leave.joins(:user)
+                   .where(users: { role: "Executive", department: current_user.department })
+                   .order(created_at: :desc)
 
+  elsif current_user.role == "Manager" && current_user.department == "HOD'S"
+    # HOD manager: sees executives from specific departments
+    hod_departments = ["WEB", "SEO", "ADS", "CONTENT"]
+
+    @leaves = Leave.joins(:user)
+                   .where(users: { role: "Manager", department: hod_departments })
+                   .order(created_at: :desc)
+
+  else
+    # Default fallback (optional)
+    @leaves = Leave.none
+  end
+end
   def new
     @leave = current_user.leaves.new
   end
