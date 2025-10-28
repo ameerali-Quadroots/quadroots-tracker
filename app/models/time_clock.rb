@@ -1,5 +1,5 @@
 class TimeClock < ApplicationRecord
-  belongs_to :user
+  belongs_to :employee, class_name: "User", foreign_key: "user_id"
   has_many :breaks, dependent: :destroy
   has_many :edit_requests
 
@@ -121,7 +121,7 @@ end
   end
 
   def self.ransackable_associations(auth_object = nil)
-    %w[user breaks]
+    %w[employee breaks]
   end
 
 end

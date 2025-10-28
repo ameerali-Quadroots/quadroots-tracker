@@ -7,8 +7,6 @@ ActiveAdmin.setup do |config|
   config.site_title = "Clock In Clock Out"
   config.register_stylesheet 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'
   config.register_javascript 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'
-
-
   # Set the link url for the title. For example, to take
   # users to your main site. Defaults to no link.
   #

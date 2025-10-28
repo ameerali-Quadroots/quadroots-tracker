@@ -274,7 +274,7 @@
                 <div class="mb-3">
                     <%= f.label :leave_type, "Leave Type" %>
                     <%= f.select :leave_type, 
-                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"]]), 
+                  options_for_select([["Medical Leave", "medical"], ["Casual Leave", "casual"], ["Half Day", "half_day"]]), 
                   { include_blank: "Select Leave Type" }, 
                   class: "form-control", required: true %>
                 </div>

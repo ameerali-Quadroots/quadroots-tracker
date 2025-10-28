@@ -1,18 +1,18 @@
 ActiveAdmin.register TimeClock do
 
-  controller do
-    def scoped_collection
-      scope = super.joins(:user)
+ controller do
+  def scoped_collection
+    scope = super.joins(:employee)
 
-      if current_admin_user.super_admin? || current_admin_user.qa_admin?
-        scope
-      elsif current_admin_user.department&.upcase == "HOD'S"
-        scope.where(users: { department: %w[WEB SEO ADS CONTENT] })
-      else
-        scope.where(users: { department: current_admin_user.department })
-      end
+    if current_admin_user.super_admin? || current_admin_user.qa_admin?
+      scope
+    elsif current_admin_user.department&.upcase == "HOD'S"
+      scope.where(users: { department: %w[WEB SEO ADS CONTENT] })
+    else
+      scope.where(users: { department: current_admin_user.department })
     end
   end
+end
 
   belongs_to :user, optional: true
 
@@ -22,16 +22,16 @@ ActiveAdmin.register TimeClock do
   actions :all, except: [:new, :create]
 
   # Filters
-  filter :user_name_cont, as: :string, label: 'User Name'
-  filter :user_email, as: :string
-  filter :user_department_in,
+  filter :employee_name_cont, as: :string, label: 'Employee Name'
+  filter :employee_email, as: :string
+  filter :employee_department_in,
          as: :select,
          label: "Departments",
          multiple: true,
          input_html: { class: 'select2-filter' },
          collection: -> {
            if current_admin_user.super_admin? || current_admin_user.qa_admin?
-             TimeClock.joins(:user).distinct.pluck('users.department').compact.uniq.sort
+             TimeClock.joins(:employee).distinct.pluck('users.department').compact.uniq.sort
            elsif current_admin_user.department&.upcase == "HOD'S"
              %w[WEB SEO ADS CONTENT]
            else
@@ -59,8 +59,8 @@ ActiveAdmin.register TimeClock do
       timeclocks.find_each do |tc|
         sheet.add_row [
           tc.clock_in&.strftime("%d-%m-%Y"),
-          tc.user&.name,
-          tc.user&.department,
+          tc.employee&.name,
+          tc.employee&.department,
           tc.ip_address,
           tc.clock_in&.strftime("%I:%M %p"),
           tc.clock_out&.strftime("%I:%M %p"),
@@ -84,10 +84,10 @@ ActiveAdmin.register TimeClock do
   index do
     selectable_column
     column "User", sortable: 'users.name' do |tc|
-      tc.user&.name
+      tc.employee&.name
     end
     column "Department" do |tc|
-      tc.user&.department&.upcase || "N/A"
+      tc.employee&.department&.upcase || "N/A"
     end
     column :current_state do |tc|
       case tc.current_state

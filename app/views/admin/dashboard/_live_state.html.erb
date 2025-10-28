@@ -75,7 +75,7 @@ shift_range = shift_start..shift_end
                 <% states.each do |row| %>
                   <tr>
                     <td style="padding: 8px 4px; border-bottom: 1px solid #eee;">
-                      <%= link_to row[:user].name, admin_user_path(row[:user]) %>
+                      <%= link_to row[:user].name, admin_employee_path(row[:user]) %>
                     </td>
                     <td style="padding: 8px 4px; border-bottom: 1px solid #eee;">
                       <span class="status_tag <%= case row[:state]

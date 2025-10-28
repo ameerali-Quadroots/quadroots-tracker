@@ -3,15 +3,28 @@ class EditRequestsController < ApplicationController
   before_action :set_edit_request, only: [:approve, :reject]
 
   def create
-    @edit_request = current_user.edit_requests.new(edit_request_params)
+  @edit_request = current_user.edit_requests.new(edit_request_params)
 
-    if @edit_request.save
-        EditRequestMailer.new_request_notification(@edit_request).deliver_later
-      redirect_back fallback_location: root_path, notice: "Request submitted successfully."
-    else
-      redirect_back fallback_location: root_path, alert: @edit_request.errors.full_messages.to_sentence
-    end
+  # Check if the requested_clock_in falls within any time_clock range for this user
+  time_clock_exists = TimeClock.where(user_id: current_user.id)
+                               .where("clock_in <= ? AND clock_out >= ?", 
+                                      @edit_request.requested_clock_in, 
+                                      @edit_request.requested_clock_in)
+                               .exists?
+
+  unless time_clock_exists
+    return redirect_back fallback_location: root_path, 
+                         alert: "No matching time record found for the requested clock-in time."
   end
+
+  if @edit_request.save
+    EditRequestMailer.new_request_notification(@edit_request).deliver_later
+    redirect_back fallback_location: root_path, notice: "Request submitted successfully."
+  else
+    redirect_back fallback_location: root_path, alert: @edit_request.errors.full_messages.to_sentence
+  end
+end
+
 
   def index
     @edit_requests = EditRequest.where(department: current_user.department)

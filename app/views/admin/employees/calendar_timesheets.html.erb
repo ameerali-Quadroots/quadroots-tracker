@@ -1,0 +1,186 @@
+<!-- ✅ Page Title -->
+<h3 class="text-center my-4">
+  Employee Timesheet Calendar for <%= @employee.name %>
+</h3>
+
+<!-- ✅ Month Navigation -->
+<div class="calendar-nav text-center mb-3">
+  <% current_month = params[:month] ? Date.parse(params[:month]) : Date.current %>
+  <% prev_month = current_month.prev_month %>
+  <% next_month = current_month.next_month %>
+
+  <%= link_to "← #{prev_month.strftime('%B')}",
+              calendar_timesheets_admin_employee_path(@employee, month: prev_month),
+              class: "btn btn-sm btn-outline-secondary" %>
+
+  <strong class="mx-3"><%= current_month.strftime("%B %Y") %></strong>
+
+  <%= link_to "#{next_month.strftime('%B')} →",
+              calendar_timesheets_admin_employee_path(@employee, month: next_month),
+              class: "btn btn-sm btn-outline-secondary" %>
+</div>
+
+<!-- ✅ Calendar Grid -->
+<div class="attendance-calendar">
+  <% start_date = current_month.beginning_of_month.beginning_of_week(:sunday) %>
+  <% end_date = current_month.end_of_month.end_of_week(:sunday) %>
+
+  <% (start_date..end_date).each_slice(7) do |week| %>
+    <div class="week">
+      <% week.each do |day| %>
+        <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
+
+        <% status_class =
+          if record&.status == "late"
+            "late"
+          elsif record
+            "on-time"
+          else
+            "no-data"
+          end
+        %>
+
+        <!-- ✅ Link each day to employee’s detailed timesheet -->
+        <%= link_to admin_time_clocks_path(q: { user_id_eq: @employee.id, clock_in_date_eq: day }),
+                    class: "day #{status_class} #{'dimmed' if day.month != current_month.month}",
+                    title: "#{day.strftime('%B %d, %Y')}" do %>
+          <%= day.day %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<!-- ✅ Legend -->
+<div class="legend">
+  <div><span class="box on-time"></span> On Time</div>
+  <div><span class="box late"></span> Late</div>
+  <div><span class="box no-data"></span> No Record</div>
+</div>
+
+<!-- ✅ Styling (CSP Safe) -->
+<style nonce="<%= content_security_policy_nonce %>">
+  h3.text-center {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .calendar-nav {
+    margin-bottom: 15px;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #333;
+    background: #fff;
+    transition: all 0.2s ease;
+  }
+
+  .btn:hover {
+    background: #6f2b8a;
+    color: #fff;
+    border-color: #6f2b8a;
+  }
+
+  .attendance-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .week {
+    display: flex;
+    gap: 6px;
+  }
+
+  .day {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .day:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .day.on-time {
+    background-color: #27ae60;
+    color: #fff;
+    border: none;
+  }
+
+  .day.late {
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+  }
+
+  .day.no-data {
+    background-color: #f0f0f0;
+    color: #999;
+  }
+
+  .day.dimmed {
+    opacity: 0.4;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-weight: 500;
+  }
+
+  .legend .box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .legend .on-time {
+    background-color: #27ae60;
+  }
+
+  .legend .late {
+    background-color: #e74c3c;
+  }
+
+  .legend .no-data {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+  }
+
+  /* ✅ Responsive */
+  @media (max-width: 600px) {
+    .day {
+      width: 36px;
+      height: 36px;
+      font-size: 13px;
+    }
+
+    .legend {
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+</style>

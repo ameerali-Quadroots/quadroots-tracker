@@ -3,8 +3,11 @@ class User < ApplicationRecord
 
   enum role: { Executive: "Executive", Manager: "Manager", Director: "Director", Intern: "Intern" }
 
-  has_many :time_clocks
+  has_many :time_clocks, foreign_key: "user_id", dependent: :destroy
   has_many :edit_requests
+
+
+  scope :employed, -> { where(employeed: true) }
 
 
   # Devise modules
@@ -29,6 +32,10 @@ class User < ApplicationRecord
 
   def casual_leaves_count
     leaves.where(leave_type: 'casual', status: 'approved').count
+  end
+
+   def half_days_count
+    leaves.where(leave_type: 'half_day', status: 'approved').count
   end
 
   # Remaining leaves

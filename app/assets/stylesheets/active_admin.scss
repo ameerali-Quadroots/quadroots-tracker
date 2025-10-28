@@ -183,3 +183,9 @@ $text-color: #181127;
   gap: 8px;
   justify-content: center;
 }
+.calendar-late {
+  background-color: #ff4d4f !important; /* Red for late */
+}
+.calendar-on-time {
+  background-color: #52c41a !important; /* Green for on-time */
+}
