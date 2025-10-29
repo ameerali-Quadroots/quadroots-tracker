@@ -1,14 +1,18 @@
 ActiveAdmin.register Leave do
-  # ✅ Permit only allowed parameters
-  permit_params :user_id, :leave_type, :start_date, :end_date, :reason, :status, :approved_by_manager
+  # ✅ Permit parameters (including file attachment)
+  permit_params :user_id, :leave_type, :start_date, :end_date, :reason, :status, :approved_by_manager, :medical_certificate
 
   # ✅ Default sorting
   config.sort_order = 'created_at_desc'
 
+  # ✅ Scopes
   scope :all, default: true
   scope("Pending")  { |r| r.where(status: 'pending') }
   scope("Approved") { |r| r.where(status: 'approved') }
   scope("Rejected") { |r| r.where(status: 'rejected') }
+  scope("Medical") { |r| r.where(leave_type: 'medical') }
+  scope("Casual") { |r| r.where(leave_type: 'casual') }
+
 
   # ✅ Filters
   filter :user, collection: -> { User.all.map { |u| [u.name, u.id] } }, label: "User (Email)"
@@ -28,6 +32,14 @@ ActiveAdmin.register Leave do
     column :end_date
     column :approved_by_manager
 
+    column :medical_certificate do |leave|
+      if leave.medical_certificate.attached?
+        link_to "View", rails_blob_path(leave.medical_certificate, disposition: "inline"), target: "_blank"
+      else
+        status_tag "No", class: "status-error"
+      end
+    end
+
     column :status do |leave|
       css_class = case leave.status
                   when "approved" then "status-ok"
@@ -35,7 +47,6 @@ ActiveAdmin.register Leave do
                   when "pending"  then "status-warning"
                   else "status-default"
                   end
-
       status_tag(leave.status.titleize, class: css_class)
     end
 
@@ -70,6 +81,21 @@ ActiveAdmin.register Leave do
       row :reason
       row :status
       row :approved_by_manager
+
+      row :medical_certificate do
+        if leave.medical_certificate.attached?
+          ext = leave.medical_certificate.filename.extension.downcase
+          if %w[jpg jpeg png gif].include?(ext)
+            link_to image_tag(url_for(leave.medical_certificate), style: "max-width: 250px; border-radius: 8px;"), 
+                    rails_blob_path(leave.medical_certificate, disposition: "inline"), target: "_blank"
+          else
+            link_to "View Medical Certificate", rails_blob_path(leave.medical_certificate, disposition: "inline"), target: "_blank"
+          end
+        else
+          status_tag "No", class: "status-error"
+        end
+      end
+
       row :created_at
       row :updated_at
     end
@@ -98,6 +124,12 @@ ActiveAdmin.register Leave do
       f.input :reason
       f.input :status, as: :select, collection: ["pending", "approved", "rejected"], include_blank: false
       f.input :approved_by_manager
+
+      f.input :medical_certificate, as: :file, hint: (
+        f.object.medical_certificate.attached? ?
+          link_to("View Current Certificate", rails_blob_path(f.object.medical_certificate, disposition: "inline"), target: "_blank") :
+          "Upload medical certificate if leave type is Medical"
+      )
     end
 
     f.actions

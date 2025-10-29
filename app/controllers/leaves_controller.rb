@@ -68,6 +68,6 @@ end
   end
 
   def leave_params
-    params.require(:leave).permit(:leave_type, :start_date, :end_date, :reason, :approved_by_manager)
+    params.require(:leave).permit(:leave_type, :start_date, :end_date, :reason, :approved_by_manager, :medical_certificate)
   end
 end

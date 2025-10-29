@@ -9,6 +9,13 @@ class Leave < ApplicationRecord
   validates :start_date, :end_date, presence: true
   validate :valid_date_range
 
+    has_one_attached :medical_certificate
+
+  validate :acceptable_medical_certificate
+
+
+
+  
 
 
   def self.ransackable_associations(auth_object = nil)
@@ -26,4 +33,17 @@ class Leave < ApplicationRecord
       errors.add(:end_date, "must be after the start date")
     end
   end
+
+  def acceptable_medical_certificate
+    return unless medical_certificate.attached?
+
+    unless medical_certificate.content_type.in?(%w[image/jpeg image/png application/pdf])
+      errors.add(:medical_certificate, "must be a JPEG, PNG, or PDF")
+    end
+
+    if medical_certificate.byte_size > 5.megabytes
+      errors.add(:medical_certificate, "is too big. Maximum size allowed is 5MB.")
+    end
+  end
+  
 end
