@@ -10,6 +10,9 @@ ActiveAdmin.register EditRequest do
   scope("Pending")  { |r| r.where(status: 'pending') }
   scope("Approved") { |r| r.where(status: 'approved') }
   scope("Rejected") { |r| r.where(status: 'rejected') }
+  scope("Clock Tower not working") { |r| r.where(request_type: 'Clock tower not working') }
+  scope("Forget to Add Break") { |r| r.where(request_type: 'Forgot to add break') }
+  scope("Forget to End Break") { |r| r.where(request_type: 'Forgot to end break') }
 
   # ✅ Index table view
   index title: "Edit Requests" do

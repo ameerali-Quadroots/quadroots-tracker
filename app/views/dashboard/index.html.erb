@@ -53,7 +53,7 @@
                             Request Clock-In Edit
                         </button>
                     </div>
-                    <div class="d-flex align-items-center gap-3 mt-4 mx-3">
+                    <div class="d-flex align-items-center gap-3 mt-4">
                         <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
                             <i class="bi bi-calendar-check"></i> Request Leave
                         </button>
@@ -90,8 +90,7 @@
                             </ul>
                         </div>
                     </div>
-                    <% end %>
-                    <div class="d-flex align-items-center gap-3 mt-4">
+                     <div class="d-flex align-items-center gap-3 mt-4">
                         <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
                             <i class="bi bi-calendar-check"></i> Request Leave
                         </button>
@@ -101,6 +100,7 @@
                         </button>
                         <%end%>
                     </div>
+                    <% end %>
 
                 </div>
 
@@ -552,23 +552,23 @@
     });
 </script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const leaveTypeSelect = document.getElementById("leave_leave_type");
-  const medicalField = document.getElementById("medical_certificate_field");
-  const medicalInput = document.getElementById("leave_medical_certificate");
+    document.addEventListener("DOMContentLoaded", function() {
+        const leaveTypeSelect = document.getElementById("leave_leave_type");
+        const medicalField = document.getElementById("medical_certificate_field");
+        const medicalInput = document.getElementById("leave_medical_certificate");
 
-  function toggleMedicalField() {
-    if (leaveTypeSelect.value === "medical") {
-      medicalField.style.display = "block";
-      medicalInput.setAttribute("required", "required");
-    } else {
-      medicalField.style.display = "none";
-      medicalInput.removeAttribute("required");
-      medicalInput.value = ""; // clear file input if user switches
-    }
-  }
+        function toggleMedicalField() {
+            if (leaveTypeSelect.value === "medical") {
+                medicalField.style.display = "block";
+                medicalInput.setAttribute("required", "required");
+            } else {
+                medicalField.style.display = "none";
+                medicalInput.removeAttribute("required");
+                medicalInput.value = ""; // clear file input if user switches
+            }
+        }
 
-  leaveTypeSelect.addEventListener("change", toggleMedicalField);
-  toggleMedicalField(); // Run on page load (in case of form re-render with validation errors)
-});
+        leaveTypeSelect.addEventListener("change", toggleMedicalField);
+        toggleMedicalField(); // Run on page load (in case of form re-render with validation errors)
+    });
 </script>
