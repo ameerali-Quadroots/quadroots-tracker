@@ -16,7 +16,7 @@ end
 
   belongs_to :user, optional: true
 
-  permit_params :user_id, :clock_in, :clock_out, :total_duration, :status, :break_duration, :current_state,
+  permit_params :employee_id, :clock_in, :clock_out, :total_duration, :status, :break_duration, :current_state,
                 breaks_attributes: [:id, :break_in, :break_out, :_destroy]
 
   actions :all, except: [:new, :create]
@@ -186,7 +186,7 @@ end
   show do
     attributes_table do
       row :user
-      row("Department") { time_clock.user&.department || "N/A" }
+      row("Department") { time_clock.employee&.department || "N/A" }
       row :clock_in
       row :clock_out
       row :status
@@ -222,7 +222,7 @@ end
     f.semantic_errors
 
     f.inputs "TimeClock Details" do
-      f.input :user
+      f.input :employee
       f.input :clock_in, as: :datetime_picker
       f.input :clock_out, as: :datetime_picker
       f.input :status

@@ -27,7 +27,7 @@ end
 
 
   def index
-  if current_user.role == "Manager" && !current_user.department == "HOD'S"
+  if current_user.role == "Manager" && current_user.department != "HOD'S"
     @edit_requests = EditRequest
       .where(department: current_user.department)
       .where.not(user_id: current_user.id)
