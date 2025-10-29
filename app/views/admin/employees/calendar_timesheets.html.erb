@@ -1,10 +1,11 @@
+
 <!-- ✅ Page Title -->
 <h3 class="text-center my-4">
   Employee Timesheet Calendar for <%= @employee.name %>
 </h3>
 
 <!-- ✅ Month Navigation -->
-<div class="calendar-nav text-center mb-3">
+<div class="calendar-nav text-center mb-3 my-4">
   <% current_month = params[:month] ? Date.parse(params[:month]) : Date.current %>
   <% prev_month = current_month.prev_month %>
   <% next_month = current_month.next_month %>
@@ -58,20 +59,20 @@
   <div><span class="box no-data"></span> No Record</div>
 </div>
 
-<!-- ✅ Styling (CSP Safe) -->
 <style nonce="<%= content_security_policy_nonce %>">
   h3.text-center {
     font-weight: 600;
     color: #333;
+    font-size: 2rem; /* Increase font size of the title */
   }
 
   .calendar-nav {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
   }
 
   .btn {
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 8px 16px; /* Increased padding for better button size */
+    border-radius: 8px;
     border: 1px solid #ccc;
     text-decoration: none;
     color: #333;
@@ -88,25 +89,26 @@
   .attendance-calendar {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px; /* Increased gap between weeks */
     justify-content: center;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
   }
 
   .week {
     display: flex;
-    gap: 6px;
+    gap: 12px; /* Increased gap between days */
   }
 
   .day {
-    width: 45px;
-    height: 45px;
+    width: 60px; /* Increased width of each day */
+    height: 60px; /* Increased height of each day */
     display: flex;
     justify-content: center;
     align-items: center;
     font-weight: 600;
-    border-radius: 8px;
+    font-size: 18px; /* Increased font size */
+    border-radius: 10px; /* Slightly larger border radius */
     border: 1px solid #ccc;
     background-color: #fff;
     color: #333;
@@ -115,8 +117,8 @@
   }
 
   .day:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    transform: scale(1.15); /* Slightly larger hover effect */
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow */
   }
 
   .day.on-time {
@@ -143,44 +145,33 @@
   .legend {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 30px; /* More space between legend items */
     font-weight: 500;
+    font-size: 16px; /* Larger font for the legend */
   }
 
   .legend .box {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    margin-right: 6px;
+    width: 20px; /* Increased size of legend box */
+    height: 20px; /* Increased size of legend box */
+    border-radius: 5px; /* Slightly more rounded boxes */
+    margin-right: 10px;
     vertical-align: middle;
-  }
-
-  .legend .on-time {
-    background-color: #27ae60;
-  }
-
-  .legend .late {
-    background-color: #e74c3c;
-  }
-
-  .legend .no-data {
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
   }
 
   /* ✅ Responsive */
   @media (max-width: 600px) {
     .day {
-      width: 36px;
-      height: 36px;
-      font-size: 13px;
+      width: 50px; /* Adjusted width for smaller screens */
+      height: 50px; /* Adjusted height for smaller screens */
+      font-size: 16px; /* Adjusted font size for smaller screens */
     }
 
     .legend {
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 12px; /* Increased gap for mobile */
     }
   }
+  
 </style>

@@ -1,17 +1,45 @@
 ActiveAdmin.register Leave do
-  # Permit only the fields that exist in your schema
+  # ✅ Permit only allowed parameters
   permit_params :user_id, :leave_type, :start_date, :end_date, :reason, :status, :approved_by_manager
 
-  # INDEX PAGE
+  # ✅ Default sorting
+  config.sort_order = 'created_at_desc'
+
+  scope :all, default: true
+  scope("Pending")  { |r| r.where(status: 'pending') }
+  scope("Approved") { |r| r.where(status: 'approved') }
+  scope("Rejected") { |r| r.where(status: 'rejected') }
+
+  # ✅ Filters
+  filter :user, collection: -> { User.all.map { |u| [u.name, u.id] } }, label: "User (Email)"
+  filter :status, as: :select, collection: ["pending", "approved", "rejected"], label: "Status"
+  filter :leave_type, as: :select, collection: ["medical", "casual", "half_day"], label: "Leave Type"
+  filter :created_at, label: "Created At"
+  filter :start_date
+  filter :end_date
+
+  # ✅ INDEX PAGE
   index do
     selectable_column
     id_column
-    column :user
+    column("User") { |leave| leave.user&.email || "N/A" }
     column :leave_type
     column :start_date
     column :end_date
-    column :status
+    column :approved_by_manager
 
+    column :status do |leave|
+      css_class = case leave.status
+                  when "approved" then "status-ok"
+                  when "rejected" then "status-error"
+                  when "pending"  then "status-warning"
+                  else "status-default"
+                  end
+
+      status_tag(leave.status.titleize, class: css_class)
+    end
+
+    column :created_at
 
     actions defaults: true do |leave|
       if leave.status == "pending"
@@ -31,11 +59,11 @@ ActiveAdmin.register Leave do
     end
   end
 
-  # SHOW PAGE
+  # ✅ SHOW PAGE
   show do
     attributes_table do
       row :id
-      row :user
+      row("User") { leave.user&.email || "N/A" }
       row :leave_type
       row :start_date
       row :end_date
@@ -58,7 +86,7 @@ ActiveAdmin.register Leave do
     end
   end
 
-  # NEW / EDIT FORM
+  # ✅ FORM
   form do |f|
     f.semantic_errors
 
@@ -75,7 +103,7 @@ ActiveAdmin.register Leave do
     f.actions
   end
 
-  # CUSTOM ACTIONS
+  # ✅ CUSTOM ACTIONS
   member_action :approve, method: :patch do
     resource.update(status: "approved", approved_by_manager: true)
     redirect_back fallback_location: admin_leaves_path, notice: "Leave approved successfully."
