@@ -679,7 +679,7 @@ body.active_admin {
 // SIDEBAR 🌙
 // =============================
 #tabs {
-  background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%);
+  background: linear-gradient(180deg, #41225C 0%, #6F2B8A 100%);
   .menu li a {
     color: #e2e8f0 !important;
     padding: 10px 15px;
@@ -770,34 +770,34 @@ a[data-method="put"][data-confirm] {
 // =============================
 // FORMS ✏️
 // =============================
-form fieldset.inputs {
-  background: #f9fafb;
-  padding: 25px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+// form fieldset.inputs {
+//   background: #f9fafb;
+//   padding: 25px;
+//   border-radius: 12px;
+//   border: 1px solid #e5e7eb;
 
-  legend {
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 12px;
-    color: #1e293b;
-  }
+//   legend {
+//     font-weight: 600;
+//     font-size: 15px;
+//     margin-bottom: 12px;
+//     color: #1e293b;
+//   }
 
-  input, select, textarea {
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    padding: 10px 12px;
-    width: 100%;
-    font-size: 14px;
-    transition: all 0.2s;
+//   input, select, textarea {
+//     border-radius: 8px;
+//     border: 1px solid #cbd5e1;
+//     padding: 10px 12px;
+//     width: 100%;
+//     font-size: 14px;
+//     transition: all 0.2s;
 
-    &:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-      outline: none;
-    }
-  }
-}
+//     &:focus {
+//       border-color: #6366f1;
+//       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+//       outline: none;
+//     }
+//   }
+// }
 
 // =============================
 // SHOW PAGE 🧾
@@ -880,3 +880,40 @@ color: #fff;
 color: #000;
 }
 
+
+
+body.logged_in.new .input select, 
+body.logged_in.edit .input select, 
+body.logged_in.create .input select, 
+body.logged_in.update .input select {
+    width: 50% !important; /* Set both selects to take up full width */
+    height: 36px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important; /* Optional: Add a rounded border */
+    border: 1px solid #d1d5db !important; /* Optional: Add a border color */
+    color: #4b5563 !important; /* Text color */
+}
+
+/* Apply custom width to minute select element if needed */
+body.logged_in.new .input select#user_shift_time_5i,
+body.logged_in.edit .input select#user_shift_time_5i,
+body.logged_in.create .input select#user_shift_time_5i,
+body.logged_in.update .input select#user_shift_time_5i {
+    width: 50% !important; /* Specifically for the minute dropdown */
+}
+
+/* Optional: Adjust for the label to be aligned properly */
+body.logged_in.new .input label,
+body.logged_in.edit .input label,
+body.logged_in.create .input label,
+body.logged_in.update .input label {
+    font-size: 14px !important;
+    margin-bottom: 5px; /* Space between label and input */
+}
+#user_shift_time_input .fragments-group{
+  display: flex;
+}
+#user_shift_time_input .fragment{
+      width: 10% !important;
+}
