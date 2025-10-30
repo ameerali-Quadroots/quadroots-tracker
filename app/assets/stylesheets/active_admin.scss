@@ -43,6 +43,7 @@ $text-color: #181127;
   .status_tag.warning {
   background-color: #f1c40f; /* bright yellow */
   color: #000; /* black text */
+  text-align: center;
 }
 .height-class{
   height: 500px;
@@ -647,5 +648,235 @@ $text-color: #181127;
 .monthly-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+// =============================
+// GLOBAL VIBES 🌈
+// =============================
+body.active_admin {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #eef2ff 0%, #fdf4ff 100%);
+  color: #1f2937;
+}
+
+#active_admin_content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 30px;
+  margin-top: 25px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// =============================
+// SIDEBAR 🌙
+// =============================
+#tabs {
+  background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%);
+  .menu li a {
+    color: #e2e8f0 !important;
+    padding: 10px 15px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff !important;
+      transform: translateX(4px);
+    }
+  }
+
+  .current > a {
+    background: #3b82f6 !important;
+    color: #fff !important;
+    font-weight: 600;
+  }
+}
+
+// =============================
+// INDEX TABLE 💼
+// =============================
+table.index_table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  width: 100%;
+
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+  }
+
+  tr {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: scale(1.01);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    td {
+      padding: 12px;
+      border: none;
+    }
+  }
+}
+
+// =============================
+// BUTTONS 🔘
+// =============================
+a.member_link, .action_item a {
+  display: inline-block;
+  margin: 4px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white !important;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.25s ease-in-out;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  &.danger {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  }
+}
+
+a[data-method="put"][data-confirm] {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  &:hover { box-shadow: 0 3px 8px rgba(234, 88, 12, 0.3); }
+}
+
+// =============================
+// FORMS ✏️
+// =============================
+form fieldset.inputs {
+  background: #f9fafb;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+
+  legend {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 12px;
+    color: #1e293b;
+  }
+
+  input, select, textarea {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 12px;
+    width: 100%;
+    font-size: 14px;
+    transition: all 0.2s;
+
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      outline: none;
+    }
+  }
+}
+
+// =============================
+// SHOW PAGE 🧾
+// =============================
+.attributes_table {
+  th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    padding: 10px;
+    width: 30%;
+  }
+  td {
+    background: #fff;
+    padding: 10px 15px;
+  }
+}
+
+.panel {
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 18px;
+  h3 {
+    margin-top: 0;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+// =============================
+// STATUS TAGS 💬
+// =============================
+.status_tag {
+  border-radius: 25px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+
+  &.ok { background: #22c55e; color: #fff; }
+  &.warning { background: #facc15; color: #78350f; }
+  &.error { background: #ef4444; color: #fff; }
+  &.info { background: #3b82f6; color: #fff; }
+}
+
+// =============================
+// CALENDAR VIEW 🗓
+// =============================
+.calendar-timesheets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+
+  .day {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    transition: background 0.2s ease;
+    &:hover { background: #f1f5f9; }
+  }
+
+  .event {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.header #tabs li a {
+color: #fff;
+}
+.header #tabs li a:hover {
+color: #000;
 }
 
