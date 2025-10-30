@@ -459,7 +459,7 @@
         updateClock(); // Show initial time
         setInterval(updateClock, 1000);
         const calendarElement = document.getElementById('calendar');
-        const timeClocks = < %= raw @time_clocks_current_month.to_json % > ;
+        const timeClocks = <%= raw @time_clocks_current_month.to_json %> ;
 
         const generateCalendar = (year, month) => {
             const firstDayOfMonth = new Date(year, month, 1);
