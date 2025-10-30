@@ -1,130 +1,150 @@
-  
-      <%
-  start_time = Time.zone.now.beginning_of_day
-  end_time = Time.zone.now.end_of_day
+<%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
 
+<%
+  # === Define today's range (3 AM cutoff) ===
+  now = Time.zone.now
+
+  if now.hour < 3
+    # Before 3 AM → treat as previous work day
+    start_time = (now - 1.day).change(hour: 3)
+    end_time = now.change(hour: 3)
+  else
+    # After 3 AM → treat as current day
+    start_time = now.change(hour: 3)
+    end_time = (now + 1.day).change(hour: 3)
+  end
+
+  # === Today's Summary ===
   @late_time_clocks = TimeClock.where(clock_in: start_time..end_time, status: 'late')
   @on_time_time_clocks = TimeClock.where(clock_in: start_time..end_time, status: 'on_time')
-  %>
- <div class="container mt-5">
-  <h2 class="mb-4">Time Clock Summary for <%= Time.zone.today.strftime('%B %d, %Y') %></h2>
 
-  <div class="row">
-    <!-- Late Card -->
-    <div class="col-md-6">
-      <a href="<%= admin_time_clocks_url(
-                  q: {
-                    clock_in_gteq: Date.today,
-                    clock_in_lteq: Date.today + 1,
-                    status_eq: 'late'
-                  },
-                  commit: 'Filter',
-                  order: 'id_desc'
-                ) %>" class="text-decoration-none">
-        <div class="card text-white bg-danger mb-3 shadow-sm" style="cursor: pointer;">
-          <div class="card-body text-center">
-            <h3 class="card-title"><%= @late_count %></h3>
-            <p class="card-text">Users Late Today</p>
-          </div>
-        </div>
-      </a>
-    </div>
+  @late_count = @late_time_clocks.count
+  @on_time_count = @on_time_time_clocks.count
+  @unique_late_users_today = @late_time_clocks.select(:user_id).distinct.count
+%>
 
-    <!-- On Time Card -->
-    <div class="col-md-6">
-      <a href="<%= admin_time_clocks_url(
-                  q: {
-                    clock_in_gteq: Date.today,
-                    clock_in_lteq: Date.today + 1,
-                    status_eq: 'on_time'
-                  },
-                  commit: 'Filter',
-                  order: 'id_desc'
-                ) %>" class="text-decoration-none">
-        <div class="card text-white bg-success mb-3 shadow-sm" style="cursor: pointer;">
-          <div class="card-body text-center">
-            <h3 class="card-title"><%= @on_time_count %></h3>
-            <p class="card-text">Users On Time Today</p>
-          </div>
-        </div>
-      </a>
-    </div>
+<div class="time-summary-container">
+  <h2 class="time-summary-title">
+    Time Clock Summary for <%= start_time.strftime('%B %d, %Y') %> (Shift Day)
+  </h2>
+
+  <div class="time-summary-grid">
+    <!-- Users Late Today -->
+    <a href="<%= admin_time_clocks_url(
+                q: {
+                  clock_in_gteq: start_time,
+                  clock_in_lteq: end_time,
+                  status_eq: 'late'
+                },
+                commit: 'Filter',
+                order: 'id_desc'
+              ) %>" class="summary-card summary-late">
+      <div class="summary-card-body">
+        <h3><%= @unique_late_users_today %></h3>
+        <p>Users Late Today</p>
+      </div>
+    </a>
+
+    <!-- Users On Time Today -->
+    <a href="<%= admin_time_clocks_url(
+                q: {
+                  clock_in_gteq: start_time,
+                  clock_in_lteq: end_time,
+                  status_eq: 'on_time'
+                },
+                commit: 'Filter',
+                order: 'id_desc'
+              ) %>" class="summary-card summary-ontime">
+      <div class="summary-card-body">
+        <h3><%= @on_time_count %></h3>
+        <p>Users On Time Today</p>
+      </div>
+    </a>
   </div>
 </div>
-  <%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
 
-  <%# === Dashboard: This Month’s Attendance Stats === %>
-<% month_range = Time.current.beginning_of_month..Time.current.end_of_month %>
-
-<%# Calculate counts %>
 <%
+  # === Monthly Summary ===
+  month_range = Time.current.beginning_of_month..Time.current.end_of_month
   on_time_month = TimeClock.where(status: "on_time", clock_in: month_range).count
   late_month = TimeClock.where(status: "late", clock_in: month_range).count
 
+  # === Users with more than 3 lates (ordered descending) ===
   late_users = User.joins(:time_clocks)
                    .where(time_clocks: { status: "late", clock_in: month_range })
                    .group("users.id")
                    .having("COUNT(time_clocks.id) > 3")
                    .select("users.*, COUNT(time_clocks.id) as late_count")
+                   .order("late_count DESC")
 %>
 
-<div style="max-width: 1200px; margin: 0 auto;">
+<div class="monthly-stats-container">
+  <h2 class="section-title">This Month’s Attendance Overview</h2>
 
-  <!-- === Monthly Stats Panel === -->
-  <div class="panel" style="margin-bottom: 40px;">
-    <h2 style="margin-bottom: 20px;">This Month’s Stats</h2>
-
-    <div style="display: flex; gap: 30px; justify-content: space-evenly; margin: 20px 0;">
-      <!-- On Time (This Month) -->
-      <div style="background:#2ecc71; color:white; padding:30px; border-radius:14px; flex:1; text-align:center;">
-        <h2 style="font-size:36px; margin-bottom:8px;">
-          <%= on_time_month %>
-        </h2>
-        <span>On Time (This Month)</span>
+  <div class="monthly-grid">
+    <!-- Monthly On Time -->
+    <a href="<%= admin_time_clocks_url(
+                q: {
+                  clock_in_gteq: month_range.first.to_date,
+                  clock_in_lteq: month_range.last.to_date,
+                  status_eq: 'on_time'
+                },
+                commit: 'Filter',
+                order: 'id_desc'
+              ) %>" class="monthly-card monthly-on-time">
+      <div class="monthly-card-body">
+        <h3><%= on_time_month %></h3>
+        <p>On Time (This Month)</p>
       </div>
+    </a>
 
-      <!-- Late (This Month) -->
-      <div style="background:#e74c3c; color:white; padding:30px; border-radius:14px; flex:1; text-align:center;">
-        <h2 style="font-size:36px; margin-bottom:8px;">
-          <%= late_month %>
-        </h2>
-        <span>Late (This Month)</span>
+    <!-- Monthly Late -->
+    <a href="<%= admin_time_clocks_url(
+                q: {
+                  clock_in_gteq: month_range.first.to_date,
+                  clock_in_lteq: month_range.last.to_date,
+                  status_eq: 'late'
+                },
+                commit: 'Filter',
+                order: 'id_desc'
+              ) %>" class="monthly-card monthly-late">
+      <div class="monthly-card-body">
+        <h3><%= late_month %></h3>
+        <p>Late (This Month)</p>
       </div>
-    </div>
+    </a>
   </div>
 
-  <!-- === Users with More than 3 Lates === -->
-  <div class="panel">
-    <h2>Users with More than 3 Lates (This Month)</h2>
+  <div class="late-users-section">
+    <h3 class="section-subtitle">Users with More Than 3 Lates (This Month)</h3>
 
     <% if late_users.any? %>
-      <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-        <thead>
-          <tr style="background:#f5f5f5;">
-            <th style="padding:10px; text-align:left;">User</th>
-            <th style="padding:10px; text-align:left;">Email</th>
-            <th style="padding:10px; text-align:left;">Department</th>
-            <th style="padding:10px; text-align:left;">Late Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% late_users.each do |user| %>
+      <div class="table-wrapper">
+        <table class="late-users-table">
+          <thead>
             <tr>
-              <td style="padding:10px; border-bottom:1px solid #ddd;"><%= user.name %></td>
-              <td style="padding:10px; border-bottom:1px solid #ddd;"><%= link_to user.email, admin_employee_path(user) %></td>
-              <td style="padding:10px; border-bottom:1px solid #ddd;"><%= user.department %></td>
-              <td style="padding:10px; border-bottom:1px solid #ddd;"><%= user.late_count %></td>
+              <th>User</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Late Count</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% late_users.each do |user| %>
+              <tr>
+                <td><%= user.name %></td>
+                <td><%= link_to user.email, admin_employee_path(user) %></td>
+                <td><%= user.department %></td>
+                <td><%= user.late_count %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     <% else %>
-      <div style="padding:15px; text-align:center; color:#555;">
+      <div class="no-late-users">
         🎉 No users with more than 3 lates this month!
       </div>
     <% end %>
   </div>
-
 </div>
-
-

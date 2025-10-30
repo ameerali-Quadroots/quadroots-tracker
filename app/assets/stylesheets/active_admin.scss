@@ -210,3 +210,442 @@ $text-color: #181127;
   margin-bottom: 1.5rem !important;
   margin-top: 1.5rem !important;
 }
+/* ==========================================================
+   Department Dashboard Styling (Fixed Scroll Behavior)
+   ========================================================== */
+
+.no-dept-message {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 16px;
+  background: #f9f9f9;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+/* ✅ This is the single global scroll container */
+.departments-container {
+
+  padding-right: 10px;
+  margin-top: 20px;
+}
+
+/* Custom Scrollbar */
+.departments-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.departments-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.departments-container::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+}
+
+.departments-container::-webkit-scrollbar-thumb:hover {
+  background-color: #999;
+}
+
+/* ======= Department Group Layout ======= */
+.dept-group {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+/* ======= Department Card ======= */
+.dept-card {
+  flex: 1;
+  min-width: 250px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+    max-height: 40vh; /* whole section scrolls after 10+ departments */
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.dept-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.07);
+}
+
+/* ======= Department Title ======= */
+.dept-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 6px;
+}
+
+/* ======= Table Styling ======= */
+.dept-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.dept-table th {
+  text-align: left;
+  padding: 8px 4px;
+  border-bottom: 1px solid #ddd;
+  color: #555;
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.dept-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.dept-table tr:hover td {
+  background: #f9fcff;
+}
+
+/* ======= Links ======= */
+.dept-table a {
+  color: #0073aa;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dept-table a:hover {
+  text-decoration: underline;
+}
+
+/* ======= Status Tags ======= */
+.status_tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.status_tag.working {
+  background-color: #2ecc71;
+}
+
+.status_tag.on_break,
+.status_tag.meeting,
+.status_tag.downtime {
+  background-color: #f1c40f;
+  color: #333;
+}
+
+.status_tag.off {
+  background-color: #e74c3c;
+}
+
+/* ======= Responsive ======= */
+@media (max-width: 1200px) {
+  .dept-group {
+    flex-direction: column;
+  }
+
+  .dept-card {
+    width: 100%;
+  }
+}
+
+/* === Time Clock Summary Section === */
+
+.time-summary-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.time-summary-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.time-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  justify-content: center;
+}
+
+.summary-card {
+  display: block;
+  text-decoration: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+}
+
+.summary-card-body {
+  text-align: center;
+  padding: 30px 20px;
+  color: #fff;
+}
+
+.summary-card-body h3 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.summary-card-body p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Color Themes */
+.summary-late {
+  background: linear-gradient(135deg, #ff5c5c, #ff2e2e);
+}
+
+.summary-ontime {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .summary-card-body {
+    padding: 25px 15px;
+  }
+
+  .summary-card-body h3 {
+    font-size: 2.2rem;
+  }
+
+  .time-summary-title {
+    font-size: 1.3rem;
+  }
+}
+
+/* === General Section Titles === */
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #222;
+  text-align: center;
+  margin: 40px 0 20px 0;
+}
+
+.section-subtitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+  border-left: 4px solid #007bff;
+  padding-left: 10px;
+}
+
+/* === Daily Summary Cards === */
+.time-summary-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.time-summary-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.time-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.summary-card {
+  display: block;
+  text-decoration: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.summary-card-body {
+  text-align: center;
+  padding: 35px 20px;
+  color: #fff;
+}
+
+.summary-card-body h3 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.summary-card-body p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Card Color Themes */
+.summary-late {
+  background: linear-gradient(135deg, #ff4d4d, #ff1e1e);
+}
+
+.summary-ontime {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.summary-total-late {
+  background: linear-gradient(135deg, #ff9f43, #ff6f00);
+}
+
+/* === Monthly Stats Section === */
+.monthly-stats-container {
+  max-width: 1200px;
+  margin: 50px auto;
+  padding: 0 20px;
+}
+
+.monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.monthly-card {
+  border-radius: 12px;
+  color: #fff;
+  text-align: center;
+  padding: 35px 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.monthly-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.monthly-card-body h3 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.monthly-card-body p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Monthly card colors */
+.monthly-on-time {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.monthly-late {
+  background: linear-gradient(135deg, #ff5c5c, #ff2e2e);
+}
+
+/* === Late Users Table === */
+.late-users-section {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 15px;
+}
+
+.late-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.late-users-table th {
+  background: #f5f7fa;
+  color: #333;
+  font-weight: 600;
+  text-align: left;
+  padding: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.late-users-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.late-users-table tr:hover {
+  background: #f9fafb;
+}
+
+.no-late-users {
+  text-align: center;
+  color: #666;
+  padding: 20px 0;
+  font-size: 1rem;
+}
+
+/* === Responsive Adjustments === */
+@media (max-width: 600px) {
+  .section-title {
+    font-size: 1.3rem;
+  }
+
+  .monthly-card-body h3,
+  .summary-card-body h3 {
+    font-size: 2.1rem;
+  }
+
+  .monthly-card-body p,
+  .summary-card-body p {
+    font-size: 1rem;
+  }
+
+  .late-users-table th, .late-users-table td {
+    padding: 8px;
+  }
+}
+.monthly-card {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.monthly-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
