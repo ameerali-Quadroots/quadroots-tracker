@@ -64,87 +64,226 @@
 </div>
 
 <%
-  # === Monthly Summary ===
-  month_range = Time.current.beginning_of_month..Time.current.end_of_month
-  on_time_month = TimeClock.where(status: "on_time", clock_in: month_range).count
-  late_month = TimeClock.where(status: "late", clock_in: month_range).count
+  # === Yearly data setup ===
+  year = Time.current.year
+  months = (1..12).to_a
 
-  # === Users with more than 3 lates (ordered descending) ===
-  late_users = User.joins(:time_clocks)
-                   .where(time_clocks: { status: "late", clock_in: month_range })
-                   .group("users.id")
-                   .having("COUNT(time_clocks.id) > 3")
-                   .select("users.*, COUNT(time_clocks.id) as late_count")
-                   .order("late_count DESC")
+  # Grouped monthly stats
+  monthly_stats = months.map do |month_number|
+    month_start = Time.new(year, month_number).beginning_of_month
+    month_end   = Time.new(year, month_number).end_of_month
+    month_range = month_start..month_end
+
+    on_time_count = TimeClock.where(status: "on_time", clock_in: month_range).count
+    late_count    = TimeClock.where(status: "late", clock_in: month_range).count
+
+    late_users = User.joins(:time_clocks)
+                     .where(time_clocks: { status: "late", clock_in: month_range })
+                     .group("users.id")
+                     .having("COUNT(time_clocks.id) > 3")
+                     .select("users.*, COUNT(time_clocks.id) as late_count")
+                     .order("late_count DESC")
+
+    {
+      month_name: month_start.strftime("%B"),
+      on_time: on_time_count,
+      late: late_count,
+      late_users: late_users
+    }
+  end
 %>
 
-<div class="monthly-stats-container">
-  <h2 class="section-title">This Month’s Attendance Overview</h2>
-
-  <div class="monthly-grid">
-    <!-- Monthly On Time -->
-    <a href="<%= admin_time_clocks_url(
-                q: {
-                  clock_in_gteq: month_range.first.to_date,
-                  clock_in_lteq: month_range.last.to_date,
-                  status_eq: 'on_time'
-                },
-                commit: 'Filter',
-                order: 'id_desc'
-              ) %>" class="monthly-card monthly-on-time">
-      <div class="monthly-card-body">
-        <h3><%= on_time_month %></h3>
-        <p>On Time (This Month)</p>
-      </div>
-    </a>
-
-    <!-- Monthly Late -->
-    <a href="<%= admin_time_clocks_url(
-                q: {
-                  clock_in_gteq: month_range.first.to_date,
-                  clock_in_lteq: month_range.last.to_date,
-                  status_eq: 'late'
-                },
-                commit: 'Filter',
-                order: 'id_desc'
-              ) %>" class="monthly-card monthly-late">
-      <div class="monthly-card-body">
-        <h3><%= late_month %></h3>
-        <p>Late (This Month)</p>
-      </div>
-    </a>
+<div class="yearly-tabs-container">
+  <div class="tablist" role="tablist" aria-label="Monthly Attendance Tabs">
+    <% monthly_stats.each_with_index do |data, index| %>
+      <button 
+        class="tab <%= 'active' if index == 10 %>" 
+        role="tab"
+        aria-selected="<%= index == 0 %>"
+        aria-controls="panel-<%= index %>"
+        id="tab-<%= index %>"
+        tabindex="<%= index == 0 ? 0 : -1 %>">
+        <%= data[:month_name] %>
+      </button>
+    <% end %>
   </div>
 
-  <div class="late-users-section">
-    <h3 class="section-subtitle">Users with More Than 3 Lates (This Month)</h3>
+  <div class="tab-panels">
+    <% monthly_stats.each_with_index do |data, index| %>
+      <section 
+        id="panel-<%= index %>" 
+        class="tab-panel" 
+        role="tabpanel" 
+        aria-labelledby="tab-<%= index %>"
+        aria-hidden="<%= index != 0 %>"
+        <%= 'hidden' if index != 0 %>>
+        
+        <div class="monthly-overview">
+          <div class="stat on-time">
+            <h3><%= data[:on_time] %></h3>
+            <p>On Time</p>
+          </div>
+          <div class="stat late">
+            <h3><%= data[:late] %></h3>
+            <p>Late</p>
+          </div>
+        </div>
 
-    <% if late_users.any? %>
-      <div class="table-wrapper">
-        <table class="late-users-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Email</th>
-              <th>Department</th>
-              <th>Late Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% late_users.each do |user| %>
-              <tr>
-                <td><%= user.name %></td>
-                <td><%= link_to user.email, admin_employee_path(user) %></td>
-                <td><%= user.department %></td>
-                <td><%= user.late_count %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <div class="no-late-users">
-        🎉 No users with more than 3 lates this month!
-      </div>
+        <div class="late-users-table">
+          <h4>Users with More Than 3 Lates</h4>
+          <% if data[:late_users].any? %>
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Department</th>
+                  <th>Late Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% data[:late_users].each do |user| %>
+                  <tr>
+                    <td><%= user.name %></td>
+                    <td><%= link_to user.email, admin_employee_path(user) %></td>
+                    <td><%= user.department %></td>
+                    <td><%= user.late_count %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% else %>
+            <p class="no-late-users">🎉 No users with more than 3 lates this month!</p>
+          <% end %>
+        </div>
+      </section>
     <% end %>
   </div>
 </div>
+<style>
+ .yearly-tabs-container {
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .tablist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--bg-dark);
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+  }
+
+  .tab:hover {
+    background: #64287F;
+    color: #fff;
+  }
+
+  .tab.active {
+    background: #64287F;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .tab-panels {
+    border-top: 1px solid #64287F;
+    padding-top: 16px;
+  }
+
+  .tab-panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .tab-panel[aria-hidden="false"] {
+    display: block;
+  }
+
+  .monthly-overview {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat {
+    flex: 1;
+    background: rgba(236, 14, 14, 0.05);
+    border-radius: 8px;
+    text-align: center;
+    padding: 12px;
+  }
+
+  .stat h3 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .stat p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .late-users-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .late-users-table th, .late-users-table td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .no-late-users {
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .on-time{
+    background: #23BF7F !important
+  }
+  .late{
+    background: #FF2B2B;
+    color: #fff;
+  }
+
+  .late h3 {
+    color: #fff !important;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const tabs = document.querySelectorAll(".tab");
+    const panels = document.querySelectorAll(".tab-panel");
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        // deactivate all
+        tabs.forEach(t => t.classList.remove("active"));
+        panels.forEach(p => p.setAttribute("aria-hidden", "true"));
+
+        // activate current
+        tab.classList.add("active");
+        const panel = document.getElementById(tab.getAttribute("aria-controls"));
+        panel.setAttribute("aria-hidden", "false");
+      });
+    });
+  });
+</script> 
