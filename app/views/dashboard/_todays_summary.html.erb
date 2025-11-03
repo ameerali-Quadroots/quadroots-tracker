@@ -1,0 +1,84 @@
+<div class="summary-grid">
+  <div class="summary-item">
+    <div class="summary-icon">
+      <i class="bi bi-box-arrow-in-right"></i>
+    </div>
+    <div class="summary-content">
+      <span class="summary-label">Clock In</span>
+      <span class="summary-value"><%= @time_clock&.clock_in&.strftime("%I:%M %p") || "--:--" %></span>
+    </div>
+  </div>
+  
+  <div class="summary-item">
+    <div class="summary-icon">
+      <i class="bi bi-box-arrow-right"></i>
+    </div>
+    <div class="summary-content">
+      <span class="summary-label">Clock Out</span>
+      <span class="summary-value"><%= @time_clock&.clock_out&.strftime("%I:%M %p") || "--:--" %></span>
+    </div>
+  </div>
+  
+
+  
+  <div class="summary-item">
+    <div class="summary-icon">
+      <i class="bi bi-pause-circle"></i>
+    </div>
+    <div class="summary-content">
+      <span class="summary-label">Downtime</span>
+      <span class="summary-value"><%= @time_clock&.calculate_downtime() || "0 min" %></span>
+    </div>
+  </div>
+  
+  <div class="summary-item">
+    <div class="summary-icon">
+      <i class="bi bi-clock"></i>
+    </div>
+    <div class="summary-content">
+      <span class="summary-label">Working Duration</span>
+      <span class="summary-value">
+        <% if @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
+          <span id="clock-duration" class="live-duration">Loading...</span>
+          <div id="clock-in-time" 
+               data-clock-in-time="<%= @time_clock.clock_in.iso8601 %>" 
+               data-break-seconds="<%= @time_clock.total_break_seconds %>" 
+               data-on-break="<%= @time_clock.on_break? %>" 
+               hidden></div>
+        <% else %>
+          <%= @time_clock&.formatted_duration(@time_clock.total_duration) || "0h 0m" %>
+        <% end %>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Breaks List -->
+<% if @time_clock&.breaks.present? %>
+  <div class="breaks-section">
+    <h6 class="fw-bold mb-3 text-dark">
+      <i class="bi bi-list-check me-2"></i>Breaks Today
+    </h6>
+    <div class="breaks-list">
+      <% @time_clock.breaks.order(:break_in).each_with_index do |b, i| %>
+        <div class="break-item">
+          <div class="break-info">
+            <span class="break-number">Break <%= i + 1 %></span>
+            <span class="break-time">
+              <%= b.break_in&.strftime("%H:%M") || "--:--" %> - 
+              <%= b.break_out&.strftime("%H:%M") || "In Progress" %>
+            </span>
+          </div>
+          <div class="break-meta">
+            <span class="badge bg-light text-dark">
+              <%= b.duration > 0 ? "#{(b.duration / 60).round(1)} min" : "--" %>
+            </span>
+            <span class="badge break-type-badge">
+              <%= b.break_type %>
+            </span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

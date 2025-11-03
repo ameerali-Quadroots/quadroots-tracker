@@ -1,0 +1,130 @@
+<div class="status-content">
+  <% if @time_clock.nil? || @time_clock.clock_out.present? %>
+    <!-- Not Clocked In State -->
+    <div class="status-state text-center">
+      <div class="status-indicator mb-4">
+        <div class="status-icon-wrapper">
+          <i class="bi bi-clock status-icon"></i>
+        </div>
+        <div class="status-badge badge bg-secondary">
+          Not Clocked In
+        </div>
+        <p class="status-description text-muted mt-2">
+          Ready to start your workday? Clock in to begin tracking your time.
+        </p>
+      </div>
+      
+      <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
+        <%= button_to clock_in_path, method: :post, class: "btn btn-success btn-premium btn-action" do %>
+          <i class="bi bi-box-arrow-in-right me-2"></i>Clock In
+        <% end %>
+        <button type="button" class="btn btn-outline-premium btn-premium btn-action" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+          <i class="bi bi-pencil-square me-2"></i>Request Edit
+        </button>
+      </div>
+    </div>
+
+  <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
+    <!-- On Break State -->
+    <% 
+      end_text = case @time_clock.current_state
+        when "Downtime" then "End Downtime"
+        when "Meeting" then "End Meeting"
+        else "End Break"
+      end
+      
+      status_icon = case @time_clock.current_state
+        when "Downtime" then "bi-pause-btn"
+        when "Meeting" then "bi-camera-video"
+        else "bi-cup-hot"
+      end
+    %>
+    
+    <div class="status-state text-center">
+      <div class="status-indicator mb-4">
+        <div class="status-icon-wrapper break-active">
+          <i class="bi <%= status_icon %> status-icon"></i>
+        </div>
+        <div class="status-badge badge bg-warning text-dark">
+          <%= @time_clock.current_state %>
+        </div>
+        <p class="status-description text-muted mt-2">
+          Currently on <%= @time_clock.current_state.downcase %>. Ready to resume work?
+        </p>
+      </div>
+      
+      <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
+        <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
+              method: :post, class: "btn btn-primary btn-premium btn-action" do %>
+          <i class="bi bi-play-circle me-2"></i><%= end_text %>
+        <% end %>
+        <button type="button" class="btn btn-outline-premium btn-premium btn-action" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+          <i class="bi bi-pencil-square me-2"></i>Request Edit
+        </button>
+      </div>
+    </div>
+
+  <% else %>
+    <!-- Working State -->
+    <div class="status-state text-center">
+      <div class="status-indicator mb-4">
+        <div class="status-icon-wrapper working-active">
+          <i class="bi bi-check-circle status-icon"></i>
+        </div>
+        <div class="status-badge badge bg-success">
+          Working Actively
+        </div>
+        <p class="status-description text-muted mt-2">
+          Great job! You're currently working. Take a break when needed.
+        </p>
+      </div>
+      
+      <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
+        <div class="dropdown dropdown-premium">
+          <button class="btn btn-warning btn-premium btn-action dropdown-toggle" type="button" id="breakDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-pause-circle me-2"></i>Take Break
+          </button>
+          <ul class="dropdown-menu dropdown-premium" aria-labelledby="breakDropdown">
+            <% 
+              break_options = [
+                { name: "Meal Break - 40 Minutes", icon: "bi-egg-fried" },
+                { name: "Second Break - 30 minutes", icon: "bi-cup-hot" },
+                { name: "Meeting", icon: "bi-camera-video" },
+                { name: "Extra Break", icon: "bi-clock" },
+                { name: "Downtime", icon: "bi-pause-btn" }
+              ]
+            %>
+            <% break_options.each do |break_option| %>
+              <li>
+                <%= button_to break_in_time_clock_breaks_path(@time_clock, break_type: break_option[:name]), 
+                      method: :post, form_class: "d-block", class: "dropdown-item" do %>
+                  <i class="bi <%= break_option[:icon] %> me-2"></i><%= break_option[:name] %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+        <button type="button" class="btn btn-outline-premium btn-premium btn-action" data-bs-toggle="modal" data-bs-target="#editRequestModal">
+          <i class="bi bi-pencil-square me-2"></i>Request Edit
+        </button>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Leave Request Buttons -->
+  <div class="leave-actions mt-5 pt-4">
+    <div class="section-divider">
+      <span class="divider-text">Leave Management</span>
+    </div>
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-3">
+      <button type="button" class="btn btn-dark  btn-premium btn-leave" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+        <i class="bi bi-calendar-check me-2"></i>Request Leave
+      </button>
+      <% if current_user.role == "Manager" %>
+        <button type="button" class="btn btn-dark btn-premium btn-leave" data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
+          <i class="bi bi-person-plus me-2"></i>For Executive
+        </button>
+      <% end %>
+    </div>
+  </div>
+</div>

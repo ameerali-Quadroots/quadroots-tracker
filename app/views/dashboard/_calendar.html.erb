@@ -1,0 +1,282 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h6 class="card-title mb-4 text-dark">
+      <i class="bi bi-calendar3 me-2"></i>Calendar
+    </h6>
+    <div id="calendar" 
+         class="calendar" 
+         data-time-clocks="<%= @time_clocks_current_month.to_json %>">
+    </div>
+  </div>
+</div>
+<script>
+
+// app/assets/javascripts/dashboard.js
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Initializing dashboard...');
+  initializeDashboard();
+});
+
+function initializeDashboard() {
+  try {
+    initializeLiveClock();
+    initializeDurationCounter();
+    initializeCalendar();
+    initializeModalInteractions();
+    initializeFlatpickr();
+    console.log('Dashboard initialized successfully');
+  } catch (error) {
+    console.error('Error initializing dashboard:', error);
+  }
+}
+
+function initializeLiveClock() {
+  const clockElement = document.getElementById('live-clock');
+  if (!clockElement) {
+    console.log('Live clock element not found');
+    return;
+  }
+
+  try {
+    const serverTime = new Date(clockElement.dataset.serverTime);
+    let currentTime = new Date(serverTime.getTime());
+
+    function updateClock() {
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      
+      const formatted = currentTime.toLocaleString('en-US', options);
+      clockElement.textContent = formatted;
+      currentTime.setSeconds(currentTime.getSeconds() + 1);
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+    console.log('Live clock initialized');
+  } catch (error) {
+    console.error('Error initializing live clock:', error);
+  }
+}
+
+function initializeDurationCounter() {
+  const clockInElement = document.getElementById('clock-in-time');
+  const clockDurationElement = document.getElementById('clock-duration');
+  
+  if (!clockInElement || !clockDurationElement) {
+    console.log('Duration counter elements not found');
+    return;
+  }
+
+  try {
+    const clockInDate = new Date(clockInElement.dataset.clockInTime);
+    const totalBreakSeconds = parseInt(clockInElement.dataset.breakSeconds) || 0;
+    const onBreak = clockInElement.dataset.onBreak === "true";
+
+    function updateDuration() {
+      if (onBreak) {
+        clockDurationElement.textContent = "On Break";
+        clockDurationElement.className = "text-warning fw-bold";
+        return;
+      }
+
+      const now = new Date();
+      const elapsedTime = (now - clockInDate) / 1000;
+      const workTime = Math.max(elapsedTime - totalBreakSeconds, 0);
+
+      const hours = Math.floor(workTime / 3600);
+      const minutes = Math.floor((workTime % 3600) / 60);
+      const seconds = Math.floor(workTime % 60);
+
+      clockDurationElement.textContent = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+      clockDurationElement.className = "live-duration";
+    }
+
+    updateDuration();
+    setInterval(updateDuration, 1000);
+    console.log('Duration counter initialized');
+  } catch (error) {
+    console.error('Error initializing duration counter:', error);
+  }
+}
+
+function initializeCalendar() {
+  const calendarElement = document.getElementById('calendar');
+  if (!calendarElement) {
+    console.log('Calendar element not found');
+    return;
+  }
+
+  try {
+    const timeClocksData = calendarElement.dataset.timeClocks;
+    if (!timeClocksData) {
+      console.log('No time clocks data found');
+      return;
+    }
+
+    const timeClocks = JSON.parse(timeClocksData);
+    console.log('Loaded time clocks:', timeClocks.length);
+    
+    const currentDate = new Date();
+    generateCalendar(currentDate.getFullYear(), currentDate.getMonth(), timeClocks, calendarElement);
+  } catch (error) {
+    console.error('Error initializing calendar:', error);
+    calendarElement.innerHTML = '<div class="text-center text-muted p-4">Error loading calendar data</div>';
+  }
+}
+
+function generateCalendar(year, month, timeClocks, calendarElement) {
+  const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  const daysInMonth = lastDayOfMonth.getDate();
+  const firstDayOfWeek = firstDayOfMonth.getDay();
+
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  let calendarHtml = '<div class="calendar-header">';
+  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  daysOfWeek.forEach(day => {
+    calendarHtml += `<div class="calendar-day">${day}</div>`;
+  });
+  calendarHtml += '</div>';
+
+  calendarHtml += '<div class="calendar-grid">';
+
+  // Empty cells for days before the 1st
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    calendarHtml += '<div class="calendar-cell empty"></div>';
+  }
+
+  // Calendar days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayOfWeek = (firstDayOfWeek + day - 1) % 7;
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+    // Find clock entry for this date
+    const clockEntry = timeClocks.find(tc => {
+      if (!tc.clock_in) return false;
+      try {
+        const clockInDate = new Date(tc.clock_in);
+        const clockInString = `${clockInDate.getFullYear()}-${String(clockInDate.getMonth() + 1).padStart(2, '0')}-${String(clockInDate.getDate()).padStart(2, '0')}`;
+        return clockInString === dateString;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    let className = '';
+    
+    if (clockEntry) {
+      if (clockEntry.status === 'late') {
+        className = 'calendar-late';
+      } else if (clockEntry.status === 'on_time') {
+        className = 'calendar-on-time';
+      }
+    } else if (!isWeekend) {
+      className = 'calendar-off';
+    }
+
+    const calendarDate = new Date(year, month, day);
+    if (calendarDate > today) {
+      className = 'calendar-future';
+    }
+
+    const todayClass = dateString === todayString ? 'today' : '';
+
+    calendarHtml += `<div class="calendar-cell ${className} ${todayClass}" data-date="${dateString}">${day}</div>`;
+  }
+
+  calendarHtml += '</div>';
+  calendarElement.innerHTML = calendarHtml;
+
+  // Add click event listeners
+  calendarElement.querySelectorAll('.calendar-cell[data-date]').forEach(cell => {
+    cell.addEventListener('click', function() {
+      if (this.classList.contains('calendar-off') || this.classList.contains('calendar-future')) {
+        return;
+      }
+      const selectedDate = this.getAttribute('data-date');
+      console.log('Navigating to date:', selectedDate);
+      window.location.href = `/time_clocks/${selectedDate}`;
+    });
+  });
+}
+
+function initializeModalInteractions() {
+  console.log('Initializing modal interactions');
+  
+  // Edit request modal interactions
+  const requestTypeSelect = document.getElementById("edit_request_request_type");
+  const breakReasonContainer = document.getElementById("break_reason_container");
+
+  if (requestTypeSelect && breakReasonContainer) {
+    const toggleBreakReason = () => {
+      const selectedValue = requestTypeSelect.value;
+      if (selectedValue === "Forgot to end break" || selectedValue === "Forgot to add break") {
+        breakReasonContainer.style.display = "block";
+        const breakReasonSelect = document.getElementById("edit_request_break_reason");
+        if (breakReasonSelect) breakReasonSelect.setAttribute("required", "required");
+      } else {
+        breakReasonContainer.style.display = "none";
+        const breakReasonSelect = document.getElementById("edit_request_break_reason");
+        if (breakReasonSelect) breakReasonSelect.removeAttribute("required");
+      }
+    };
+
+    requestTypeSelect.addEventListener("change", toggleBreakReason);
+    toggleBreakReason(); // Set initial state
+  }
+
+  // Leave type medical certificate toggle
+  const leaveTypeSelect = document.getElementById("leave_leave_type");
+  const medicalField = document.getElementById("medical_certificate_field");
+
+  if (leaveTypeSelect && medicalField) {
+    const toggleMedicalField = () => {
+      const medicalInput = document.getElementById("leave_medical_certificate");
+      if (leaveTypeSelect.value === "medical") {
+        medicalField.style.display = "block";
+        if (medicalInput) medicalInput.setAttribute("required", "required");
+      } else {
+        medicalField.style.display = "none";
+        if (medicalInput) {
+          medicalInput.removeAttribute("required");
+          medicalInput.value = "";
+        }
+      }
+    };
+
+    leaveTypeSelect.addEventListener("change", toggleMedicalField);
+    toggleMedicalField(); // Set initial state
+  }
+}
+
+function initializeFlatpickr() {
+  const datetimeFields = document.querySelectorAll(".datetime-field");
+  if (datetimeFields.length > 0 && typeof flatpickr !== 'undefined') {
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+
+    datetimeFields.forEach(field => {
+      flatpickr(field, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: false,
+        minDate: yesterday,
+        minuteIncrement: 1
+      });
+    });
+    console.log('Flatpickr initialized on', datetimeFields.length, 'fields');
+  } else if (datetimeFields.length > 0) {
+    console.log('Flatpickr not loaded, using native datetime input');
+  }
+}
+</script>

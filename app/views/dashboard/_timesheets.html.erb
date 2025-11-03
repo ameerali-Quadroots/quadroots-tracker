@@ -1,0 +1,46 @@
+<div class="table-responsive">
+  <table class="table table-hover align-middle table-premium">
+    <thead>
+      <tr>
+        <th><i class="bi bi-calendar me-1"></i>Date</th>
+        <th><i class="bi bi-arrow-right-circle me-1"></i>Clock In</th>
+        <th><i class="bi bi-arrow-left-circle me-1"></i>Clock Out</th>
+        <th><i class="bi bi-clock me-1"></i>Duration</th>
+        <th><i class="bi bi-cup-hot me-1"></i>Break</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if @time_clocks.present? %>
+        <% @time_clocks.each do |tc| %>
+          <tr>
+            <td class="fw-bold text-dark"><%= tc.clock_in.strftime("%a, %d %b") if tc.clock_in %></td>
+            <td><span class="text-success fw-semibold"><%= tc.clock_in.strftime("%I:%M %p") if tc.clock_in %></span></td>
+            <td><span class="text-danger fw-semibold"><%= tc.clock_out.strftime("%I:%M %p") if tc.clock_out %></span></td>
+            <td><span class="badge badge-premium bg-light text-dark"><%= tc.formatted_duration(tc.total_duration) %></span></td>
+            <td><span class="badge badge-premium bg-light text-dark"><%= tc.formatted_duration(tc.break_duration) %></span></td>
+            <td>
+              <% if tc.status == "late" %>
+                <span class="badge badge-premium bg-danger">Late</span>
+              <% elsif tc.status == "on_time" %>
+                <span class="badge badge-premium bg-success">On Time</span>
+              <% else %>
+                <span class="badge badge-premium bg-secondary">N/A</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">
+            <div class="empty-state">
+              <i class="bi bi-inbox display-4 d-block mb-3 opacity-50"></i>
+              <h5 class="fw-bold">No timesheet records found</h5>
+              <p class="mb-0">Your timesheet data will appear here</p>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

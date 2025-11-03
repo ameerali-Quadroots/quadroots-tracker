@@ -1,56 +1,103 @@
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
-      <%= image_tag "quadroots.webp", alt: "Logo", class: "me-2", height: "30" %>
-      <span>QuadRoots Tracker</span>
-    <% end %>
+ <nav class="navbar navbar-expand-lg navbar-dark">
+     <div class="container">
+         <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
+         <%= image_tag "quadroots.webp", alt: "Logo", class: "me-2", height: "30" %>
+         <span>QuadRoots Tracker</span>
+         <% end %>
 
-    <!-- Hamburger / Toggle button for mobile -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+         <!-- Hamburger / Toggle button for mobile -->
+         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+             <span class="navbar-toggler-icon"></span>
+         </button>
 
-    <!-- Navbar links -->
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto align-items-center">
+         <!-- Navbar links -->
+         <div class="collapse navbar-collapse" id="navbarNav">
+             <ul class="navbar-nav ms-auto align-items-center">
+                 <% if user_signed_in? %>
+                 <!-- Notifications -->
+                 <li class="nav-item dropdown me-2">
 
-        <% if user_signed_in? %>
-          <!-- User dropdown menu -->
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              👤 <%= current_user.name %>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li>
-                <%= link_to "Edit Profile", edit_user_path(current_user), class: "dropdown-item" %>
-                <% if current_user.role == "Manager" %>
-                <%= link_to "View Edit Requests", edit_requests_path, class: "dropdown-item" %>
-                <%= link_to "View Leave Requests", leaves_path, class: "dropdown-item" %>
-                <% end %>
-                <%= link_to "My Requests", my_requests_edit_requests_path, class: "dropdown-item" %>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <%= button_to "Logout",
-                    destroy_user_session_path,
-                    method: :delete,
-                    class: "dropdown-item",
-                    form: { class: "d-inline" } %>
-              </li>
-            </ul>
-          </li>
-        <% else %>
-          <!-- Login/Sign up if user not logged in -->
-          <li class="nav-item">
-            <%= link_to "Login", new_user_session_path, class: "nav-link" %>
-          </li>
-          <li class="nav-item">
-            <%= link_to "Sign Up", new_user_registration_path, class: "nav-link" %>
-          </li>
-        <% end %>
+                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown">
+                         <li>
+                             <h6 class="dropdown-header">Notifications</h6>
+                         </li>
+                         <li><a class="dropdown-item" href="#"><i class="fas fa-edit text-info"></i> Edit request approved</a></li>
+                         <li><a class="dropdown-item" href="#"><i class="fas fa-calendar-alt text-warning"></i> Leave request pending</a></li>
+                         <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle text-success"></i> Profile updated</a></li>
+                         <li>
+                             <hr class="dropdown-divider">
+                         </li>
+                         <li><a class="dropdown-item text-center" href="#">View All</a></li>
+                     </ul>
+                 </li>
 
-      </ul>
-    </div>
-  </div>
-</nav>
+                 <!-- User dropdown menu -->
+                 <li class="nav-item dropdown">
+                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                         <div class="user-avatar">
+                             <%= current_user.name.split.map(&:first).join.upcase %>
+                         </div>
+                         <span class="me-1"><%= current_user.name %></span>
+                     </a>
+                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                         <li>
+                             <h6 class="dropdown-header">Account</h6>
+                         </li>
+                         <li>
+                             <%= link_to edit_user_path(current_user), class: "dropdown-item" do %>
+                             <i class="fas fa-user-edit"></i> Edit Profile
+                             <% end %>
+                         </li>
+                         <% if current_user.role == "Manager" %>
+                         <li>
+                             <%= link_to edit_requests_path, class: "dropdown-item" do %>
+                             <i class="fas fa-tasks"></i> View Edit Requests
+                             <% count = edit_requests_count %>
+                             <% if count > 0 %>
+                             <span class="badge bg-primary ms-1"><%= count %></span>
+                             <% end %>
+                             <% end %>
+                         </li>
+                         <li>
+                             <%= link_to leaves_path, class: "dropdown-item" do %>
+                             <i class="fas fa-calendar-check"></i> View Leave Requests
+                             <% leave_count = leaves_count %>
+                             <% if leave_count > 0 %>
+                             <span class="badge bg-success ms-1"><%= leave_count %></span>
+                             <% end %>
+                             <% end %>
+                         </li>
+                         <% end %>
+                         <li>
+                             <%= link_to my_requests_edit_requests_path, class: "dropdown-item" do %>
+                             <i class="fas fa-history"></i> My Requests
+                              <span class="badge bg-success ms-1"><%= current_user.edit_requests.count %></span>
+                             <% end %>
+                         </li>
+                         <li>
+                             <hr class="dropdown-divider">
+                         </li>
+                         <li>
+                             <%= button_to destroy_user_session_path, method: :delete, class: "dropdown-item" do %>
+                             <i class="fas fa-sign-out-alt"></i> Logout
+                             <% end %>
+                         </li>
+                     </ul>
+                 </li>
+                 <% else %>
+                 <!-- Login/Sign up if user not logged in -->
+                 <li class="nav-item">
+                     <%= link_to new_user_session_path, class: "nav-link" do %>
+                     <i class="fas fa-sign-in-alt me-1"></i> Login
+                     <% end %>
+                 </li>
+                 <li class="nav-item">
+                     <%= link_to new_user_registration_path, class: "nav-link btn btn-outline-light ms-2" do %>
+                     <i class="fas fa-user-plus me-1"></i> Sign Up
+                     <% end %>
+                 </li>
+                 <% end %>
+             </ul>
+         </div>
+     </div>
+ </nav>

@@ -1,0 +1,74 @@
+<div class="modal fade" id="editRequestModal" tabindex="-1" aria-labelledby="editRequestModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dashboard-card">
+      <%= form_with(model: EditRequest.new, url: edit_requests_path, local: true) do |f| %>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-pencil-square me-2 text-primary"></i>
+            Request Clock-In Edit
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body">
+          <%= f.hidden_field :time_clock_id, value: @time_clock.id if @time_clock.present? %>
+          <%= f.hidden_field :department, value: current_user.department %>
+
+          <div class="mb-4">
+            <%= f.label :request_type, "Edit Type", class: "form-label fw-semibold text-dark" %>
+            <%= f.select :request_type, 
+                  options_for_select([
+                    ['Forgot to end break', 'Forgot to end break'],
+                    ['Forgot to add break', 'Forgot to add break'],
+                    ['Clock tower not working', 'Clock tower not working'],
+                    ['Other reason', 'Other reason']
+                  ]), 
+                  { include_blank: "Please select edit type..." }, 
+                  class: "form-select", 
+                  required: true,
+                  id: "edit_request_request_type" %>
+          </div>
+
+          <div id="break_reason_container" style="display: none;" class="mb-4">
+            <label for="edit_request_break_reason" class="form-label fw-semibold text-dark">Select Break Type</label>
+            <select class="form-select" name="edit_request[break_reason]" id="edit_request_break_reason">
+              <option value="">Please select a break type...</option>
+              <option value="Meal Break - 40 Minutes">Meal Break - 40 Minutes</option>
+              <option value="Second Break - 30 minutes">Second Break - 30 minutes</option>
+              <option value="Extra Break">Extra Break</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Downtime">Downtime</option>
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :requested_clock_in, "New Time", class: "form-label fw-semibold text-dark" %>
+            <%= f.text_field :requested_clock_in, 
+                  class: "form-control datetime-field", 
+                  required: true, 
+                  placeholder: "Select date and time",
+                  id: "edit_request_requested_clock_in" %>
+            <div class="form-text">Select the correct date and time for your clock-in/break</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :reason, "Reason for Request", class: "form-label fw-semibold text-dark" %>
+            <%= f.text_area :reason, 
+                  class: "form-control", 
+                  rows: 4, 
+                  required: true, 
+                  placeholder: "Please explain the reason for this edit request...",
+                  id: "edit_request_reason" %>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+          </button>
+          <%= f.submit "Submit Request", class: "btn btn-primary btn-premium" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

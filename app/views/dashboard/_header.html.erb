@@ -1,0 +1,17 @@
+<div class="dashboard-header d-flex justify-content-between align-items-center">
+  <div>
+    <h3>Dashboard</h3>
+    <div class="greeting-text">Hello, <%= current_user.name || "Admin User" %>! 👋</div>
+  </div>
+
+  <% server_time = Time.zone.now %> <!-- ensures correct timezone -->
+
+  <div class="text-end">
+    <div class="text-muted mb-1">Today</div>
+    <div id="live-clock"
+         data-server-time="<%= server_time.iso8601 %>"
+         class="fs-5 fw-bold">
+      <%= server_time.strftime('%d/%m/%Y %I:%M:%S %p') %>
+    </div>
+  </div>
+</div>

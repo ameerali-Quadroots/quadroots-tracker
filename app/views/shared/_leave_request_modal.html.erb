@@ -1,0 +1,77 @@
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dashboard-card">
+      <%= form_with(model: Leave.new, url: leaves_path, local: true, html: { multipart: true }) do |f| %>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-calendar-check me-2 text-info"></i>
+            Request Leave
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-4">
+            <%= f.label :leave_type, "Leave Type", class: "form-label fw-semibold text-dark" %>
+            <%= f.select :leave_type, 
+                  options_for_select([
+                    ["Medical Leave", "medical"], 
+                    ["Casual Leave", "casual"], 
+                    ["Half Day", "half_day"],
+                    ["Emergency Leave", "emergency"]
+                  ]), 
+                  { include_blank: "Select Leave Type" }, 
+                  class: "form-select", 
+                  required: true,
+                  id: "leave_leave_type" %>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <%= f.label :start_date, "Start Date", class: "form-label fw-semibold text-dark" %>
+              <%= f.date_field :start_date, 
+                    class: "form-control", 
+                    required: true,
+                    min: Date.today,
+                    id: "leave_start_date" %>
+            </div>
+            <div class="col-md-6">
+              <%= f.label :end_date, "End Date", class: "form-label fw-semibold text-dark" %>
+              <%= f.date_field :end_date, 
+                    class: "form-control", 
+                    required: true,
+                    min: Date.today,
+                    id: "leave_end_date" %>
+            </div>
+          </div>
+
+          <div class="mb-4" id="medical_certificate_field" style="display: none;">
+            <%= f.label :medical_certificate, "Upload Medical Certificate", class: "form-label fw-semibold text-dark" %>
+            <%= f.file_field :medical_certificate, 
+                  class: "form-control", 
+                  accept: ".pdf,.jpg,.jpeg,.png",
+                  id: "leave_medical_certificate" %>
+            <div class="form-text">Accepted formats: PDF, JPG, JPEG, PNG (Max 5MB)</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :reason, "Reason for Leave", class: "form-label fw-semibold text-dark" %>
+            <%= f.text_area :reason, 
+                  rows: 4, 
+                  class: "form-control", 
+                  placeholder: "Please provide details about your leave request...", 
+                  required: true,
+                  id: "leave_reason" %>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+          </button>
+          <%= f.submit "Submit Leave Request", class: "btn btn-info btn-premium" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
