@@ -4,7 +4,6 @@ class LeavesController < ApplicationController
 
   def index
   if current_user.role == "Manager" && current_user.department != "HOD'S"
-    # Regular manager: sees executives in their department
     @leaves = Leave.joins(:user)
                    .where(users: { role: "Executive", department: current_user.department })
                    .order(created_at: :desc)

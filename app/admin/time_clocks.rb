@@ -1,8 +1,11 @@
 ActiveAdmin.register TimeClock do
 
- controller do
+controller do
   def scoped_collection
     scope = super.joins(:employee)
+
+    # Filter by nested employee
+    scope = scope.where(user_id: params[:employee_id]) if params[:employee_id].present?
 
     if current_admin_user.super_admin? || current_admin_user.qa_admin?
       scope
