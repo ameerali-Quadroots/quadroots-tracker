@@ -45,7 +45,7 @@ end
 
   def reject
     @leave.update(approved_by_manager: 'false')
-  redirect_to request.referer alert: 'Leave rejected.'
+  redirect_to request.referer, alert: 'Leave rejected.'
   end
 
 
