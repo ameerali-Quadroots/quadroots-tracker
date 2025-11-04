@@ -371,7 +371,6 @@ body {
   border: none;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  overflow: hidden;
   height: 100%;
   position: relative;
   backdrop-filter: blur(10px);
@@ -1296,6 +1295,8 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .status-indicator {
@@ -2445,4 +2446,14 @@ body {
 
 @keyframes slideUp {
   to { opacity: 1; transform: translateY(0); }
+}
+
+.add-new{
+  position: relative;
+  z-index: 3;
+}
+
+.add-new-2
+{
+  z-index: 2;
 }
