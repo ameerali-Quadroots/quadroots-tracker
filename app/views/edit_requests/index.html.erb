@@ -66,6 +66,7 @@
                 <th>Changing Time</th>
                 <th>Reason</th>
                 <th>Status</th>
+                <th>Approved By manager</th>
                 <th>Requested At</th>
                 <th>Resolved At</th>
                 <th>Actions</th>
@@ -102,6 +103,7 @@
                       <%= truncate(request.reason, length: 50) %>
                     </div>
                   </td>
+
                   <td data-label="Status" class="align-middle">
                     <span class="status-indicator"></span>
                     <% status_class = case request.status
@@ -112,6 +114,17 @@
                                     end %>
                     <span class="badge rounded-pill <%= status_class %> px-3 py-2">
                       <%= request.status.capitalize %>
+                    </span>
+                  </td>
+                  <td data-label="Status" class="align-middle">
+                    <span class="status-indicator"></span>
+                    <% status_class = case request.approved_by_manager
+                                    when false then "bg-warning text-dark"
+                                    when true then "bg-success"
+                                    else "bg-secondary"
+                                    end %>
+                    <span class="badge rounded-pill <%= status_class %> px-3 py-2">
+                      <%= request.approved_by_manager %>
                     </span>
                   </td>
                   <td data-label="Requested At" class="align-middle">
@@ -135,7 +148,7 @@
                     <% end %>
                   </td>
                   <td data-label="Actions" class="align-middle">
-                    <% if request.pending? %>
+                    <% unless request.approved_by_manager %>
                       <div class="action-buttons">
                         <%= button_to approve_edit_request_path(request), 
                             method: :patch, 
@@ -149,16 +162,6 @@
                             class: "btn btn-outline-danger btn-sm",
                             form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
                           <i class="fas fa-times me-1"></i> Reject
-                        <% end %>
-                      </div>
-                    <% else %>
-                      <div class="text-center">
-                        <span class="text-muted fst-italic small">approved_by_manager</span>
-                        <% if request.approved_by_manager %>
-                          <div class="text-success small">
-                            <i class="fas fa-user-check me-1"></i>
-                            <%= request.approved_by_manager %>
-                          </div>
                         <% end %>
                       </div>
                     <% end %>
