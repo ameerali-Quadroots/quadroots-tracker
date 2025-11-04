@@ -31,7 +31,8 @@ end
 
   # Apply filters based on user input
   if params[:name].present?
-    @edit_requests = @edit_requests.joins(:user).where("users.name ILIKE ?", "%#{params[:name]}%")
+    @edit_requests = @edit_requests.joins(:user)
+                                   .where("users.name ILIKE ?", "%#{params[:name]}%")
   end
 
   if params[:request_type].present?
@@ -42,23 +43,26 @@ end
     @edit_requests = @edit_requests.where(status: params[:status])
   end
 
-  # Apply sorting
-  if params[:sort_by].present? && params[:sort_order].present?
-    sort_column = params[:sort_by]
-    sort_direction = params[:sort_order] == 'desc' ? 'desc' : 'asc'
-    @edit_requests = @edit_requests.order("#{sort_column} #{sort_direction}")
-  end
-
-  # Filtering by department and user
+  # Apply department/user-based filtering
   if current_user.role == "Manager" && current_user.department != "HOD'S"
     @edit_requests = @edit_requests.where(department: current_user.department)
-                                    .where.not(user_id: current_user.id)
+                                   .where.not(user_id: current_user.id)
   elsif current_user.department == "HOD'S"
     departments = ["WEB", "SEO", "ADS", "CONTENT"]
     manager_ids = User.where(role: "Manager", department: departments).pluck(:id)
     @edit_requests = @edit_requests.where(user_id: manager_ids)
   else
     @edit_requests = EditRequest.none
+  end
+
+  # Apply sorting (defaults to latest created first)
+  if params[:sort_by].present? && params[:sort_order].present?
+    sort_column = params[:sort_by]
+    sort_direction = params[:sort_order] == 'desc' ? 'desc' : 'asc'
+    @edit_requests = @edit_requests.order("#{sort_column} #{sort_direction}")
+  else
+    # Default: order by creation date, latest first
+    @edit_requests = @edit_requests.order(created_at: :desc)
   end
 end
 
@@ -78,9 +82,26 @@ end
     redirect_back fallback_location: edit_requests_path, notice: "Request rejected."
   end
 
-  def my_requests
-    @edit_requests = current_user.edit_requests
+ def my_requests
+@edit_requests = current_user.edit_requests.order(created_at: :desc)
+
+  # === Filters ===
+  if params[:status].present?
+    @edit_requests = @edit_requests.where(status: params[:status])
   end
+
+  if params[:request_type].present?
+    @edit_requests = @edit_requests.where(request_type: params[:request_type])
+  end
+
+  if params[:from_date].present? && params[:to_date].present?
+    from = Date.parse(params[:from_date]).beginning_of_day
+    to = Date.parse(params[:to_date]).end_of_day
+    @edit_requests = @edit_requests.where(created_at: from..to)
+  end
+
+  @edit_requests = @edit_requests.order(created_at: :desc)
+end
 
   private
 

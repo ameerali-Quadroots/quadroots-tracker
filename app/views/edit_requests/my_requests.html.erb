@@ -1,11 +1,51 @@
 <div class="container-fluid my-5">
-  <div class="card shadow-sm">
+  <div class="card shadow-sm my-request-card">
     <div class="card-body">
-      <h1 class="card-title mb-4 text-primary text-center">Edit Requests</h1>
+      <h1 class="card-title mb-4 text-center text-primary">Edit Requests</h1>
 
+      <!-- === Filter Section === -->
+      <div class="filter-section mb-4">
+        <%= form_with url: my_requests_edit_requests_path, method: :get, local: true, class: "row g-3 gap-3 align-items-end my-filter-form" do |f| %>
+
+          <div class="col-md-2">
+            <%= f.label :status, "Status", class: "form-label fw-bold filter-label" %>
+            <%= f.select :status, [["All", ""], ["Pending", "pending"], ["Approved", "approved"], ["Rejected", "rejected"]],
+              { selected: params[:status] }, class: "form-select filter-input" %>
+          </div>
+
+          <div class="col-md-3">
+            <%= f.label :request_type, "Request Type", class: "form-label fw-bold filter-label" %>
+            <%= f.select :request_type, [["All", ""], ['Forgot to end break', 'Forgot to end break'],
+                    ['Forgot to add break', 'Forgot to add break'],
+                    ['Clock tower not working', 'Clock tower not working'],
+                    ['Other reason', 'Other reason']],
+              { selected: params[:request_type] }, class: "form-select filter-input" %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :from_date, "From Date", class: "form-label fw-bold filter-label" %>
+            <%= f.date_field :from_date, value: params[:from_date], class: "form-control filter-input" %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :to_date, "To Date", class: "form-label fw-bold filter-label" %>
+            <%= f.date_field :to_date, value: params[:to_date], class: "form-control filter-input" %>
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <%= f.submit "Filter", class: "btn btn-primary filter-btn" %>
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <%= link_to "Reset", my_requests_edit_requests_path, class: "btn btn-secondary reset-btn" %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- === Table Section === -->
       <% if @edit_requests.any? %>
         <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle text-center">
+          <table class="table table-striped table-hover align-middle text-center request-table">
             <thead class="table-dark">
               <tr>
                 <th>Name</th>
@@ -13,6 +53,7 @@
                 <th>Request Type</th>
                 <th>Changing Time</th>
                 <th>Reason</th>
+                <th>Approve By Manager</th>
                 <th>Status</th>
                 <th>Requested At</th>
                 <th>Resolved At</th>
@@ -21,30 +62,40 @@
             <tbody>
               <% @edit_requests.each do |request| %>
                 <tr>
-                  <td class="align-middle"><%= request.user.name %></td>
-                  <td class="align-middle"><%= request.user.email %></td>
-                  <td class="align-middle"><%= request.request_type %></td>
-                  <td class="align-middle">
+                  <td><%= request.user.name %></td>
+                  <td><%= request.user.email %></td>
+                  <td><%= request.request_type.capitalize %></td>
+                  <td>
                     <%= request.requested_clock_in.strftime("%b %d, %Y %I:%M %p") if request.requested_clock_in %>
                   </td>
-<td class="align-middle">
-  <div class="m-0 p-0"><%= simple_format(request.reason, {}, wrapper_tag: "span") %></div>
-</td>                  <td class="align-middle">
-                    <% status_class = case request.status
-                                    when "pending" then "bg-warning text-dark"
-                                    when "approved" then "bg-success"
-                                    when "rejected" then "bg-danger"
+                  <td>
+                    <div class="reason-text"><%= simple_format(request.reason, {}, wrapper_tag: "span") %></div>
+                  </td>
+                  <td data-label="Status" class="align-middle">
+                    <span class="status-indicator"></span>
+                    <% status_class = case request.approved_by_manager
+                                    when false then "bg-warning text-dark"
+                                    when true then "bg-success"
                                     else "bg-secondary"
                                     end %>
                     <span class="badge rounded-pill <%= status_class %> px-3 py-2">
+                      <%= request.approved_by_manager? ? 'Yes' : 'No' %>
+                    </span>
+                  </td>
+                  <td>
+                    <% status_class = case request.status
+                      when "pending" then "bg-warning text-dark"
+                      when "approved" then "bg-success"
+                      when "rejected" then "bg-danger"
+                      else "bg-secondary"
+                    end %>
+                    <span class="badge rounded-pill px-3 py-2 request-status <%= status_class %>">
                       <%= request.status.capitalize %>
                     </span>
                   </td>
-                  <td class="align-middle"><%= request.created_at.strftime("%b %d, %Y %I:%M %p") %></td>
-                  <td class="align-middle">
-                    <%= request.resolved_at ? request.resolved_at.strftime("%b %d, %Y %I:%M %p") : "-" %>
-                  </td>
-                                  </tr>
+                  <td><%= request.created_at.strftime("%b %d, %Y %I:%M %p") %></td>
+                  <td><%= request.resolved_at ? request.resolved_at.strftime("%b %d, %Y %I:%M %p") : "-" %></td>
+                </tr>
               <% end %>
             </tbody>
           </table>

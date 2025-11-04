@@ -692,7 +692,7 @@ body {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  margin: 0px 10px 0px 10px;
+  margin: 0px 10px 10px 10px;
 }
 
 .break-item:hover {
@@ -2158,3 +2158,291 @@ body {
         .btn-clear{
           align-content: center;
         }
+
+
+/* === My Request Page Styling === */
+.my-request-card {
+  border: none;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* === Filter Section === */
+.filter-section {
+  background: #f9f9fb;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e3e7;
+  transition: all 0.3s ease-in-out;
+}
+
+.filter-section:hover {
+  box-shadow: 0 3px 10px rgba(100, 40, 127, 0.15);
+}
+
+.filter-label {
+  color: #333;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-input:focus {
+  border-color: #64287F;
+  box-shadow: 0 0 0 0.1rem rgba(100, 40, 127, 0.25);
+}
+
+.filter-btn {
+  background-color: #64287F;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.filter-btn:hover {
+  background-color: #52206a;
+}
+
+.reset-btn {
+  border-radius: 0.5rem;
+}
+
+/* === Table Styling === */
+.request-table {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.request-table thead {
+  background-color: #64287F;
+  color: #fff;
+}
+
+.request-table tbody tr:hover {
+  background-color: rgba(100, 40, 127, 0.07);
+  transition: 0.2s ease;
+}
+
+.reason-text {
+  white-space: pre-line;
+  text-align: left;
+}
+
+/* === Status Badges === */
+.request-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.request-status.bg-success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.request-status.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #ffda6a);
+  color: #222 !important;
+}
+
+.request-status.bg-danger {
+  background: linear-gradient(135deg, #dc3545, #f86d7d);
+}
+
+.request-status.bg-secondary {
+  background: linear-gradient(135deg, #6c757d, #adb5bd);
+}
+
+/* === Responsive Tweaks === */
+@media (max-width: 768px) {
+  .filter-section {
+    padding: 1rem;
+  }
+  .filter-btn,
+  .reset-btn {
+    font-size: 0.9rem;
+  }
+}
+
+
+
+
+/* -------------------------------
+   ⏱️ MODERN TIME CLOCK PAGE
+-------------------------------- */
+
+
+.timeclock-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  color: #1e1e2f;
+  font-family: "Inter", sans-serif;
+  animation: fadeInUp 0.7s ease;
+}
+
+.timeclock-title {
+  font-weight: 700;
+  font-size: 2.4rem;
+  background: linear-gradient(90deg, #6B5B95, #A78BFA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+/* GRID LAYOUT */
+.timeclock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.info-block {
+  background: linear-gradient(180deg, #fff, #f7f4ff);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 25px rgba(107, 91, 149, 0.15);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.info-block:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(131, 107, 203, 0.3);
+}
+.info-block h4 {
+  font-size: 1rem;
+  color: #6B5B95;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.info-block p {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Summary Section */
+.summary-row {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.summary-box {
+  flex: 1 1 300px;
+  text-align: center;
+  background: linear-gradient(180deg, #fefcff, #f2ecff);
+  padding: 1.8rem;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(107, 91, 149, 0.12);
+  transition: 0.3s ease;
+}
+.summary-box:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 35px rgba(167, 139, 250, 0.25);
+}
+.summary-box h5 {
+  color: #836BCB;
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+.summary-box .value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* Break Section */
+.section-heading {
+  font-weight: 600;
+  font-size: 1.8rem;
+  color: #6B5B95;
+}
+
+.break-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.break-tile {
+  background: linear-gradient(145deg, #fff, #f8f4ff);
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(107, 91, 149, 0.1);
+  overflow: hidden;
+  transition: 0.3s ease;
+}
+.break-tile:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(107, 91, 149, 0.25);
+}
+.break-header {
+  background: linear-gradient(90deg, #FFB347, #FFCC33);
+  color: #2c2c2c;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.8rem;
+  letter-spacing: 0.4px;
+}
+.break-body {
+  padding: 1rem 1.2rem;
+  color: #444;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* No Breaks */
+.no-breaks {
+  text-align: center;
+  background: rgba(255, 243, 194, 0.8);
+  color: #4a3f00;
+  border-radius: 14px;
+  padding: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
+  font-weight: 500;
+}
+
+/* Back Button */
+.btn-return {
+  background: linear-gradient(90deg, #6B5B95, #A78BFA);
+  border: none;
+  color: #fff;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  transition: all 0.3s ease;
+}
+.btn-return:hover {
+  background: linear-gradient(90deg, #A78BFA, #6B5B95);
+  box-shadow: 0 0 20px rgba(107, 91, 149, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Text Colors */
+.text-green { color: #00B98B; }
+.text-red { color: #E74C3C; }
+.text-yellow { color: #FFB347; }
+
+/* Fade Animation */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideUp 0.8s forwards;
+}
+.fade-in.delay-1 { animation-delay: 0.1s; }
+.fade-in.delay-2 { animation-delay: 0.2s; }
+.fade-in.delay-3 { animation-delay: 0.3s; }
+.fade-in.delay-4 { animation-delay: 0.4s; }
+.fade-in.delay-5 { animation-delay: 0.5s; }
+
+@keyframes slideUp {
+  to { opacity: 1; transform: translateY(0); }
+}

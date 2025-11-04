@@ -124,7 +124,7 @@
                                     else "bg-secondary"
                                     end %>
                     <span class="badge rounded-pill <%= status_class %> px-3 py-2">
-                      <%= request.approved_by_manager %>
+                      <%= request.approved_by_manager? ? 'Yes' : 'No' %>
                     </span>
                   </td>
                   <td data-label="Requested At" class="align-middle">
