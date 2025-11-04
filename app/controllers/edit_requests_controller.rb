@@ -27,19 +27,41 @@ end
 
 
   def index
-  if current_user.role == "Manager" && current_user.department != "HOD'S"
-    @edit_requests = EditRequest
-      .where(department: current_user.department)
-      .where.not(user_id: current_user.id)
+  @edit_requests = EditRequest.all
 
+  # Apply filters based on user input
+  if params[:name].present?
+    @edit_requests = @edit_requests.joins(:user).where("users.name ILIKE ?", "%#{params[:name]}%")
+  end
+
+  if params[:request_type].present?
+    @edit_requests = @edit_requests.where(request_type: params[:request_type])
+  end
+
+  if params[:status].present? && params[:status] != 'all'
+    @edit_requests = @edit_requests.where(status: params[:status])
+  end
+
+  # Apply sorting
+  if params[:sort_by].present? && params[:sort_order].present?
+    sort_column = params[:sort_by]
+    sort_direction = params[:sort_order] == 'desc' ? 'desc' : 'asc'
+    @edit_requests = @edit_requests.order("#{sort_column} #{sort_direction}")
+  end
+
+  # Filtering by department and user
+  if current_user.role == "Manager" && current_user.department != "HOD'S"
+    @edit_requests = @edit_requests.where(department: current_user.department)
+                                    .where.not(user_id: current_user.id)
   elsif current_user.department == "HOD'S"
     departments = ["WEB", "SEO", "ADS", "CONTENT"]
     manager_ids = User.where(role: "Manager", department: departments).pluck(:id)
-    @edit_requests = EditRequest.where(user_id: manager_ids)
+    @edit_requests = @edit_requests.where(user_id: manager_ids)
   else
     @edit_requests = EditRequest.none
   end
 end
+
 
 
   def approve

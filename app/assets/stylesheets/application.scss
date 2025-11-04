@@ -28,7 +28,7 @@ body {
   min-height: 100vh;
   padding: 20px 0;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ===========================================
@@ -1770,3 +1770,391 @@ body {
   padding-left: 0 !important;
   padding-right: 0 !important;
  }       
+
+
+
+
+/* Container & Card Styles */
+
+/* Table Styles */
+.table-responsive {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: white;
+}
+
+.table {
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+}
+
+.table thead th {
+  border: none;
+  padding: 1.25rem 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+  background: rgba(106, 98, 200, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.table tbody td {
+  padding: 1.25rem 0.75rem;
+  vertical-align: middle;
+  border: none;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Status Badges in Table */
+.table .badge {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.table .bg-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.table .bg-success {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+
+.table .bg-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+
+
+/* Reason Text with Tooltip */
+.reason-text {
+  cursor: pointer;
+  max-width: 200px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: var(--transition);
+}
+
+.reason-text:hover {
+  color: var(--primary-color);
+}
+
+/* Empty State */
+.empty-state .alert-info {
+  background: linear-gradient(135deg, rgba(106, 98, 200, 0.1), rgba(106, 98, 200, 0.05));
+  border: 1px solid rgba(106, 98, 200, 0.2);
+  color: var(--primary-dark);
+  border-radius: var(--border-radius);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.empty-state .fa-inbox {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.empty-state .alert-heading {
+  color: var(--primary-dark);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+/* Pagination */
+.d-flex.justify-content-center .pagination {
+  margin-bottom: 0;
+}
+
+.page-item.active .page-link {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.page-link {
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  margin: 0 0.25rem;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.page-link:hover {
+  background: rgba(106, 98, 200, 0.1);
+  border-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container-fluid.my-5 {
+    padding: 1rem 0;
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .card-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .row.mb-4 {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .d-flex.gap-3.flex-wrap {
+    flex-direction: column;
+  }
+  
+  .form-group {
+    width: 100%;
+  }
+  
+  .col-md-6.text-end .d-flex {
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  
+  /* Mobile Table Styles */
+  .table thead {
+    display: none;
+  }
+  
+  .table, .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+  
+  .table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    background: white;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  
+  .table tr.status-pending {
+    border-left: 4px solid var(--warning-color);
+  }
+  
+  .table tr.status-approved {
+    border-left: 4px solid var(--success-color);
+  }
+  
+  .table tr.status-rejected {
+    border-left: 4px solid var(--danger-color);
+  }
+  
+  .table td {
+    text-align: right;
+    padding: 0.75rem 0.5rem;
+    position: relative;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .table td:last-child {
+    border-bottom: none;
+  }
+  
+  .table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0.5rem;
+    width: 45%;
+    padding-right: 0.5rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+  }
+  
+  .action-buttons {
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+  
+  .empty-state .alert-info {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Animation for table rows */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table tbody tr {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Loading state for buttons */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Tooltip customization */
+.tooltip {
+  --bs-tooltip-bg: var(--primary-color);
+  --bs-tooltip-color: white;
+}
+
+.tooltip .tooltip-inner {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Status border for rows */
+.table tbody tr.status-pending {
+  border-left: 3px solid var(--warning-color);
+}
+
+.table tbody tr.status-approved {
+  border-left: 3px solid var(--success-color);
+}
+
+.table tbody tr.status-rejected {
+  border-left: 3px solid var(--danger-color);
+}
+
+/* Time display formatting */
+.fw-bold {
+  color: var(--text-dark);
+  font-weight: 600 !important;
+}
+
+.text-muted.small {
+  color: var(--text-light) !important;
+  font-size: 0.8rem;
+}
+
+/* Manager attribution */
+.text-success.small {
+  color: var(--success-color) !important;
+  font-weight: 500;
+}
+
+/* No actions text */
+.text-muted.fst-italic {
+  color: var(--text-light) !important;
+  font-style: italic;
+}
+
+/* Ensure consistent spacing */
+.align-middle {
+  vertical-align: middle !important;
+}
+
+/* Print styles */
+@media print {
+  .container-fluid.my-5 {
+    background: white !important;
+    padding: 0 !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #dee2e6 !important;
+  }
+  
+  .btn, .action-buttons {
+    display: none !important;
+  }
+  
+  .table thead {
+    background: #f8f9fa !important;
+    color: black !important;
+  }
+}
+
+  .btn-outline-6A62C8 {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+        .btn-outline-6A62C8:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(106, 98, 200, 0.3);
+        }
+
+        .btn-clear{
+          align-content: center;
+        }

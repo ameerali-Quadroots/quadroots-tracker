@@ -1,8 +1,60 @@
 <div class="container-fluid my-5">
   <div class="card shadow-sm">
     <div class="card-body">
-      <h1 class="card-title mb-4 text-primary text-center">Your Edit Requests</h1>
+      <h1 class="card-title mb-4 text-primary text-center">Edit Requests Of Your Executives</h1>
 
+      <div class="row mb-4">
+        <!-- Filter Section -->
+        <div class="col-md-6 d-flex gap-3">
+          <%= form_with(url: edit_requests_path, method: :get, local: true, class: "d-flex gap-3 flex-wrap") do |form| %>
+            <!-- Name Filter -->
+            <div class="form-group">
+              <%= form.text_field :name, 
+                  value: params[:name],
+                  class: "form-control form-control-sm", 
+                  placeholder: "Search by Name" %>
+            </div>
+            <!-- Request Type Filter -->
+            <div class="form-group">
+              <%= form.select :request_type, 
+                  options_for_select([['All', '']] + EditRequest.distinct.pluck(:request_type).map { |type| [type, type] }, params[:request_type]),
+                  {}, 
+                  class: "form-control form-control-sm" %>
+            </div>
+            <!-- Status Filter -->
+            <div class="form-group">
+              <%= form.select :status, 
+                  options_for_select([['All', '']] + EditRequest.statuses.keys.map { |status| [status.capitalize, status] }, params[:status]),
+                  {}, 
+                  class: "form-control form-control-sm" %>
+            </div>
+            <!-- Submit Button -->
+            <%= form.submit "Filter", class: "btn btn-sm btn-outline-6A62C8" %>
+            
+            <!-- Clear Filters -->
+            <% if params[:name].present? || params[:request_type].present? || params[:status].present? %>
+              <%= link_to "Clear", edit_requests_path, class: "btn btn-secondary btn-clear" %>
+            <% end %>
+          <% end %>
+        </div>
+        
+        <!-- Request Stats -->
+        <div class="col-md-6 text-end">
+          <div class="d-flex justify-content-end gap-3">
+            <span class="badge bg-warning text-dark">
+              Pending: <%= @edit_requests.pending.count %>
+            </span>
+            <span class="badge bg-success">
+              Approved: <%= @edit_requests.approved.count %>
+            </span>
+            <span class="badge bg-danger">
+              Rejected: <%= @edit_requests.rejected.count %>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table of Edit Requests -->
       <% if @edit_requests.present? %>
         <div class="table-responsive">
           <table class="table table-striped table-hover align-middle text-center">
@@ -21,16 +73,37 @@
             </thead>
             <tbody>
               <% @edit_requests.each do |request| %>
-                <tr>
-                  <td class="align-middle"><%= request.user.name %></td>
-                  <td class="align-middle"><%= request.user.email %></td>
-                  <td class="align-middle"><%= request.request_type %></td>
-                  <td class="align-middle">
-                    <%= request.requested_clock_in.strftime("%b %d, %Y %I:%M %p") if request.requested_clock_in %>
+                <tr class="status-<%= request.status %>">
+                  <td data-label="Name" class="align-middle">
+                    <%= request.user.name %>
                   </td>
-<td class="align-middle">
-  <div class="m-0 p-0"><%= simple_format(request.reason, {}, wrapper_tag: "span") %></div>
-</td>                  <td class="align-middle">
+                  <td data-label="Email" class="align-middle">
+                    <%= request.user.email %>
+                  </td>
+                  <td data-label="Request Type" class="align-middle">
+                    <span class="badge bg-light text-dark">
+                      <%= request.request_type %>
+                    </span>
+                  </td>
+                  <td data-label="Changing Time" class="align-middle">
+                    <% if request.requested_clock_in %>
+                      <div class="fw-bold">
+                        <%= request.requested_clock_in.strftime("%b %d, %Y") %>
+                      </div>
+                      <div class="text-muted small">
+                        <%= request.requested_clock_in.strftime("%I:%M %p") %>
+                      </div>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td data-label="Reason" class="align-middle">
+                    <div class="reason-text" data-bs-toggle="tooltip" title="<%= request.reason %>">
+                      <%= truncate(request.reason, length: 50) %>
+                    </div>
+                  </td>
+                  <td data-label="Status" class="align-middle">
+                    <span class="status-indicator"></span>
                     <% status_class = case request.status
                                     when "pending" then "bg-warning text-dark"
                                     when "approved" then "bg-success"
@@ -41,23 +114,53 @@
                       <%= request.status.capitalize %>
                     </span>
                   </td>
-                  <td class="align-middle"><%= request.created_at.strftime("%b %d, %Y %I:%M %p") %></td>
-                  <td class="align-middle">
-                    <%= request.resolved_at ? request.resolved_at.strftime("%b %d, %Y %I:%M %p") : "-" %>
+                  <td data-label="Requested At" class="align-middle">
+                    <div class="fw-bold">
+                      <%= request.created_at.strftime("%b %d, %Y") %>
+                    </div>
+                    <div class="text-muted small">
+                      <%= request.created_at.strftime("%I:%M %p") %>
+                    </div>
                   </td>
-                  <td class="align-middle">
-                    <% if !request.approved_by_manager  %>
-                      <div class="d-flex justify-content-center gap-2">
-                        <%= button_to approve_edit_request_path(request), method: :patch, class: "btn btn-outline-success btn-sm", data: { confirm: "Approve this request?" } do %>
-                          ✅ Approve
+                  <td data-label="Resolved At" class="align-middle">
+                    <% if request.resolved_at %>
+                      <div class="fw-bold">
+                        <%= request.resolved_at.strftime("%b %d, %Y") %>
+                      </div>
+                      <div class="text-muted small">
+                        <%= request.resolved_at.strftime("%I:%M %p") %>
+                      </div>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td data-label="Actions" class="align-middle">
+                    <% if request.pending? %>
+                      <div class="action-buttons">
+                        <%= button_to approve_edit_request_path(request), 
+                            method: :patch, 
+                            class: "btn btn-outline-success btn-sm",
+                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to approve this request?" } } do %>
+                          <i class="fas fa-check me-1"></i> Approve
                         <% end %>
 
-                        <%= button_to reject_edit_request_path(request), method: :patch, class: "btn btn-outline-danger btn-sm", data: { confirm: "Reject this request?" } do %>
-                          ❌ Reject
+                        <%= button_to reject_edit_request_path(request), 
+                            method: :patch, 
+                            class: "btn btn-outline-danger btn-sm",
+                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
+                          <i class="fas fa-times me-1"></i> Reject
                         <% end %>
                       </div>
                     <% else %>
-                      <span class="text-muted fst-italic">No actions</span>
+                      <div class="text-center">
+                        <span class="text-muted fst-italic small">Resolved</span>
+                        <% if request.approved_by_manager %>
+                          <div class="text-success small">
+                            <i class="fas fa-user-check me-1"></i>
+                            <%= request.manager&.name || "Manager" %>
+                          </div>
+                        <% end %>
+                      </div>
                     <% end %>
                   </td>
                 </tr>
@@ -65,11 +168,50 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <% if @pagy %>
+          <div class="d-flex justify-content-center mt-4">
+            <%== pagy_bootstrap_nav(@pagy) %>
+          </div>
+        <% end %>
       <% else %>
-        <div class="alert alert-info text-center" role="alert">
-          <i class="bi bi-info-circle-fill me-2"></i>No edit requests yet.
+        <div class="empty-state">
+          <div class="alert alert-info text-center" role="alert">
+            <i class="fas fa-inbox fa-2x mb-3 text-primary"></i>
+            <h5 class="alert-heading">No edit requests found</h5>
+            <p class="mb-0">
+              <% if params[:name].present? || params[:request_type].present? || params[:status].present? %>
+                Try adjusting your filters to see more results.
+              <% else %>
+                There are no edit requests to display at the moment.
+              <% end %>
+            </p>
+          </div>
         </div>
       <% end %>
     </div>
   </div>
 </div>
+
+<!-- JavaScript for enhanced functionality -->
+<script>
+  // Initialize tooltips
+  document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Add loading state to buttons
+    document.querySelectorAll('form[class="d-inline"]').forEach(function(form) {
+      form.addEventListener('submit', function(e) {
+        var button = this.querySelector('button');
+        if (button) {
+          button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+          button.disabled = true;
+        }
+      });
+    });
+  });
+</script>
