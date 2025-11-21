@@ -1,11 +1,11 @@
 <%# --- Calculate shift range --- %>
 <%
 now = Time.zone.now
-if now.hour < 3
-  shift_start = (now - 1.day).change(hour: 17, min: 30)
-  shift_end = now.change(hour: 3)
+if now.hour < 4
+  shift_start = (now - 1.day).change(hour: 18, min: 30)
+  shift_end = now.change(hour: 4)
 else
-  shift_start = now.change(hour: 17, min: 30)
+  shift_start = now.change(hour: 18, min: 30)
   shift_end = (now + 1.day).change(hour: 3)
 end
 shift_range = shift_start..shift_end

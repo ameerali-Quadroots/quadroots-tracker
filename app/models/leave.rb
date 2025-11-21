@@ -2,7 +2,7 @@ class Leave < ApplicationRecord
   belongs_to :user
   belongs_to :manager, class_name: 'User', foreign_key: 'approved_by', optional: true
 
-  enum leave_type: { medical: 'medical', casual: 'casual', half_day: "half_day" }
+  enum leave_type: { medical: 'medical', casual: 'casual', half_day: "half_day", emergency:"emergency" }
   enum status: { pending: 'pending', approved: 'approved', rejected: 'rejected' }
 
   validates :leave_type, presence: true

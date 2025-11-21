@@ -1,7 +1,7 @@
 set :environment, "development"
 set :output, "/home/qrt-lh-len-17/Desktop/tracker/clock_in_clock_out/log/cron.log"
 
-every :day, at: '3:00am' do  command "
+every :day, at: '4:00am' do  command "
     cd /home/qrt-lh-len-17/Desktop/tracker/clock_in_clock_out && 
     export PATH=\"$HOME/.rbenv/bin:$PATH\" && 
     eval \"\$(rbenv init -)\" && 

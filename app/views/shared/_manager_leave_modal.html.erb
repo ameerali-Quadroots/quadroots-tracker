@@ -14,7 +14,7 @@
           <div class="mb-4">
             <%= f.label :user_id, "Select Executive", class: "form-label fw-semibold text-dark" %>
             <%= f.collection_select :user_id, 
-                  User.where(role: "Executive", department: current_user.department),
+                  User.where(role: ["Executive", "Intern"], department: current_user.department),
                   :id, 
                   :name,
                   { prompt: "Choose Executive..." },
