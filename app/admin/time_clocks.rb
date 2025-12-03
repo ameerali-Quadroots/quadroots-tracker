@@ -52,7 +52,7 @@ end
     require 'caxlsx'
 
     ransack_query = TimeClock.ransack(params[:q])
-    timeclocks = ransack_query.result.includes(:user)
+    timeclocks = ransack_query.result.includes(:employee)
 
     package = Axlsx::Package.new
     workbook = package.workbook
