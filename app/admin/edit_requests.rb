@@ -5,6 +5,12 @@ ActiveAdmin.register EditRequest do
   # ✅ Allowed fields for form updates
   permit_params :name, :email, :requested_clock_in, :reason, :status, :resolved_at, :time_clock_id
 
+
+
+    filter :user_name, as: :string, label: 'Employee Name'
+
+
+
   # ✅ Scope filters (optional tabs)
   scope :all, default: true
   scope("Pending")  { |r| r.where(status: 'pending') }
