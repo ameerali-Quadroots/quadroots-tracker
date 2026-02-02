@@ -141,27 +141,49 @@ end
 
   # ✅ Custom Approve action
   member_action :approve, method: :patch do
-    if resource.requested_clock_in.present? 
-      if resource.time_clock.present? && resource.request_type == "Clock tower not working"
-        resource.time_clock.update(clock_in: resource.requested_clock_in, status: "on_time" )
-      end
-      if resource.time_clock.present? && resource.request_type == "Forgot to end break"  || resource.request_type == "Forgot to add break"
-        resource.time_clock.breaks.where(break_type: resource.break_reason).update(break_out: resource.requested_clock_in)
-        
-     end
-
-
-      resource.update(status: "approved", resolved_at: Time.current, approved_by_admin: true)
-      redirect_to collection_path, notice: "Request approved and time clock updated."
-    else
-
-      redirect_to collection_path, alert: "No requested clock-in time present."
+  if resource.requested_clock_in.present?
+    if resource.time_clock.present? && resource.request_type == "Clock tower not working"
+      resource.time_clock.update(
+        clock_in: resource.requested_clock_in,
+        status: "on_time"
+      )
     end
-  end
 
-  # ✅ Custom Reject action
-  member_action :reject, method: :patch do
-    resource.update(status: "rejected", resolved_at: Time.current)
-    redirect_to collection_path, notice: "Request rejected."
+    if resource.time_clock.present? &&
+       (resource.request_type == "Forgot to end break" ||
+        resource.request_type == "Forgot to add break")
+
+      resource.time_clock.breaks
+               .where(break_type: resource.break_reason)
+               .update_all(break_out: resource.requested_clock_in)
+    end
+
+    resource.update(
+      status: "approved",
+      resolved_at: Time.current,
+      approved_by_admin: true
+    )
+
+    redirect_back(
+      fallback_location: collection_path,
+      notice: "Request approved and time clock updated."
+    )
+  else
+    redirect_back(
+      fallback_location: collection_path,
+      alert: "No requested clock-in time present."
+    )
   end
+end
+
+# ✅ Reject action
+member_action :reject, method: :patch do
+  resource.update(status: "rejected", resolved_at: Time.current)
+
+  redirect_back(
+    fallback_location: collection_path,
+    notice: "Request rejected."
+  )
+end
+
 end
