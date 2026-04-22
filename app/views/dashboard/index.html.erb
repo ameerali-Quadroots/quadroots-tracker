@@ -44,14 +44,8 @@
       <!-- Manager Executives Status -->
       <div class="row g-4 mt-2 mb-4">
         <div class="col-12">
-          <div class="dashboard-card h-100 shadow-sm" style="border-top: 4px solid #0d6efd;">
-            <div class="card-body">
-              <h6 class="card-title text-primary mb-4 fw-bold">
-                <i class="bi bi-people-fill me-2"></i>
-                Department Executives Status (<%= current_user.department %>)
-              </h6>
-              <%= render 'dashboard/manager_executives_status' %>
-            </div>
+          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;">
+            <%= render 'dashboard/manager_executives_status' %>
           </div>
         </div>
       </div>
