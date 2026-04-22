@@ -5,15 +5,19 @@ class EditRequestsController < ApplicationController
   def create
   @edit_request = current_user.edit_requests.new(edit_request_params)
 
-  # Check if the requested_clock_in falls within any time_clock range for this user
- time_clock_exists = TimeClock.where(user_id: current_user.id)
-                             .where("clock_in <= ?", @edit_request.requested_clock_in)
-                             .exists?
+  # Ensure the provided time_clock_id belongs to the current user
+  if @edit_request.time_clock_id.blank?
+    return redirect_back fallback_location: root_path, alert: "No time clock specified."
+  end
 
+  time_clock = current_user.time_clocks.find_by(id: @edit_request.time_clock_id)
+  unless time_clock
+    return redirect_back fallback_location: root_path, alert: "No matching time record found for this user."
+  end
 
-  unless time_clock_exists
-    return redirect_back fallback_location: root_path, 
-                         alert: "No matching time record found for the requested clock-in time."
+  # Optional: ensure requested_clock_in is present and a valid datetime
+  if @edit_request.requested_clock_in.blank?
+    return redirect_back fallback_location: root_path, alert: "Requested date/time is required."
   end
 
   if @edit_request.save
@@ -69,16 +73,13 @@ end
 
 
   def approve
-    @edit_request.update(
-      approved_by_manager: "yes",
-    )
+    # mark manager approval with boolean true/false
+    @edit_request.update(approved_by_manager: true)
     redirect_back fallback_location: edit_requests_path, notice: "Request approved successfully."
   end
 
   def reject
-    @edit_request.update(
-      approved_by_manager: "no",
-    )
+    @edit_request.update(approved_by_manager: false)
     redirect_back fallback_location: edit_requests_path, notice: "Request rejected."
   end
 
