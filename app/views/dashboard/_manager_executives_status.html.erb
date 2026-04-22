@@ -1,0 +1,82 @@
+<%# --- Calculate shift range --- %>
+<%
+now = Time.zone.now
+if now.hour < 4
+  shift_start = (now - 1.day).change(hour: 18, min: 30)
+  shift_end = now.change(hour: 4)
+else
+  shift_start = now.change(hour: 18, min: 30)
+  shift_end = (now + 1.day).change(hour: 3)
+end
+shift_range = shift_start..shift_end
+%>
+
+<% 
+  department = current_user.department
+  executives = User.includes(time_clocks: :breaks)
+                   .where(department: department)
+                   .where.not(id: current_user.id)
+%>
+
+<div class="table-responsive">
+  <table class="table table-borderless table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th class="ps-3 py-3">Executive</th>
+        <th class="py-3">Status</th>
+        <th class="py-3">Break Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if executives.empty? %>
+        <tr>
+          <td colspan="3" class="text-center text-muted py-4">No other executives found in your department.</td>
+        </tr>
+      <% else %>
+        <% executives.each do |executive| %>
+          <% 
+            tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first 
+            status = "Off"
+            break_details = "-"
+            status_class = "secondary"
+
+            if tc.present?
+              if tc.on_break?
+                status = "On Break"
+                status_class = "warning text-dark"
+                last_break = tc.breaks.where(break_out: nil).last
+                break_details = "#{last_break&.break_type} (Since #{last_break&.break_in&.strftime('%I:%M %p')})"
+              elsif tc.clock_out.nil?
+                status = "Active"
+                status_class = "success"
+              else
+                status = "Off (Clocked Out)"
+              end
+            end
+          %>
+          <tr>
+            <td class="ps-3 py-3">
+              <div class="d-flex align-items-center">
+                <div class="avatar-circle bg-primary bg-opacity-10 text-primary d-flex justify-content-center align-items-center rounded-circle me-3" style="width: 40px; height: 40px; font-weight: bold;">
+                  <%= executive.name.first.upcase %>
+                </div>
+                <div>
+                  <p class="fw-bold mb-0 text-dark"><%= executive.name %></p>
+                  <p class="text-muted mb-0 small"><%= executive.role %></p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge bg-<%= status_class %> bg-opacity-10 text-<%= status_class == 'warning text-dark' ? 'warning text-dark' : status_class %> border border-<%= status_class %> border-opacity-25 rounded-pill px-3 py-2">
+                <%= status %>
+              </span>
+            </td>
+            <td class="py-3">
+              <span class="text-muted"><%= break_details %></span>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</div>
