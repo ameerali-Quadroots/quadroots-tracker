@@ -1,6 +1,16 @@
 class Break < ApplicationRecord
   belongs_to :time_clock
-  VALID_BREAK_TYPES = ["Meal Break - 40 Minutes","Second Break - 30 minutes", "Meeting","Extra Break", "Downtime"]
+  VALID_BREAK_TYPES = [
+    "Meal Break - 40 Minutes",
+    "Second Break - 30 minutes",
+    "Meeting",
+    "Extra Break",
+    "Downtime",
+    "Cigarette Break",
+    "Chai/Coffee Break",
+    "Washroom Break",
+    "Namaz Break",
+  ]
 
   validates :break_type, inclusion: { in: VALID_BREAK_TYPES }
 
