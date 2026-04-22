@@ -64,8 +64,8 @@ shift_range = shift_start..shift_end
                 break_details = "#{last_break&.break_type} (Since #{last_break&.break_in&.strftime('%I:%M %p')})"
                 status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 6px 18px; font-weight: 500; font-size: 0.8rem;">On Break</span>)
               elsif tc.clock_out.nil?
-                status = "Active"
-                status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 6px 18px; font-weight: 500; font-size: 0.8rem;">Active</span>)
+                status = "Working"
+                status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 6px 18px; font-weight: 500; font-size: 0.8rem;">Working</span>)
               else
                 status = "Off"
                 status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 6px 20px; font-weight: 500; font-size: 0.8rem;">Off</span>)

@@ -44,11 +44,26 @@
       <!-- Manager Executives Status -->
       <div class="row g-4 mt-2 mb-4">
         <div class="col-12">
-          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;">
+          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;" id="manager-status-container">
             <%= render 'dashboard/manager_executives_status' %>
           </div>
         </div>
       </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          setInterval(function() {
+            fetch('/dashboard/manager_status')
+              .then(response => response.text())
+              .then(html => {
+                const container = document.getElementById('manager-status-container');
+                if (container) {
+                  container.innerHTML = html;
+                }
+              })
+              .catch(error => console.error("Error updating status:", error));
+          }, 10000); // 15 seconds
+        });
+      </script>
     <% end %>
 
     <!-- Bottom Section -->

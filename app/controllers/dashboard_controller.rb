@@ -26,5 +26,9 @@ class DashboardController < ApplicationController
   .order(clock_in: :desc)
 
     end
+
+    def manager_status
+      render partial: 'dashboard/manager_executives_status', layout: false
+    end
   end
   
