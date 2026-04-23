@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <% if current_user.role == 'Manager' && current_user.department != "HOD'S" %>
+    <% if current_user.role == 'Manager' || current_user.department == "HOD'S" %>
       <!-- Manager Executives Status -->
       <div class="row g-4 mt-2 mb-4">
         <div class="col-12">

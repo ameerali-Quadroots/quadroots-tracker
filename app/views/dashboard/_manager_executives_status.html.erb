@@ -12,89 +12,124 @@ shift_range = shift_start..shift_end
 %>
 
 <% 
-  department = current_user.department
+  target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
+  
   executives = User.includes(time_clocks: :breaks)
-                   .where(department: department)
+                   .where(department: target_departments)
                    .where.not(id: current_user.id)
 %>
 
 <!-- Custom Header mirroring screenshot -->
-<div class="d-flex align-items-center px-4 py-3" style="border-bottom: 1px solid #f1f5f9; background-color: #ffffff;">
-  <div class="d-flex justify-content-center align-items-center me-3" style="width: 36px; height: 36px; background-color: #f3f0fc; border-radius: 8px; color: #6b52c0; font-size: 1.1rem;">
-    <i class="bi bi-people-fill"></i>
+<div class="d-flex align-items-center justify-content-between px-4 py-3" style="border-bottom: 1px solid #f1f5f9; background-color: #ffffff;">
+  <div class="d-flex align-items-center">
+    <div class="d-flex justify-content-center align-items-center me-3" style="width: 36px; height: 36px; background-color: #f3f0fc; border-radius: 8px; color: #6b52c0; font-size: 1.1rem;">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <h6 class="mb-0 fw-bold" style="color: #0d6efd; font-size: 1.05rem;">
+      Department Executives Status (<%= current_user.department == "HOD'S" ? "HOD'S" : current_user.department %>)
+    </h6>
   </div>
-  <h6 class="mb-0 fw-bold" style="color: #0d6efd; font-size: 1.05rem;">
-    Department Executives Status (<%= current_user.department %>)
-  </h6>
+  <% if action_name != 'team_status' %>
+    <a href="/dashboard/team_status" class="btn btn-sm btn-outline-primary" style="font-weight: 500; border-radius: 6px;">
+      <i class="bi bi-arrows-fullscreen me-1"></i> Full View
+    </a>
+  <% end %>
 </div>
 
-<!-- Table mirroring screenshot -->
-<div class="table-responsive p-0 m-0">
-  <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
-    <thead style="background-color: #f8f9fa;">
-      <tr>
-        <th class="px-5 py-3 text-start" style="font-size: 0.75rem; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9;">EXECUTIVE</th>
-        <th class="px-4 py-3 text-center" style="font-size: 0.75rem; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9;">STATUS</th>
-        <th class="px-4 py-3 text-center" style="font-size: 0.75rem; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9;">BREAK DETAILS</th>
-      </tr>
-    </thead>
-    <tbody style="background: #ffffff;">
-      <% if executives.empty? %>
-        <tr>
-          <td colspan="3" class="text-center text-muted py-5" style="border-bottom: 1px solid #f1f5f9;">
-            <div class="empty-state">
-              <i class="bi bi-people display-4 d-block mb-3" style="color: #cbd5e1;"></i>
-              <h5 class="fw-bold" style="color: #334155;">No executives found</h5>
-              <p class="mb-0">No other executives are in your department.</p>
-            </div>
-          </td>
-        </tr>
-      <% else %>
-        <% executives.each do |executive| %>
-          <% 
-            tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first 
-            status = "Off"
-            break_details = "-"
-            status_html = ""
-
-            if tc.present?
-              if tc.on_break?
-                status = "On Break"
-                last_break = tc.breaks.where(break_out: nil).last
-                break_details = "#{last_break&.break_type} (Since #{last_break&.break_in&.strftime('%I:%M %p')})"
-                status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 6px 18px; font-weight: 500; font-size: 0.8rem;">On Break</span>)
-              elsif tc.clock_out.nil?
-                status = "Working"
-                status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 6px 18px; font-weight: 500; font-size: 0.8rem;">Working</span>)
-              else
-                status = "Off"
-                status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 6px 20px; font-weight: 500; font-size: 0.8rem;">Off</span>)
-              end
-            else
-               status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 6px 20px; font-weight: 500; font-size: 0.8rem;">Off</span>)
-            end
-          %>
-          <tr>
-            <td class="px-5 py-3 text-start" style="border-bottom: 1px solid #f1f5f9;">
-              <div class="d-flex align-items-center">
-                <div class="rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 42px; height: 42px; background-color: #eef2ff; color: #0d6efd; font-size: 1.1rem; font-weight: 600;">
-                  <%= executive.name.first.upcase %>
+<!-- Department Grid Area -->
+<div class="p-4" style="background-color: #fcfcfd;">
+  <div class="row g-5">
+    <% if executives.empty? %>
+      <div class="col-12 text-center text-muted py-5">
+        <div class="empty-state">
+          <i class="bi bi-people display-4 d-block mb-3" style="color: #cbd5e1;"></i>
+          <h5 class="fw-bold" style="color: #334155;">No executives found</h5>
+          <p class="mb-0">No other executives are in your department.</p>
+        </div>
+      </div>
+    <% else %>
+      <% target_departments.each do |dept| %>
+        <% dept_execs = executives.select { |e| e.department == dept } %>
+        <% next if dept_execs.empty? && target_departments.length > 1 %>
+        
+        <div class="<%= target_departments.length > 1 ? 'col-xl-6 mx-auto' : 'col-12' %>">
+          <div class="card h-100 border-0" style="border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f1f5f9 !important;">
+            
+            <% if target_departments.length > 1 %>
+              <div class="card-header bg-white px-4 py-3 d-flex align-items-center" style="border-bottom: 2px solid #f8f9fa;">
+                <div class="d-flex justify-content-center align-items-center rounded-circle me-2" style="width: 28px; height: 28px; background-color: #f3f0fc; color: #6b52c0;">
+                  <i class="bi bi-diagram-3" style="font-size: 0.8rem;"></i>
                 </div>
-                <div class="text-start">
-                  <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; line-height: 1.2; margin-bottom: 2px;"><%= executive.name %></div>
-                  <div style="color: #64748b; font-size: 0.8rem;"><%= executive.role %></div>
-                </div>
+                <span class="fw-bold" style="color: #1e293b; font-size: 0.95rem; letter-spacing: 0.5px;"><%= dept %> DEPARTMENT</span>
               </div>
-            </td>
-            <td class="px-4 py-3 text-center" style="border-bottom: 1px solid #f1f5f9;">
-              <%= raw status_html %>
-            </td>
-            <td class="px-4 py-3 text-center text-muted" style="border-bottom: 1px solid #f1f5f9; font-size: 0.9rem;">
-              <%= break_details %>
-            </td>
-          </tr>
-        <% end %>
+            <% end %>
+
+            <div class="table-responsive m-0 p-2" style="max-height: 400px; overflow-y: auto;">
+              <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                <thead style="background-color: #f8f9fa;">
+                  <tr>
+                    <th class="px-4 py-3 text-start" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">EXECUTIVE</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">STATUS</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAK DETAILS</th>
+                  </tr>
+                </thead>
+                <tbody style="background: #ffffff;">
+                  <% if dept_execs.empty? %>
+                    <tr>
+                      <td colspan="3" class="text-center text-muted py-4"><small>No active executives</small></td>
+                    </tr>
+                  <% else %>
+                    <% dept_execs.each do |executive| %>
+                      <% 
+                        tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first 
+                        status = "Off"
+                        break_details = "-"
+                        status_html = ""
+
+                        if tc.present?
+                          if tc.on_break?
+                            status = "On Break"
+                            last_break = tc.breaks.where(break_out: nil).last
+                            break_details = "#{last_break&.break_type} (Since #{last_break&.break_in&.strftime('%I:%M %p')})"
+                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">On Break</span>)
+                          elsif tc.clock_out.nil?
+                            status = "Working"
+                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">Working</span>)
+                          else
+                            status = "Off"
+                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 5px 16px; font-weight: 600; font-size: 0.75rem;">Off</span>)
+                          end
+                        else
+                           status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 5px 16px; font-weight: 600; font-size: 0.75rem;">Off</span>)
+                        end
+                      %>
+                      <tr>
+                        <td class="px-4 py-3 text-start" style="border-bottom: 1px solid #f1f5f9;">
+                          <div class="d-flex align-items-center">
+                            <div class="rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 38px; height: 38px; background-color: #eef2ff; color: #0d6efd; font-size: 1rem; font-weight: 700;">
+                              <%= executive.name.first.upcase %>
+                            </div>
+                            <div class="text-start">
+                              <div style="font-weight: 700; color: #1e293b; font-size: 0.90rem; line-height: 1.2; margin-bottom: 2px;"><%= executive.name %></div>
+                              <div style="color: #64748b; font-size: 0.75rem;"><%= executive.role %></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f1f5f9;">
+                          <%= raw status_html %>
+                        </td>
+                        <td class="px-3 py-3 text-center text-muted" style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">
+                          <%= break_details %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       <% end %>
-    </tbody>
-  </table>
+    <% end %>
+  </div>
 </div>

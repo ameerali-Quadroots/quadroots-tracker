@@ -30,5 +30,8 @@ class DashboardController < ApplicationController
     def manager_status
       render partial: 'dashboard/manager_executives_status', layout: false
     end
+
+    def team_status
+    end
   end
   

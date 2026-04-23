@@ -1,0 +1,36 @@
+<div class="dashboard-container">
+  <div class="particles" id="particles-js"></div>
+  
+  <div class="dashboard-glass" style="min-height: 100vh;">
+    <div class="glass-decoration glass-1"></div>
+    <div class="glass-decoration glass-2"></div>
+    <div class="glass-decoration glass-3"></div>
+    
+    <!-- Header -->
+    <%= render 'dashboard/header' %>
+    
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;" id="manager-status-container">
+          <%= render 'dashboard/manager_executives_status' %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    setInterval(function() {
+      fetch('/dashboard/manager_status')
+        .then(response => response.text())
+        .then(html => {
+          const container = document.getElementById('manager-status-container');
+          if (container) {
+            container.innerHTML = html;
+          }
+        })
+        .catch(error => console.error("Error updating status:", error));
+    }, 15000); // 15 seconds
+  });
+</script>
