@@ -15,7 +15,7 @@ shift_range = shift_start..shift_end
   target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
   
   executives = User.includes(time_clocks: :breaks)
-                   .where(department: target_departments)
+                   .where(department: target_departments, employeed: true)
                    .where.not(id: current_user.id)
 %>
 

@@ -20,7 +20,7 @@ shift_range = shift_start..shift_end
     current_states_by_department = {}
 
     departments.each do |dept|
-      users = User.includes(time_clocks: :breaks).where(department: dept)
+      users = User.includes(time_clocks: :breaks).where(department: dept, employeed: true)
       states = users.map do |user|
         last_clock = user.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
 

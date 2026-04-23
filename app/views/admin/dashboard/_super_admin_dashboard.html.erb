@@ -78,6 +78,7 @@
     late_count    = TimeClock.where(status: "late", clock_in: month_range).count
 
     late_users = User.joins(:time_clocks)
+                     .where(employeed: true)
                      .where(time_clocks: { status: "late", clock_in: month_range })
                      .group("users.id")
                      .having("COUNT(time_clocks.id) > 3")

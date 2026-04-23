@@ -60,7 +60,12 @@ ActiveAdmin.register User, as: "Employee" do
     links << link_to("Mark as Unemployed", mark_as_unemployed_admin_employee_path(employee),
                      method: :put,
                      data: { confirm: "Are you sure you want to mark this employee as unemployed?" },
-                     class: "member_link")
+                     class: "member_link", style: "color: red;")
+  else
+    links << link_to("Mark as  Employed", mark_as_employed_admin_employee_path(employee),
+                     method: :put,
+                     data: { confirm: "Are you sure you want to mark this employee as employed?" },
+                     class: "member_link", style: "color: green;")
   end
 
   safe_join(links, " ")
@@ -139,6 +144,17 @@ member_action :mark_as_unemployed, method: :put do
   end
 end
 
+member_action :mark_as_employed, method: :put do
+  user = User.find(params[:id])
+
+  if user.update(employeed: true)
+    redirect_back fallback_location: admin_employee_path,
+                  notice: "#{user.name || 'User'} has been marked as employed."
+  else
+    redirect_back fallback_location: admin_employee_path,
+                  alert: "Failed to update employment status."
+  end
+end
 
 
 end
