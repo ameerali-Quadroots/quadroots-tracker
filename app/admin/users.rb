@@ -16,6 +16,11 @@ ActiveAdmin.register User, as: "Employee" do
   filter :time_clocks_clock_in
   filter :time_clocks_clock_out
   filter :time_clocks_created_at
+  filter :employeed, as: :boolean, label: "Employment Status"
+
+  scope :all, default: true
+  scope("Employed", :employed) { |users| users.where(employeed: true) }
+  scope("Unemployed", :unemployed) { |users| users.where(employeed: [false, nil]) }
 
   # INDEX page
   index do

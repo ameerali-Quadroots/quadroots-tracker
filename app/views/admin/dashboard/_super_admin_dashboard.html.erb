@@ -23,6 +23,28 @@
   @unique_late_users_today = @late_time_clocks.select(:user_id).distinct.count
 %>
 
+<div class="time-summary-container" style="margin-top: 30px;">
+  <h2 class="time-summary-title">Workforce Status</h2>
+
+  <div class="time-summary-grid">
+    <!-- Employed Users -->
+    <a href="<%= admin_employees_url(scope: 'employed') %>" class="summary-card" style="background-color: rgba(35, 191, 127, 0.1); border-left: 4px solid #23BF7F;">
+      <div class="summary-card-body" style="color: #23BF7F !important;">
+        <h3 style="color: #23BF7F !important;"><%= User.where(employeed: true).count %></h3>
+        <p style="color: #23BF7F !important; font-weight: 600;">Total Employed</p>
+      </div>
+    </a>
+
+    <!-- Unemployed Users -->
+    <a href="<%= admin_employees_url(scope: 'unemployed') %>" class="summary-card" style="background-color: rgba(255, 43, 43, 0.1); border-left: 4px solid #FF2B2B;">
+      <div class="summary-card-body" style="color: #FF2B2B !important;">
+        <h3 style="color: #FF2B2B !important;"><%= User.where(employeed: [false, nil]).count %></h3>
+        <p style="color: #FF2B2B !important; font-weight: 600;">Total Unemployed</p>
+      </div>
+    </a>
+  </div>
+</div>
+
 <div class="time-summary-container">
   <h2 class="time-summary-title">
     Time Clock Summary for <%= start_time.strftime('%B %d, %Y') %> (Shift Day)
@@ -62,6 +84,7 @@
     </a>
   </div>
 </div>
+
 
 <%
   # === Yearly data setup ===

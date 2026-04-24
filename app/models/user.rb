@@ -60,7 +60,7 @@ end
 
 
   def self.ransackable_attributes(auth_object = nil)
-    ["name", "email", "phone_number", "address", "department", "role"]
+    ["name", "email", "phone_number", "address", "department", "role", "employeed"]
   end
 
   def self.ransackable_associations(auth_object = nil)
