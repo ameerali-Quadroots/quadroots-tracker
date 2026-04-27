@@ -70,39 +70,26 @@ shift_range = shift_start..shift_end
                   <tr>
                     <th class="px-4 py-3 text-start" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">EXECUTIVE</th>
                     <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">STATUS</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAK DETAILS</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">LIVE</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAKS</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAK DURATION</th>
                   </tr>
                 </thead>
                 <tbody style="background: #ffffff;">
                   <% if dept_execs.empty? %>
                     <tr>
-                      <td colspan="3" class="text-center text-muted py-4"><small>No active executives</small></td>
+                      <td colspan="4" class="text-center text-muted py-4"><small>No active executives</small></td>
                     </tr>
                   <% else %>
                     <% dept_execs.each do |executive| %>
-                      <% 
-                        tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first 
-                        status = "Off"
-                        break_details = "-"
-                        status_html = ""
-
-                        if tc.present?
-                          if tc.on_break?
-                            status = "On Break"
-                            last_break = tc.breaks.where(break_out: nil).last
-                            break_details = "#{last_break&.break_type} (Since #{last_break&.break_in&.strftime('%I:%M %p')})"
-                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">On Break</span>)
-                          elsif tc.clock_out.nil?
-                            status = "Working"
-                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">Working</span>)
-                          else
-                            status = "Off"
-                            status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 5px 16px; font-weight: 600; font-size: 0.75rem;">Off</span>)
-                          end
-                        else
-                           status_html = %Q(<span class="badge rounded-pill" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 5px 16px; font-weight: 600; font-size: 0.75rem;">Off</span>)
-                        end
-                      %>
+                      <% data = executive_status_data(executive, shift_range) %>
+                      <% tc = data[:time_clock] %>
+                      <% status_html = data[:status_html] %>
+                      <% live_label = data[:live_label] %>
+                      <% breaks_count = data[:breaks_count] %>
+                      <% break_dur_label = data[:break_duration_label] %>
+                      <% break_since = data[:break_since] %>
+                    
                       <tr>
                         <td class="px-4 py-3 text-start" style="border-bottom: 1px solid #f1f5f9;">
                           <div class="d-flex align-items-center">
@@ -118,8 +105,17 @@ shift_range = shift_start..shift_end
                         <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f1f5f9;">
                           <%= raw status_html %>
                         </td>
+                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #1e293b; font-weight: 600;">
+                          <%= live_label %>
+                        </td>
+                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0d6efd; font-weight: 600;">
+                          <%= breaks_count %>
+                        </td>
                         <td class="px-3 py-3 text-center text-muted" style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">
-                          <%= break_details %>
+                          <%= break_dur_label %>
+                          <% if break_since.present? %>
+                            <div class="text-muted" style="font-size: 0.75rem;">(Since <%= break_since %>)</div>
+                          <% end %>
                         </td>
                       </tr>
                     <% end %>
