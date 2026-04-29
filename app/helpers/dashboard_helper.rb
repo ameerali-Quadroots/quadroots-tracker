@@ -42,7 +42,7 @@ module DashboardHelper
     end
 
     # Returns a hash of pre-computed status values for an executive in the given shift range.
-    # Keys: :time_clock, :status, :status_html, :live_label, :breaks_count, :break_duration_label, :break_since
+    # Keys: :time_clock, :status, :status_html, :live_label, :breaks_count, :break_duration_label, :meetings_count, :meeting_duration_label, :break_since
     def executive_status_data(executive, shift_range)
       tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
 
@@ -53,22 +53,47 @@ module DashboardHelper
         live_label: '-',
         breaks_count: 0,
         break_duration_label: '0h 0m',
-        break_since: nil
+        meetings_count: 0,
+        meeting_duration_label: '0h 0m',
+        break_since: nil,
+        current_break_type: nil
       }
 
       return data unless tc.present?
 
-      breaks_count = tc.breaks.count
-      total_break_secs = total_breaks_seconds(tc)
+      breaks = tc.breaks.to_a
+      meetings = breaks.select { |b| b.break_type == "Meeting" }
+      regular_breaks = breaks.reject { |b| b.break_type == "Meeting" }
+
+      breaks_count = regular_breaks.count
+      meetings_count = meetings.count
+
+      total_break_secs = regular_breaks.sum do |b|
+        b.break_out.present? ? (b.break_out - b.break_in).to_i : (Time.current - b.break_in).to_i
+      end
+
+      total_meeting_secs = meetings.sum do |b|
+        b.break_out.present? ? (b.break_out - b.break_in).to_i : (Time.current - b.break_in).to_i
+      end
+
       live_secs = live_work_seconds(tc)
       live_label = format_seconds_to_hms(live_secs)
       break_dur_label = format_seconds_to_hms(total_break_secs)
+      meeting_dur_label = format_seconds_to_hms(total_meeting_secs)
 
       if tc.on_break?
-        status = 'On Break'
         last_break = tc.breaks.where(break_out: nil).last
+        if last_break&.break_type == "Meeting"
+          status = 'In Meeting'
+          status_html = %Q(<span class="badge rounded-pill" style="background-color: #17a2b8; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">In Meeting</span>)
+        elsif last_break&.break_type == "Downtime"
+          status = 'Downtime'
+          status_html = %Q(<span class="badge rounded-pill" style="background-color: #dc3545; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">Downtime</span>)
+        else
+          status = last_break&.break_type.presence || 'On Break'
+          status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">#{status}</span>)
+        end
         since_label = last_break&.break_in&.strftime('%I:%M %p')
-        status_html = %Q(<span class="badge rounded-pill" style="background-color: #f59e0b; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">On Break</span>)
       elsif tc.clock_out.nil?
         status = 'Working'
         status_html = %Q(<span class="badge rounded-pill" style="background-color: #00b894; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">Working</span>)
@@ -83,7 +108,10 @@ module DashboardHelper
         live_label: live_label,
         breaks_count: breaks_count,
         break_duration_label: break_dur_label,
-        break_since: since_label
+        meetings_count: meetings_count,
+        meeting_duration_label: meeting_dur_label,
+        break_since: since_label,
+        current_break_type: last_break&.break_type
       )
 
       data
