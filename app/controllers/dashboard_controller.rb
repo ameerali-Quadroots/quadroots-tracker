@@ -33,5 +33,17 @@ class DashboardController < ApplicationController
 
     def team_status
     end
+
+    def executive_timesheets
+      @employee = User.find(params[:id])
+      
+      # Basic authorization check
+      unless ["HOD'S", @employee.department].include?(current_user.department)
+        redirect_to root_path, alert: "Not authorized to view this executive."
+        return
+      end
+
+      @time_clocks = @employee.time_clocks.order(:clock_in)
+      render 'dashboard/executive_timesheets'
+    end
   end
-  

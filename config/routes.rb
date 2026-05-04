@@ -49,6 +49,7 @@ end
   root 'dashboard#index'
   get '/dashboard/manager_status', to: 'dashboard#manager_status'
   get '/dashboard/team_status', to: 'dashboard#team_status'
+  get '/dashboard/executive_timesheets/:id', to: 'dashboard#executive_timesheets', as: 'dashboard_executive_timesheets'
 
   post '/clock_in', to: 'time_clocks#clock_in', as: 'clock_in'
   post '/clock_out', to: 'time_clocks#clock_out', as: 'clock_out'

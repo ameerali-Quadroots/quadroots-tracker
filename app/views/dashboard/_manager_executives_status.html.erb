@@ -75,6 +75,7 @@ shift_range = shift_start..shift_end
                     <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">MEETING DUR.</th>
                     <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAKS</th>
                     <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">BREAK DUR.</th>
+                    <th class="px-3 py-3 text-center" style="font-size: 0.70rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9;">TIMESHEET</th>
                   </tr>
                 </thead>
                 <tbody style="background: #ffffff;">
@@ -129,6 +130,11 @@ shift_range = shift_start..shift_end
                           <% if break_since.present? && data[:current_break_type] != 'Meeting' %>
                             <div class="text-muted" style="font-size: 0.75rem;">(Since <%= break_since %>)</div>
                           <% end %>
+                        </td>
+                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f1f5f9;">
+                          <a href="/dashboard/executive_timesheets/<%= executive.id %>" class="btn btn-sm btn-outline-primary" title="View Timesheets" style="border-radius: 6px; padding: 4px 8px;">
+                            <i class="bi bi-calendar3"></i>
+                          </a>
                         </td>
                       </tr>
                     <% end %>
