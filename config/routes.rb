@@ -46,6 +46,8 @@ resources :leaves do
 end
 
 
+  get '/hosting-details', to: 'hosting#index', as: 'hosting_details'
+
   root 'dashboard#index'
   get '/dashboard/manager_status', to: 'dashboard#manager_status'
   get '/dashboard/team_status', to: 'dashboard#team_status'
