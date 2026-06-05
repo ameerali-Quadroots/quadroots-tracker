@@ -1,0 +1,829 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+:root {
+  --hd-primary:    #836BCB;
+  --hd-dark:       #6B5B95;
+  --hd-grad:       linear-gradient(135deg, #836BCB 0%, #6B5B95 100%);
+  --hd-paper:      #f4f3f9;
+  --hd-white:      #ffffff;
+  --hd-ink:        #1c1730;
+  --hd-body:       #3d3558;
+  --hd-muted:      #8b80b3;
+  --hd-rule:       #e4dff2;
+  --hd-surface:    #f9f8fd;
+
+  --m-isaac:     #4C6EF5;
+  --m-roven:     #0CA678;
+  --m-alimesum:  #F03E3E;
+  --m-george:    #F76707;
+  --m-ayesha:    #AE3EC9;
+  --m-zack:      #1C7ED6;
+  --m-nathan:    #2F9E44;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.hd-page {
+  background: var(--hd-paper);
+  min-height: 100vh;
+  padding-bottom: 5rem;
+  font-family: 'Inter', sans-serif;
+  color: var(--hd-body);
+}
+
+.hd-wrap {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+}
+
+/* Restore BS5 gutter padding killed by global application.scss override */
+.hd-grid .row > * {
+  padding-left: 0.875rem !important;
+  padding-right: 0.875rem !important;
+}
+
+/* ─────────────────────────────────────────
+   MASTHEAD
+───────────────────────────────────────── */
+.hd-masthead {
+  background: var(--hd-grad);
+  padding: 2.75rem 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hd-masthead::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 10% 20%, rgba(255,255,255,0.13) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 80%, rgba(255,255,255,0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hd-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 0.5rem;
+}
+
+.hd-brand-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.6rem, 5vw, 4.6rem);
+  font-weight: 300;
+  line-height: 0.93;
+  letter-spacing: -0.025em;
+  color: #fff;
+}
+
+.hd-brand-title em {
+  font-style: italic;
+  color: rgba(255,255,255,0.72);
+}
+
+.hd-brand-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.04em;
+  margin-top: 0.8rem;
+}
+
+.hd-stat-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.hd-stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 0.32rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  width: 100%;
+  justify-content: flex-end;
+}
+.hd-stat-row:last-child { border-bottom: none; }
+
+.hd-stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1;
+}
+
+.hd-stat-key {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+
+.hd-meta-strip {
+  background: rgba(0,0,0,0.16);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 1.75rem;
+  padding: 0.55rem 0;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+
+/* ─────────────────────────────────────────
+   MANAGER TABS  (sticky)
+───────────────────────────────────────── */
+.hd-tabs-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--hd-white);
+  border-bottom: 1.5px solid var(--hd-rule);
+  box-shadow: 0 3px 16px rgba(107,91,149,0.1);
+}
+
+.hd-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.65rem 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hd-tabs-scroll::-webkit-scrollbar { display: none; }
+
+.hd-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.9rem 0.4rem 0.5rem;
+  border-radius: 50px;
+  border: 1.5px solid var(--hd-rule);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--hd-muted);
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.hd-tab:hover:not(.active) {
+  border-color: var(--hd-primary);
+  color: var(--hd-primary);
+  background: rgba(131,107,203,0.06);
+}
+
+.hd-tab.active {
+  background: var(--hd-grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(107,91,149,0.35);
+}
+
+.hd-tab-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.58rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.hd-tab.active .hd-tab-avatar {
+  background: rgba(255,255,255,0.25) !important;
+}
+
+.hd-tab-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-left: 0.1rem;
+}
+
+/* ─────────────────────────────────────────
+   CHART
+───────────────────────────────────────── */
+.hd-chart-section {
+  padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid var(--hd-rule);
+  margin-bottom: 2.75rem;
+}
+
+.hd-section-eyebrow {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hd-primary);
+  margin-bottom: 1.1rem;
+}
+
+.hd-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 68px;
+}
+
+.hd-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+
+.hd-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  background: var(--hd-grad);
+  transition: opacity 0.2s;
+}
+.hd-bar-col:hover .hd-bar-fill { opacity: 0.5; }
+
+.hd-bar-tick {
+  font-size: 0.43rem;
+  font-weight: 500;
+  color: var(--hd-muted);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* ─────────────────────────────────────────
+   YEAR BLOCK
+───────────────────────────────────────── */
+.hd-year-block {
+  margin-bottom: 3.5rem;
+}
+
+.hd-year-block.hd-hidden { display: none !important; }
+
+.hd-year-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 2px solid var(--hd-dark);
+}
+
+.hd-year-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 3.4rem;
+  font-weight: 300;
+  color: var(--hd-ink);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.hd-year-meta-count {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--hd-primary);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hd-year-meta-span {
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--hd-muted);
+  letter-spacing: 0.04em;
+  margin-top: 0.15rem;
+}
+
+/* ─────────────────────────────────────────
+   MONTH CARD
+───────────────────────────────────────── */
+.hd-month-col.hd-hidden { display: none !important; }
+
+.hd-card {
+  background: var(--hd-white);
+  border: 1px solid var(--hd-rule);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+  animation: hdReveal 0.35s ease both;
+}
+
+.hd-card:hover {
+  box-shadow: 0 10px 32px rgba(107,91,149,0.16);
+  transform: translateY(-4px);
+}
+
+@keyframes hdReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hd-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem 0.75rem;
+  border-bottom: 1px solid var(--hd-rule);
+  position: relative;
+  background: linear-gradient(to bottom, rgba(131,107,203,0.045), transparent);
+}
+
+.hd-card-head::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--hd-grad);
+  border-radius: 12px 12px 0 0;
+}
+
+.hd-month-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--hd-dark);
+  letter-spacing: -0.01em;
+}
+
+.hd-card-count {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hd-muted);
+}
+
+/* Domain rows */
+.hd-domain-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 10px 44px;
+  align-items: center;
+  padding: 0.3rem 1.1rem;
+  gap: 0.45rem;
+  border-bottom: 1px solid rgba(228,223,242,0.5);
+  transition: background 0.12s;
+}
+
+.hd-domain-row:last-child { border-bottom: none; }
+.hd-domain-row:hover { background: var(--hd-surface); }
+.hd-domain-row.hd-filtered { display: none !important; }
+
+.hd-d-num {
+  font-size: 0.52rem;
+  font-weight: 500;
+  color: #ccc;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hd-d-name {
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: var(--hd-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.015em;
+}
+
+.hd-d-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.hd-d-date {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--hd-muted);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ─────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────── */
+.hd-footer {
+  border-top: 2px solid var(--hd-dark);
+  padding: 1.25rem 0 0;
+  margin-top: 3.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hd-footer-left {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 300;
+  color: var(--hd-muted);
+}
+
+.hd-footer-right {
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: #b8b0cc;
+  letter-spacing: 0.05em;
+  text-align: right;
+  line-height: 1.7;
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hd-wrap { padding: 0 1.25rem; }
+  .hd-masthead-flex { flex-direction: column !important; }
+  .hd-stat-panel { align-items: flex-start; }
+  .hd-stat-row { justify-content: flex-start; }
+  .hd-footer { flex-direction: column; }
+  .hd-footer-right { text-align: left; }
+}
+</style>
+
+<div class="hd-page">
+
+  <!-- ── MASTHEAD ── -->
+  <div class="hd-masthead">
+    <div class="hd-wrap">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-4 pb-3 hd-masthead-flex">
+        <div>
+          <p class="hd-eyebrow">Client Account Registry</p>
+          <h1 class="hd-brand-title">Domain <em>Setup</em><br>Records</h1>
+          <p class="hd-brand-sub">IP&nbsp;190.92.171.214 &nbsp;&middot;&nbsp; quikrmarketing.ai reseller &nbsp;&middot;&nbsp; cPanel managed</p>
+        </div>
+        <div class="hd-stat-panel pt-1">
+          <div class="hd-stat-row">
+            <span class="hd-stat-key">Total Accounts</span>
+            <span class="hd-stat-val">89</span>
+          </div>
+          <div class="hd-stat-row">
+            <span class="hd-stat-key">Months Active</span>
+            <span class="hd-stat-val">17</span>
+          </div>
+          <div class="hd-stat-row">
+            <span class="hd-stat-key">Date Range</span>
+            <span class="hd-stat-val" style="font-size:1.05rem">Mar&nbsp;'25&nbsp;–&nbsp;Jun&nbsp;'26</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hd-meta-strip">
+      <div class="hd-wrap d-flex justify-content-between flex-wrap gap-2">
+        <span>Compiled June 2026</span>
+        <span>All hosts on shared server</span>
+        <span>Theme: Jupiter</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MANAGER TABS ── -->
+  <div class="hd-tabs-bar">
+    <div class="hd-wrap">
+      <div class="hd-tabs-scroll" id="hdTabsRow"></div>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="hd-wrap">
+
+    <!-- Chart -->
+    <div class="hd-chart-section mt-3">
+      <p class="hd-section-eyebrow">Monthly setup volume</p>
+      <div class="hd-chart" id="hdChartArea"></div>
+    </div>
+
+    <!-- Year blocks -->
+    <div id="hdContent" class="hd-grid"></div>
+
+    <!-- Footer -->
+    <div class="hd-footer">
+      <span class="hd-footer-left">QuikR Marketing — Client Account Registry</span>
+      <span class="hd-footer-right">
+        Source: cPanel account export &nbsp;&middot;&nbsp; 89 domains &nbsp;&middot;&nbsp; 17 active months<br>
+        quikrmarketing.ai &nbsp;&middot;&nbsp; IP 190.92.171.214
+      </span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── MANAGER CONFIG ────────────────────────────────────────────────────────────
+const MANAGERS = {
+  "Isaac":     { color: "#4C6EF5", abbr: "IS" },
+  "Roven":     { color: "#0CA678", abbr: "RV" },
+  "Ali Mesum": { color: "#F03E3E", abbr: "AM" },
+  "George":    { color: "#F76707", abbr: "GE" },
+  "Ayesha":    { color: "#AE3EC9", abbr: "AY" },
+  "Zack":      { color: "#1C7ED6", abbr: "ZK" },
+  "Nathan":    { color: "#2F9E44", abbr: "NA" }
+};
+
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const hdData = {
+  "2025": {
+    "March": [
+      {num:1,  domain:"chelams.ca",               date:"2025-03-18", manager:"Isaac"},
+      {num:2,  domain:"mountaineertirerepair.com", date:"2025-03-18", manager:"Roven"}
+    ],
+    "April": [
+      {num:3,  domain:"beachsidewindowcleaners.com",  date:"2025-04-02", manager:"Roven"},
+      {num:4,  domain:"greystonemonument.com",         date:"2025-04-02", manager:"Roven"},
+      {num:5,  domain:"labradoodles-nj.com",           date:"2025-04-02", manager:"Roven"},
+      {num:6,  domain:"barh.org",                      date:"2025-04-05", manager:"Ali Mesum"},
+      {num:7,  domain:"gnexteriors.com",               date:"2025-04-10", manager:"George"},
+      {num:8,  domain:"todaysnetworkingsolutions.com", date:"2025-04-10", manager:"Roven"}
+    ],
+    "May": [
+      {num:9,  domain:"ththeater.com",           date:"2025-05-05", manager:"Ali Mesum"},
+      {num:10, domain:"theexecutiveplus.com",     date:"2025-05-06", manager:"Roven"},
+      {num:11, domain:"agreatmovingcrew.com",     date:"2025-05-12", manager:"Ali Mesum"},
+      {num:12, domain:"amylovehairbraiding.com",  date:"2025-05-12", manager:"Ali Mesum"},
+      {num:13, domain:"elroinorthwest.com",        date:"2025-05-22", manager:"George"},
+      {num:14, domain:"metegrityllc.com",          date:"2025-05-27", manager:"Ali Mesum"},
+      {num:15, domain:"nnkohomerenovation.com",    date:"2025-05-29", manager:"Isaac"}
+    ],
+    "June": [
+      {num:16, domain:"labugs.com",                     date:"2025-06-12", manager:"Isaac"},
+      {num:17, domain:"skylineprofessionalpainting.com",date:"2025-06-19", manager:"Ali Mesum"},
+      {num:18, domain:"cavemanshomesolution.com",       date:"2025-06-23", manager:"Roven"},
+      {num:19, domain:"masterwallpainting.com",          date:"2025-06-30", manager:"Roven"}
+    ],
+    "July": [
+      {num:20, domain:"stowesmountaintoptaxi.com",           date:"2025-07-21", manager:"Isaac"},
+      {num:21, domain:"voyagervacationrentalmanagement.com",  date:"2025-07-28", manager:"Isaac"},
+      {num:22, domain:"nycmobilemechanics.com",               date:"2025-07-30", manager:"Ali Mesum"},
+      {num:23, domain:"westsidetermitecontrol.com",           date:"2025-07-30", manager:"Roven"}
+    ],
+    "August": [
+      {num:24, domain:"apnapestcontrol.com",      date:"2025-08-07", manager:"Roven"},
+      {num:25, domain:"rmautoprotection.com",      date:"2025-08-14", manager:"Isaac"},
+      {num:26, domain:"thegaragedoorexpert.com",   date:"2025-08-25", manager:"Isaac"},
+      {num:27, domain:"speedheatingandair.com",    date:"2025-08-26", manager:"Roven"},
+      {num:28, domain:"ckthomesolutions.com",       date:"2025-08-27", manager:"Isaac"},
+      {num:29, domain:"sustainableplumbingair.com", date:"2025-08-29", manager:"Ali Mesum"}
+    ],
+    "September": [
+      {num:30, domain:"rentalsonthemove.com",          date:"2025-09-11", manager:"Ali Mesum"},
+      {num:31, domain:"leepestcontrol.net",             date:"2025-09-12", manager:"Roven"},
+      {num:32, domain:"kn-demolition.com",              date:"2025-09-19", manager:"Isaac"},
+      {num:33, domain:"henrythompsontreeservice.net",   date:"2025-09-22", manager:"Roven"},
+      {num:34, domain:"luxuriouspawz.com",              date:"2025-09-24", manager:"Ali Mesum"},
+      {num:35, domain:"sustainableplumbingandair.com",  date:"2025-09-25", manager:"Ali Mesum"},
+      {num:36, domain:"cornerstoneterrains.com",         date:"2025-09-29", manager:"Ali Mesum"}
+    ],
+    "October": [
+      {num:37, domain:"valleyrec.org",          date:"2025-10-09", manager:"Roven"},
+      {num:38, domain:"avroofriteroofing.com",   date:"2025-10-15", manager:"Roven"},
+      {num:39, domain:"mzmauto.com",             date:"2025-10-20", manager:"George"},
+      {num:40, domain:"bestnailspanearme.com",   date:"2025-10-21", manager:"Isaac"},
+      {num:41, domain:"luckinnails.com",          date:"2025-10-23", manager:"Isaac"},
+      {num:42, domain:"marsharockshair.com",     date:"2025-10-23", manager:"Isaac"},
+      {num:43, domain:"benspremierdetailing.com",date:"2025-10-29", manager:"Isaac"}
+    ],
+    "November": [
+      {num:44, domain:"a1exteriorsllc.com",           date:"2025-11-13", manager:"Ayesha"},
+      {num:45, domain:"fortresslevelconstruction.com", date:"2025-11-18", manager:"Isaac"},
+      {num:46, domain:"kunamaqueen.com",               date:"2025-11-18", manager:"Ayesha"},
+      {num:47, domain:"jaimelandscaper.com",           date:"2025-11-25", manager:"Isaac"},
+      {num:48, domain:"finquester.com",                date:"2025-11-27", manager:"Ali Mesum"},
+      {num:49, domain:"priceisrighttaxiservice.com",   date:"2025-11-28", manager:"Roven"}
+    ],
+    "December": [
+      {num:50, domain:"groomnscoop.net",              date:"2025-12-12", manager:"George"},
+      {num:51, domain:"fanchimneyservices.com",        date:"2025-12-13", manager:"Roven"},
+      {num:52, domain:"breadartist.com",               date:"2025-12-15", manager:"Ali Mesum"},
+      {num:53, domain:"commonraildiesel.net",          date:"2025-12-15", manager:"Roven"},
+      {num:54, domain:"aboutpeoplehelpingpeople.com",  date:"2025-12-16", manager:"Isaac"},
+      {num:55, domain:"pcmountaintopservices.com",     date:"2025-12-18", manager:"Isaac"},
+      {num:56, domain:"sbsleatherrepair.com",          date:"2025-12-28", manager:"Roven"}
+    ]
+  },
+  "2026": {
+    "January": [
+      {num:57, domain:"poseidonpoolshawaii.com",       date:"2026-01-01", manager:"Isaac"},
+      {num:58, domain:"escondido-roofing.com",          date:"2026-01-07", manager:"Roven"},
+      {num:59, domain:"rigdepotchromeshop.com",         date:"2026-01-19", manager:"Isaac"},
+      {num:60, domain:"archerelectriclle.com",          date:"2026-01-21", manager:"Isaac"},
+      {num:61, domain:"cleanerspotautodetailing.com",   date:"2026-01-23", manager:"Ali Mesum"},
+      {num:62, domain:"antoniosroadsideassistance.com", date:"2026-01-26", manager:"Isaac"},
+      {num:63, domain:"bmc23cleaningllc.com",           date:"2026-01-28", manager:"Isaac"},
+      {num:64, domain:"preciousairhvac.com",            date:"2026-01-29", manager:"Zack"}
+    ],
+    "February": [
+      {num:65, domain:"lawrencelandscapesprinklers.com",date:"2026-02-09", manager:"Isaac"},
+      {num:66, domain:"handymandiamondservice.com",     date:"2026-02-10", manager:"Zack"},
+      {num:67, domain:"tebointeriorsmi.com",            date:"2026-02-11", manager:"Ali Mesum"},
+      {num:68, domain:"assuranceplumbingllc.com",       date:"2026-02-18", manager:"Ayesha"},
+      {num:69, domain:"nubathaz.com",                   date:"2026-02-23", manager:"Zack"},
+      {num:70, domain:"foxroofinginc.com",              date:"2026-02-27", manager:"George"}
+    ],
+    "March": [
+      {num:71, domain:"djgchicago.online", date:"2026-03-26", manager:"Nathan"}
+    ],
+    "April": [
+      {num:72, domain:"raidahenna.com",                   date:"2026-04-02", manager:"Zack"},
+      {num:73, domain:"shepherdsintraining.com",           date:"2026-04-06", manager:"Ali Mesum"},
+      {num:74, domain:"mmsdentrepair.com",                date:"2026-04-09", manager:"Ayesha"},
+      {num:75, domain:"pressurewashingoflosangeles.com",   date:"2026-04-09", manager:"Ayesha"},
+      {num:76, domain:"rohlmanroofrejuvenation.com",       date:"2026-04-21", manager:"Zack"},
+      {num:77, domain:"airsmithhvactx.com",               date:"2026-04-29", manager:"George"},
+      {num:78, domain:"heavensentbeautysalon.com",         date:"2026-04-29", manager:"Zack"}
+    ],
+    "May": [
+      {num:79, domain:"colorwaveautodetailing.com",             date:"2026-05-06", manager:"Ayesha"},
+      {num:80, domain:"rbcsepticservicesca.com",                date:"2026-05-06", manager:"Ayesha"},
+      {num:81, domain:"salzserviceheatingandairconditioning.com",date:"2026-05-20", manager:"Nathan"},
+      {num:82, domain:"salzheatingandcoolingservice.com",        date:"2026-05-21", manager:"Nathan"},
+      {num:83, domain:"lmappliancerepair.com",                   date:"2026-05-22", manager:"Zack"},
+      {num:84, domain:"virtuspressurewashing.com",               date:"2026-05-22", manager:"Zack"},
+      {num:85, domain:"gargomwrap.com",                          date:"2026-05-26", manager:"Zack"},
+      {num:86, domain:"lightninghypnosis.com",                   date:"2026-05-26", manager:"Ayesha"}
+    ],
+    "June": [
+      {num:87, domain:"allpointsmovingsystems.com", date:"2026-06-04", manager:"Nathan"},
+      {num:88, domain:"dolihousewash.net",           date:"2026-06-04", manager:"Ali Mesum"},
+      {num:89, domain:"dtlakitchens.com",            date:"2026-06-05", manager:"George"}
+    ]
+  }
+};
+
+// ── BUILD TABS ────────────────────────────────────────────────────────────────
+const mgrCounts = {};
+for (const months of Object.values(hdData))
+  for (const items of Object.values(months))
+    for (const it of items)
+      mgrCounts[it.manager] = (mgrCounts[it.manager] || 0) + 1;
+
+const tabsRow = document.getElementById('hdTabsRow');
+let activeManager = 'All';
+
+function buildTabs() {
+  tabsRow.innerHTML = '';
+
+  // "All" tab
+  const allTab = document.createElement('button');
+  allTab.className = 'hd-tab active';
+  allTab.dataset.mgr = 'All';
+  allTab.innerHTML = `
+    <span class="hd-tab-avatar" style="background:linear-gradient(135deg,#836BCB,#6B5B95)">All</span>
+    <span>All Managers</span>
+    <span class="hd-tab-count">89</span>`;
+  tabsRow.appendChild(allTab);
+
+  for (const [name, cfg] of Object.entries(MANAGERS)) {
+    const count = mgrCounts[name] || 0;
+    const btn = document.createElement('button');
+    btn.className = 'hd-tab';
+    btn.dataset.mgr = name;
+    btn.innerHTML = `
+      <span class="hd-tab-avatar" style="background:${cfg.color}">${cfg.abbr}</span>
+      <span>${name}</span>
+      <span class="hd-tab-count">${count}</span>`;
+    tabsRow.appendChild(btn);
+  }
+
+  tabsRow.addEventListener('click', e => {
+    const btn = e.target.closest('.hd-tab');
+    if (!btn) return;
+    tabsRow.querySelectorAll('.hd-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    activeManager = btn.dataset.mgr;
+    applyFilter(activeManager);
+  });
+}
+
+// ── FILTER ────────────────────────────────────────────────────────────────────
+function applyFilter(mgr) {
+  document.querySelectorAll('.hd-domain-row').forEach(row => {
+    if (mgr === 'All' || row.dataset.manager === mgr)
+      row.classList.remove('hd-filtered');
+    else
+      row.classList.add('hd-filtered');
+  });
+
+  // hide month card columns with no visible rows
+  document.querySelectorAll('.hd-month-col').forEach(col => {
+    const visible = col.querySelectorAll('.hd-domain-row:not(.hd-filtered)').length;
+    col.classList.toggle('hd-hidden', visible === 0);
+    // update the count badge
+    const badge = col.querySelector('.hd-card-count');
+    if (badge) badge.textContent = visible + ' acct' + (visible !== 1 ? 's' : '');
+  });
+
+  // hide year blocks where every month card is hidden
+  document.querySelectorAll('.hd-year-block').forEach(block => {
+    const visibleCols = block.querySelectorAll('.hd-month-col:not(.hd-hidden)').length;
+    block.classList.toggle('hd-hidden', visibleCols === 0);
+  });
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────────
+const mIdx = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
+const allMonths = [];
+for (const [yr, months] of Object.entries(hdData))
+  for (const [mn, items] of Object.entries(months))
+    allMonths.push({yr, mn, count: items.length});
+
+const maxC = Math.max(...allMonths.map(m => m.count));
+const chartEl = document.getElementById('hdChartArea');
+const barAlpha = [1,.9,.82,.76,.7,.64,.58,.78,.72,.86,.94,.68];
+allMonths.forEach(m => {
+  const h = Math.max(5, (m.count / maxC) * 100);
+  const op = barAlpha[mIdx[m.mn] % 12];
+  chartEl.innerHTML += `
+    <div class="hd-bar-col" title="${m.mn} ${m.yr}: ${m.count}">
+      <div class="hd-bar-fill" style="height:${h}%;opacity:${op}"></div>
+      <div class="hd-bar-tick">${m.mn.slice(0,3)}<br>'${m.yr.slice(2)}</div>
+    </div>`;
+});
+
+// ── RENDER CONTENT ────────────────────────────────────────────────────────────
+const contentEl = document.getElementById('hdContent');
+let delay = 0;
+
+for (const [year, months] of Object.entries(hdData)) {
+  const totalYear = Object.values(months).reduce((a, v) => a + v.length, 0);
+  const monthList = Object.keys(months);
+
+  const yearBlock = document.createElement('div');
+  yearBlock.className = 'hd-year-block';
+
+  const yearHeader = document.createElement('div');
+  yearHeader.className = 'hd-year-header';
+  yearHeader.innerHTML = `
+    <span class="hd-year-num">${year}</span>
+    <div>
+      <div class="hd-year-meta-count">${totalYear} accounts &middot; ${monthList.length} month${monthList.length > 1 ? 's' : ''}</div>
+      <div class="hd-year-meta-span">${monthList[0]} &ndash; ${monthList[monthList.length - 1]}</div>
+    </div>`;
+  yearBlock.appendChild(yearHeader);
+
+  const row = document.createElement('div');
+  row.className = 'row g-4';
+  yearBlock.appendChild(row);
+
+  for (const [month, items] of Object.entries(months)) {
+    const col = document.createElement('div');
+    col.className = 'col-12 col-sm-6 col-lg-4 col-xl-3 hd-month-col';
+
+    const card = document.createElement('div');
+    card.className = 'hd-card';
+    card.style.animationDelay = `${delay * 35}ms`;
+    delay++;
+
+    const domainRows = items.map(it => {
+      const mgr = MANAGERS[it.manager] || {color:'#aaa'};
+      return `
+        <div class="hd-domain-row" data-manager="${it.manager}">
+          <span class="hd-d-num">${it.num}</span>
+          <span class="hd-d-name" title="${it.domain}">${it.domain}</span>
+          <span class="hd-d-dot" style="background:${mgr.color}" title="${it.manager}"></span>
+          <span class="hd-d-date">${it.date.slice(5)}</span>
+        </div>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="hd-card-head">
+        <span class="hd-month-name">${month}</span>
+        <span class="hd-card-count">${items.length} acct${items.length > 1 ? 's' : ''}</span>
+      </div>
+      ${domainRows}`;
+
+    col.appendChild(card);
+    row.appendChild(col);
+  }
+
+  contentEl.appendChild(yearBlock);
+}
+
+buildTabs();
+</script>
