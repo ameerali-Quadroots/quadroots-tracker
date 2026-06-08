@@ -11,6 +11,10 @@ Rails.application.configure do
   # Do not eager load code on boot.
   config.eager_load = false
 
+  # Rails 7.1 enables origin check by default; disable in dev to avoid CSRF failures
+  # when accessing via LAN IP or when browser sends mismatched Origin headers.
+  config.action_controller.forgery_protection_origin_check = false
+
   # Show full error reports.
   config.consider_all_requests_local = true
 

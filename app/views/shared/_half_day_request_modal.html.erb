@@ -2,7 +2,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
     <div class="modal-content dashboard-card" style="border-radius: 16px; overflow: hidden; border: none;">
 
-      <%= form_with(model: Leave.new, url: leaves_path, local: true) do |f| %>
+      <%= form_with(model: Leave.new, url: leaves_path, local: true, html: { data: { turbo: false } }) do |f| %>
         <%= f.hidden_field :leave_type, value: "half_day" %>
         <%= f.hidden_field :start_date, value: Date.current %>
         <%= f.hidden_field :end_date,   value: Date.current %>

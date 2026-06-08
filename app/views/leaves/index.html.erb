@@ -52,11 +52,11 @@
                   <td class="align-middle">
                     <% unless leave.approved_by_manager  %>
                       <div class="d-flex justify-content-center gap-2">
-                        <%= button_to approve_leave_path(leave), method: :patch, class: "btn btn-outline-success btn-sm", data: { confirm: "Approve this leave request?" } do %>
+                        <%= button_to approve_leave_path(leave), method: :patch, class: "btn btn-outline-success btn-sm", data: { turbo: false } do %>
                           ✅ Approve
                         <% end %>
 
-                        <%= button_to reject_leave_path(leave), method: :patch, class: "btn btn-outline-danger btn-sm", data: { confirm: "Reject this leave request?" } do %>
+                        <%= button_to reject_leave_path(leave), method: :patch, class: "btn btn-outline-danger btn-sm", data: { turbo: false } do %>
                           ❌ Reject
                         <% end %>
                       </div>

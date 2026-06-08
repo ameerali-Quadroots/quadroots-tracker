@@ -1,7 +1,7 @@
 <div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content dashboard-card">
-      <%= form_with(model: Leave.new, url: leaves_path, local: true, html: { multipart: true }) do |f| %>
+      <%= form_with(model: Leave.new, url: leaves_path, local: true, html: { multipart: true, data: { turbo: false } }) do |f| %>
         <div class="modal-header">
           <h5 class="modal-title fw-bold">
             <i class="bi bi-calendar-check me-2 text-info"></i>

@@ -1,7 +1,7 @@
 <div class="modal fade" id="editRequestModal" tabindex="-1" aria-labelledby="editRequestModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content dashboard-card">
-      <%= form_with(model: EditRequest.new, url: edit_requests_path, local: true) do |f| %>
+      <%= form_with(model: EditRequest.new, url: edit_requests_path, local: true, html: { data: { turbo: false } }) do |f| %>
         <div class="modal-header">
           <h5 class="modal-title fw-bold">
             <i class="bi bi-pencil-square me-2 text-primary"></i>

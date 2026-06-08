@@ -27,7 +27,7 @@
       </div>
 
       <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
-        <%= button_to clock_in_path, method: :post, class: "btn btn-success btn-premium btn-action" do %>
+        <%= button_to clock_in_path, method: :post, class: "btn btn-success btn-premium btn-action", data: { turbo: false } do %>
           <i class="fa-solid fa-right-to-bracket me-2"></i>Clock In
         <% end %>
 
@@ -144,7 +144,7 @@
 
       <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
         <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
-              method: :post, class: "btn btn-primary btn-premium btn-action" do %>
+              method: :post, class: "btn btn-primary btn-premium btn-action", data: { turbo: false } do %>
           <i class="fa-solid fa-play me-2"></i><%= end_text %>
         <% end %>
 
@@ -205,7 +205,7 @@
             <% break_options.each do |break_option| %>
               <li>
                 <%= button_to break_in_time_clock_breaks_path(@time_clock, break_type: break_option[:name]),
-                      method: :post, class: "dropdown-item" do %>
+                      method: :post, class: "dropdown-item", data: { turbo: false } do %>
                   <i class="<%= break_option[:icon] %> me-2"></i>
                   <%= break_option[:name] %>
                 <% end %>
@@ -219,13 +219,13 @@
           <!-- Early clock-out: show prominent button with confirmation -->
           <%= button_to clock_out_path, method: :post,
                 class: "btn btn-danger btn-premium btn-action",
-                data: { confirm: "You've worked less than 4.5 hours. Clock out early and request a half-day leave?" } do %>
+                data: { turbo: false, turbo_confirm: "You've worked less than 4.5 hours. Clock out early and request a half-day leave?" } do %>
             <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Early Clock Out
           <% end %>
         <% else %>
           <%= button_to clock_out_path, method: :post,
                 class: "btn btn-danger btn-premium btn-action",
-                data: { confirm: "Are you sure you want to clock out?" } do %>
+                data: { turbo: false, turbo_confirm: "Are you sure you want to clock out?" } do %>
             <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Clock Out
           <% end %>
         <% end %>
