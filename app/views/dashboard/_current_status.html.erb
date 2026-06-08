@@ -159,10 +159,6 @@
   <% else %>
 
     <!-- Working State -->
-    <%
-      working_secs = @time_clock.present? ? live_work_seconds(@time_clock) : 0
-      is_early_session = working_secs < 16200
-    %>
     <div class="status-state text-center">
       <div class="status-indicator mb-4">
         <div class="status-icon-wrapper working-active">
@@ -215,18 +211,11 @@
           </ul>
         </div>
 
-        <% if is_early_session %>
-          <!-- Early clock-out: show prominent button with confirmation -->
+        <% if @today_half_day_leave&.status == 'approved' %>
           <%= button_to clock_out_path, method: :post,
                 class: "btn btn-danger btn-premium btn-action",
-                data: { turbo: false, turbo_confirm: "You've worked less than 4.5 hours. Clock out early and request a half-day leave?" } do %>
+                data: { turbo: false, turbo_confirm: "Your early leave is approved. Clock out now?" } do %>
             <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Early Clock Out
-          <% end %>
-        <% else %>
-          <%= button_to clock_out_path, method: :post,
-                class: "btn btn-danger btn-premium btn-action",
-                data: { turbo: false, turbo_confirm: "Are you sure you want to clock out?" } do %>
-            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Clock Out
           <% end %>
         <% end %>
 
@@ -253,31 +242,28 @@
         <i class="fa-solid fa-calendar-check me-2"></i>Request Leave
       </button>
 
-      <% hd_already = @today_half_day_leave %>
-      <% if hd_already %>
-        <% case hd_already.status %>
-        <% when 'pending' %>
-          <button type="button" class="btn btn-warning btn-premium btn-leave" disabled
-                  style="opacity:0.75;cursor:default;">
-            <i class="fa-solid fa-hourglass-half me-2"></i>Half Day Pending
-          </button>
-        <% when 'approved' %>
-          <button type="button" class="btn btn-success btn-premium btn-leave" disabled
-                  style="cursor:default;">
-            <i class="fa-solid fa-circle-check me-2"></i>Early Check-Out Approved
-          </button>
-        <% when 'rejected' %>
-          <button type="button" class="btn btn-danger btn-premium btn-leave"
-                  data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
-                  title="Request rejected — click to resubmit">
-            <i class="fa-solid fa-rotate-right me-2"></i>Resubmit Half Day
-          </button>
-        <% end %>
-      <% else %>
+      <% hd = @today_half_day_leave %>
+      <% if hd.nil? %>
         <button type="button" class="btn btn-warning btn-premium btn-leave"
                 data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
                 style="color:#fff;">
           <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Request Early Leave
+        </button>
+      <% elsif hd.status == 'pending' %>
+        <button type="button" class="btn btn-warning btn-premium btn-leave" disabled
+                style="opacity:0.75;cursor:default;">
+          <i class="fa-solid fa-hourglass-half me-2"></i>Early Leave Pending
+        </button>
+      <% elsif hd.status == 'approved' %>
+        <button type="button" class="btn btn-success btn-premium btn-leave" disabled
+                style="cursor:default;">
+          <i class="fa-solid fa-circle-check me-2"></i>Early Leave Approved
+        </button>
+      <% elsif hd.status == 'rejected' %>
+        <button type="button" class="btn btn-danger btn-premium btn-leave"
+                data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
+                title="Rejected — click to resubmit">
+          <i class="fa-solid fa-rotate-right me-2"></i>Resubmit Early Leave
         </button>
       <% end %>
 
