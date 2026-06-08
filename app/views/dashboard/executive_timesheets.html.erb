@@ -2,11 +2,12 @@
   current_month = @current_month
 
   late_count = @time_clocks.count { |r| r.status == "late" }
-  half_day_count = @time_clocks.count { |r|
+  half_day_ids = @time_clocks.select { |r|
     next false unless r.clock_out.present?
     non_mtg_secs = r.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
     (r.clock_out - r.clock_in).to_i - non_mtg_secs < 4 * 3600
-  }
+  }.map(&:id)
+  half_day_count = half_day_ids.count
   on_time_count = @time_clocks.count - late_count
 %>
 
@@ -41,28 +42,45 @@
     <% end %>
   </div>
 
-  <!-- Stats Summary -->
-  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <div class="text-center px-4 py-2 rounded-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; min-width: 90px;">
-      <div style="font-size: 1.6rem; font-weight: 800; color: #16a34a; line-height: 1.1;"><%= @time_clocks.count %></div>
-      <div style="font-size: 0.68rem; color: #166534; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">CLOCK-INS</div>
-    </div>
-    <div class="text-center px-4 py-2 rounded-3" style="background: #fef2f2; border: 1px solid #fecaca; min-width: 90px;">
-      <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626; line-height: 1.1;"><%= late_count %></div>
-      <div style="font-size: 0.68rem; color: #991b1b; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">LATES</div>
-    </div>
-    <div class="text-center px-4 py-2 rounded-3" style="background: #fffbeb; border: 1px solid #fde68a; min-width: 90px;">
-      <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; line-height: 1.1;"><%= half_day_count %></div>
-      <div style="font-size: 0.68rem; color: #92400e; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">HALF DAYS</div>
-    </div>
-    <div class="text-center px-4 py-2 rounded-3" style="background: #eff6ff; border: 1px solid #bfdbfe; min-width: 90px;">
-      <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; line-height: 1.1;"><%= on_time_count %></div>
-      <div style="font-size: 0.68rem; color: #1e40af; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">ON TIME</div>
-    </div>
+  <!-- Stats / Filter Cards -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap" id="stat-filters">
+
+    <button class="stat-filter-btn active" data-filter="all"
+            style="background:#f0fdf4;border:2px solid #bbf7d0;min-width:90px;border-radius:12px;padding:10px 16px;cursor:pointer;transition:all 0.15s;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:#16a34a;line-height:1.1;"><%= @time_clocks.count %></div>
+      <div style="font-size:0.68rem;color:#166534;font-weight:700;letter-spacing:0.5px;margin-top:2px;">CLOCK-INS</div>
+    </button>
+
+    <button class="stat-filter-btn" data-filter="late"
+            style="background:#fef2f2;border:2px solid #fecaca;min-width:90px;border-radius:12px;padding:10px 16px;cursor:pointer;transition:all 0.15s;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:#dc2626;line-height:1.1;"><%= late_count %></div>
+      <div style="font-size:0.68rem;color:#991b1b;font-weight:700;letter-spacing:0.5px;margin-top:2px;">LATES</div>
+    </button>
+
+    <button class="stat-filter-btn" data-filter="half-day"
+            style="background:#fffbeb;border:2px solid #fde68a;min-width:90px;border-radius:12px;padding:10px 16px;cursor:pointer;transition:all 0.15s;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:#d97706;line-height:1.1;"><%= half_day_count %></div>
+      <div style="font-size:0.68rem;color:#92400e;font-weight:700;letter-spacing:0.5px;margin-top:2px;">HALF DAYS</div>
+    </button>
+
+    <button class="stat-filter-btn" data-filter="on-time"
+            style="background:#eff6ff;border:2px solid #bfdbfe;min-width:90px;border-radius:12px;padding:10px 16px;cursor:pointer;transition:all 0.15s;text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb;line-height:1.1;"><%= on_time_count %></div>
+      <div style="font-size:0.68rem;color:#1e40af;font-weight:700;letter-spacing:0.5px;margin-top:2px;">ON TIME</div>
+    </button>
+
+  </div>
+
+  <!-- Active filter label -->
+  <div id="filter-label" style="text-align:center;margin-bottom:14px;display:none;">
+    <span style="font-size:0.72rem;font-weight:600;color:#64748B;background:#F1F5F9;padding:4px 14px;border-radius:20px;">
+      Showing: <span id="filter-label-text"></span>
+      &nbsp;<button onclick="document.querySelector('[data-filter=all]').click()" style="background:none;border:none;color:#2563EB;font-size:0.72rem;font-weight:700;cursor:pointer;padding:0;">Clear</button>
+    </span>
   </div>
 
   <!-- Calendar Grid -->
-  <div class="attendance-calendar">
+  <div class="attendance-calendar" id="attendance-calendar">
     <% start_date = current_month.beginning_of_month.beginning_of_week(:sunday) %>
     <% end_date   = current_month.end_of_month.end_of_week(:sunday) %>
 
@@ -105,14 +123,25 @@
               "ON TIME"
             end
           %>
-          <div class="day <%= status_class %> <%= 'dimmed' if day.month != current_month.month %>"
-               title="<%= day.strftime('%B %d, %Y') %><%= record ? " · In: #{record.clock_in.strftime('%I:%M %p')}" : '' %><%= hours_worked ? " · #{hours_worked}" : '' %><%= is_half_day ? ' (Half Day)' : '' %>">
-            <div class="day-number"><%= day.day %></div>
-            <% if record %>
+
+          <% if record %>
+            <a href="<%= dashboard_timesheet_record_path(@employee, tc_id: record.id) %>"
+               class="day <%= status_class %> <%= 'dimmed' if day.month != current_month.month %>"
+               data-status="<%= status_class %>"
+               title="<%= day.strftime('%B %d, %Y') %> · In: <%= record.clock_in.strftime('%I:%M %p') %><%= hours_worked ? " · #{hours_worked}" : '' %><%= is_half_day ? ' (Half Day)' : '' %> — click to view details"
+               style="text-decoration:none;">
+              <div class="day-number"><%= day.day %></div>
               <div class="clock-time"><%= record.clock_in.strftime("%I:%M %p") %></div>
               <div class="att-type-tag"><%= att_label %></div>
-            <% end %>
-          </div>
+            </a>
+          <% else %>
+            <div class="day no-data <%= 'dimmed' if day.month != current_month.month %>"
+                 data-status="no-data"
+                 title="<%= day.strftime('%B %d, %Y') %>">
+              <div class="day-number"><%= day.day %></div>
+            </div>
+          <% end %>
+
         <% end %>
       </div>
     <% end %>
@@ -162,107 +191,57 @@
     border: 1px solid #e2e8f0;
     background-color: #fff;
     color: #334155;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
     cursor: default;
     position: relative;
   }
 
-  .day:hover {
-    transform: scale(1.08);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  a.day { cursor: pointer; }
+  a.day:hover {
+    transform: scale(1.10);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.22);
     z-index: 2;
+    outline: 3px solid rgba(255,255,255,0.6);
+    outline-offset: 1px;
   }
+  .day.no-data:hover { transform: scale(1.04); box-shadow: none; }
 
-  .day .day-number {
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .day .clock-time {
-    font-size: 10px;
-    font-weight: 500;
-    margin-top: 3px;
-    opacity: 0.9;
-  }
-
+  .day .day-number { font-size: 17px; font-weight: 700; line-height: 1; }
+  .day .clock-time { font-size: 10px; font-weight: 500; margin-top: 3px; opacity: 0.9; }
   .day .att-type-tag {
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 0.4px;
-    margin-top: 2px;
-    background: rgba(255,255,255,0.25);
-    border-radius: 4px;
-    padding: 1px 4px;
-    line-height: 1.2;
-    white-space: nowrap;
+    font-size: 8px; font-weight: 800; letter-spacing: 0.4px; margin-top: 2px;
+    background: rgba(255,255,255,0.25); border-radius: 4px; padding: 1px 4px;
+    line-height: 1.2; white-space: nowrap;
   }
 
-  .day.on-time {
-    background: linear-gradient(135deg, #27ae60, #2ecc71);
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 8px rgba(39,174,96,0.3);
-  }
+  .day.on-time       { background: linear-gradient(135deg, #27ae60, #2ecc71); color:#fff; border:none; box-shadow:0 2px 8px rgba(39,174,96,0.3); }
+  .day.late          { background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; border:none; box-shadow:0 2px 8px rgba(231,76,60,0.3); }
+  .day.half-day      { background: linear-gradient(135deg, #f59e0b, #f97316); color:#fff; border:none; box-shadow:0 2px 8px rgba(245,158,11,0.3); }
+  .day.late-half-day { background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%); color:#fff; border:none; box-shadow:0 2px 8px rgba(231,76,60,0.25); }
+  .day.no-data       { background:#f1f5f9; color:#94a3b8; border-color:#e2e8f0; }
+  .day.dimmed        { opacity: 0.35; }
+  .day.faded         { opacity: 0.2; transform: scale(0.96); }
 
-  .day.late {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 8px rgba(231,76,60,0.3);
-  }
-
-  .day.half-day {
-    background: linear-gradient(135deg, #f59e0b, #f97316);
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 8px rgba(245,158,11,0.3);
-  }
-
-  .day.late-half-day {
-    background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%);
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 8px rgba(231,76,60,0.25);
-  }
-
-  .day.no-data {
-    background: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
-  }
-
-  .day.dimmed {
-    opacity: 0.35;
-  }
+  .stat-filter-btn { outline: none; }
+  .stat-filter-btn.active { box-shadow: 0 4px 14px rgba(0,0,0,0.12); transform: translateY(-2px); }
+  .stat-filter-btn:hover  { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.10); }
 
   .legend {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    font-weight: 500;
-    font-size: 14px;
-    flex-wrap: wrap;
-    color: #475569;
+    display: flex; justify-content: center; gap: 24px;
+    font-weight: 500; font-size: 14px; flex-wrap: wrap; color: #475569;
   }
-
   .legend .box {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 5px;
-    margin-right: 6px;
-    vertical-align: middle;
+    display: inline-block; width: 16px; height: 16px;
+    border-radius: 5px; margin-right: 6px; vertical-align: middle;
   }
-
-  .legend .box.on-time      { background: linear-gradient(135deg, #27ae60, #2ecc71); }
-  .legend .box.late         { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-  .legend .box.half-day     { background: linear-gradient(135deg, #f59e0b, #f97316); }
+  .legend .box.on-time       { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+  .legend .box.late          { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+  .legend .box.half-day      { background: linear-gradient(135deg, #f59e0b, #f97316); }
   .legend .box.late-half-day { background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%); }
-  .legend .box.no-data      { background: #e2e8f0; }
+  .legend .box.no-data       { background: #e2e8f0; }
 
   @media (max-width: 640px) {
-    .day { width: 46px; height: 46px; font-size: 13px; border-radius: 8px; }
+    .day { width: 46px; height: 50px; font-size: 13px; border-radius: 8px; }
     .day .day-number { font-size: 13px; }
     .day .clock-time { font-size: 8px; }
     .day .att-type-tag { font-size: 6px; }
@@ -271,3 +250,53 @@
     .legend { gap: 14px; font-size: 12px; }
   }
 </style>
+
+<script>
+(function() {
+  const filterMap = {
+    'all':       null,
+    'late':      ['late', 'late-half-day'],
+    'half-day':  ['half-day', 'late-half-day'],
+    'on-time':   ['on-time'],
+  };
+
+  const labelMap = {
+    'late':      'Lates only',
+    'half-day':  'Half Days only',
+    'on-time':   'On Time only',
+  };
+
+  const filterLabel    = document.getElementById('filter-label');
+  const filterLabelTxt = document.getElementById('filter-label-text');
+
+  document.querySelectorAll('.stat-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const filter = this.dataset.filter;
+
+      // Toggle active state on buttons
+      document.querySelectorAll('.stat-filter-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      // Show/hide filter label
+      if (filter === 'all') {
+        filterLabel.style.display = 'none';
+      } else {
+        filterLabelTxt.textContent = labelMap[filter] || filter;
+        filterLabel.style.display = 'block';
+      }
+
+      // Apply faded class to non-matching days
+      const allowed = filterMap[filter];
+      document.querySelectorAll('.attendance-calendar .day').forEach(day => {
+        const status = day.dataset.status;
+        if (!allowed) {
+          day.classList.remove('faded');
+        } else {
+          const match = allowed.includes(status);
+          day.classList.toggle('faded', !match);
+        }
+      });
+    });
+  });
+})();
+</script>

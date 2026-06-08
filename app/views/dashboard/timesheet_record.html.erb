@@ -1,0 +1,193 @@
+<%
+  tc = @time_clock
+
+  all_breaks       = tc.breaks.to_a.sort_by(&:break_in)
+  regular_breaks   = all_breaks.reject { |b| b.break_type == "Meeting" }
+  meeting_breaks   = all_breaks.select { |b| b.break_type == "Meeting" }
+  downtime_breaks  = all_breaks.select { |b| b.break_type == "Downtime" }
+
+  fmt_secs  = ->(s) { return "—" unless s && s > 0; h = s / 3600; m = (s % 3600) / 60; h > 0 ? "#{h}h #{m}m" : "#{m}m" }
+  break_secs = ->(b) { b.break_out.present? ? (b.break_out - b.break_in).to_i : (Time.current - b.break_in).to_i }
+
+  total_reg_secs  = regular_breaks.sum  { |b| break_secs.(b) }
+  total_mtg_secs  = meeting_breaks.sum  { |b| break_secs.(b) }
+  total_dt_secs   = downtime_breaks.sum { |b| break_secs.(b) }
+
+  worked_secs = if tc.clock_out.present?
+    (tc.clock_out - tc.clock_in).to_i - total_reg_secs
+  elsif tc.clock_in.present?
+    (Time.current - tc.clock_in).to_i - total_reg_secs
+  end
+
+  is_half_day = worked_secs && tc.clock_out.present? && worked_secs < 4 * 3600
+
+  att_type = if is_half_day && tc.status == "late"
+    { label: "Late + Half Day", bg: "linear-gradient(135deg,#EF4444,#F59E0B)", color: "#fff" }
+  elsif is_half_day
+    { label: "Half Day", bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" }
+  elsif tc.status == "late"
+    { label: "Late", bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" }
+  else
+    { label: "On Time", bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" }
+  end
+%>
+
+<div style="max-width: 720px; margin: 0 auto; padding: 28px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+  <!-- Back link -->
+  <div style="margin-bottom: 20px;">
+    <%= link_to(dashboard_executive_timesheets_path(@employee, month: @current_month),
+          style: "display:inline-flex;align-items:center;gap:6px;color:#64748B;font-size:0.82rem;font-weight:600;text-decoration:none;") do %>
+      <i class="bi bi-arrow-left" style="font-size:0.75rem;"></i> Back to <%= @current_month.strftime("%B %Y") %>
+    <% end %>
+  </div>
+
+  <!-- Employee + Date header -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06);overflow:hidden;margin-bottom:20px;">
+
+    <div style="height:4px;background:linear-gradient(90deg,<%= tc.status == 'late' ? '#EF4444,#DC2626' : '#22C55E,#16A34A' %>);"></div>
+
+    <div style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#EFF6FF,#BFDBFE);color:#2563EB;font-size:1.3rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <%= @employee.name.first.upcase %>
+        </div>
+        <div>
+          <div style="font-size:1.05rem;font-weight:800;color:#0F172A;"><%= @employee.name %></div>
+          <div style="font-size:0.75rem;color:#94A3B8;margin-top:2px;"><%= @employee.department %> · <%= @employee.role %></div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:1.1rem;font-weight:800;color:#1E293B;"><%= tc.clock_in.strftime("%A, %d %B %Y") %></div>
+        <div style="margin-top:6px;">
+          <span style="display:inline-block;background:<%= att_type[:bg] %>;color:<%= att_type[:color] %>;<%= att_type[:border] ? "border:1px solid #{att_type[:border]};" : "" %>font-size:0.72rem;font-weight:800;padding:4px 14px;border-radius:20px;letter-spacing:0.4px;">
+            <%= att_type[:label].upcase %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock In / Out / Duration row -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+
+    <div style="background:#fff;border-radius:12px;border:1px solid #E8ECF0;padding:18px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:0.62rem;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Clock In</div>
+      <div style="font-size:1.5rem;font-weight:900;color:#16A34A;letter-spacing:-0.5px;line-height:1;"><%= tc.clock_in.strftime("%I:%M") %></div>
+      <div style="font-size:0.72rem;font-weight:600;color:#94A3B8;margin-top:3px;"><%= tc.clock_in.strftime("%p") %></div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1px solid #E8ECF0;padding:18px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:0.62rem;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Clock Out</div>
+      <% if tc.clock_out.present? %>
+        <div style="font-size:1.5rem;font-weight:900;color:#DC2626;letter-spacing:-0.5px;line-height:1;"><%= tc.clock_out.strftime("%I:%M") %></div>
+        <div style="font-size:0.72rem;font-weight:600;color:#94A3B8;margin-top:3px;"><%= tc.clock_out.strftime("%p") %></div>
+      <% else %>
+        <div style="font-size:0.85rem;font-weight:700;color:#F59E0B;margin-top:8px;">Still Active</div>
+      <% end %>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1px solid #E8ECF0;padding:18px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:0.62rem;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Work Duration</div>
+      <div style="font-size:1.3rem;font-weight:900;color:#2563EB;letter-spacing:-0.5px;line-height:1;"><%= fmt_secs.(worked_secs) %></div>
+      <% if is_half_day %>
+        <div style="font-size:0.62rem;font-weight:700;color:#D97706;margin-top:3px;">Half Day</div>
+      <% end %>
+    </div>
+
+  </div>
+
+  <!-- Break summary row -->
+  <% if all_breaks.any? %>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+
+    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.60rem;font-weight:700;color:#92400E;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">Regular Breaks</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#D97706;line-height:1;"><%= regular_breaks.count %></div>
+      <div style="font-size:0.70rem;color:#B45309;font-weight:600;margin-top:3px;"><%= fmt_secs.(total_reg_secs) %></div>
+    </div>
+
+    <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:12px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.60rem;font-weight:700;color:#0369A1;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">Meetings</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#0284C7;line-height:1;"><%= meeting_breaks.count %></div>
+      <div style="font-size:0.70rem;color:#0369A1;font-weight:600;margin-top:3px;"><%= fmt_secs.(total_mtg_secs) %></div>
+    </div>
+
+    <div style="background:#FFF1F2;border:1px solid #FECDD3;border-radius:12px;padding:14px 16px;text-align:center;">
+      <div style="font-size:0.60rem;font-weight:700;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">Downtime</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#E11D48;line-height:1;"><%= downtime_breaks.count %></div>
+      <div style="font-size:0.70rem;color:#BE123C;font-weight:600;margin-top:3px;"><%= fmt_secs.(total_dt_secs) %></div>
+    </div>
+
+  </div>
+  <% end %>
+
+  <!-- Breaks timeline -->
+  <% if all_breaks.any? %>
+  <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04);overflow:hidden;">
+
+    <div style="padding:16px 24px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:9px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;color:#64748B;font-size:0.85rem;flex-shrink:0;">
+        <i class="bi bi-list-ul"></i>
+      </div>
+      <div>
+        <div style="font-size:0.88rem;font-weight:800;color:#0F172A;">Break Log</div>
+        <div style="font-size:0.68rem;color:#94A3B8;margin-top:1px;"><%= all_breaks.count %> entries &middot; <%= fmt_secs.(total_reg_secs + total_dt_secs) %> total non-meeting time</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 24px;">
+      <% all_breaks.each_with_index do |brk, idx| %>
+        <%
+          secs = break_secs.(brk)
+          is_last = idx == all_breaks.count - 1
+          type_style = case brk.break_type
+            when "Meeting"  then { bg: "#F0F9FF", border: "#BAE6FD", dot: "#0284C7", label_bg: "#E0F2FE", label_color: "#0369A1", icon: "bi-camera-video" }
+            when "Downtime" then { bg: "#FFF1F2", border: "#FECDD3", dot: "#E11D48", label_bg: "#FFE4E6", label_color: "#9F1239", icon: "bi-wifi-off" }
+            else                 { bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706", label_bg: "#FEF3C7", label_color: "#92400E", icon: "bi-cup-hot" }
+          end
+        %>
+        <div style="display:flex;gap:12px;padding:10px 0;<%= is_last ? '' : 'border-bottom:1px solid #F8FAFC;' %>">
+
+          <!-- Timeline dot -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:2px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:<%= type_style[:dot] %>;border:2px solid #fff;box-shadow:0 0 0 2px <%= type_style[:border] %>;flex-shrink:0;"></div>
+            <% unless is_last %>
+              <div style="width:1px;flex:1;background:#F1F5F9;margin-top:4px;min-height:20px;"></div>
+            <% end %>
+          </div>
+
+          <!-- Break detail -->
+          <div style="flex:1;min-width:0;background:<%= type_style[:bg] %>;border:1px solid <%= type_style[:border] %>;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="background:<%= type_style[:label_bg] %>;color:<%= type_style[:label_color] %>;font-size:0.62rem;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:0.4px;white-space:nowrap;">
+                <i class="bi <%= type_style[:icon] %> me-1" style="font-size:0.6rem;"></i><%= brk.break_type || "Break" %>
+              </span>
+              <div style="font-size:0.75rem;font-weight:700;color:#475569;">
+                <%= brk.break_in.strftime("%I:%M %p") %>
+                <% if brk.break_out.present? %>
+                  <span style="color:#94A3B8;font-weight:500;"> &rarr; </span><%= brk.break_out.strftime("%I:%M %p") %>
+                <% else %>
+                  <span style="color:#F59E0B;font-weight:600;font-size:0.68rem;margin-left:4px;">(ongoing)</span>
+                <% end %>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:0.90rem;font-weight:800;color:<%= type_style[:label_color] %>;"><%= fmt_secs.(secs) %></div>
+              <div style="font-size:0.60rem;color:#94A3B8;font-weight:500;margin-top:1px;">duration</div>
+            </div>
+          </div>
+
+        </div>
+      <% end %>
+    </div>
+
+  </div>
+  <% else %>
+  <div style="background:#F8FAFC;border:1px dashed #E2E8F0;border-radius:12px;padding:32px;text-align:center;color:#94A3B8;">
+    <i class="bi bi-cup" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#CBD5E1;"></i>
+    <div style="font-weight:600;font-size:0.85rem;">No breaks recorded for this day</div>
+  </div>
+  <% end %>
+
+</div>

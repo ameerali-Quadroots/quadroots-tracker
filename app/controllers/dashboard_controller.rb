@@ -25,6 +25,16 @@ class DashboardController < ApplicationController
   def team_status
   end
 
+  def timesheet_record
+    @employee = User.find(params[:id])
+    unless ["HOD'S", @employee.department].include?(current_user.department)
+      redirect_to root_path, alert: "Not authorized."
+      return
+    end
+    @time_clock = @employee.time_clocks.includes(:breaks).find(params[:tc_id])
+    @current_month = @time_clock.clock_in.to_date
+  end
+
   def executive_timesheets
     @employee = User.find(params[:id])
 
