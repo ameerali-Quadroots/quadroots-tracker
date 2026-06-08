@@ -45,58 +45,81 @@
   "hideMethod": "fadeOut"   // 👈 fade out
 }
   </script>
-  <% if user_signed_in? && ENV['PUSHER_APP_KEY'].present? %>
+  <% if user_signed_in? %>
   <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
   <script>
     (function() {
-      // Request browser notification permission on page load
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
+      var csrfToken   = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      var vapidKey    = '<%= ENV['VAPID_PUBLIC_KEY'] %>';
+
+      /* ---------- helpers ---------- */
+      function urlBase64ToUint8Array(b64) {
+        var padding = '='.repeat((4 - b64.length % 4) % 4);
+        var base64  = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var raw     = atob(base64);
+        var arr     = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
       }
 
-      function showBrowserNotification(title, body) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          var n = new Notification(title, {
-            body: body,
-            icon: '/icon.png',
-            tag: title
-          });
-          n.onclick = function() { window.focus(); n.close(); };
-          setTimeout(function() { n.close(); }, 10000);
-        }
+      function showToast(title, message) {
+        toastr.info(message, title, {
+          timeOut: 0, extendedTimeOut: 0,
+          closeButton: true, progressBar: false,
+          positionClass: 'toast-top-right'
+        });
       }
 
-      var pusher = new Pusher('<%= ENV['PUSHER_APP_KEY'] %>', {
+      /* ---------- Web Push (works on localhost even without HTTPS) ---------- */
+      function saveSub(sub) {
+        var s = sub.toJSON();
+        fetch('/push_subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ endpoint: s.endpoint, keys: s.keys })
+        });
+      }
+
+      if ('serviceWorker' in navigator && 'PushManager' in window && vapidKey) {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(reg) {
+            return Notification.requestPermission().then(function(perm) {
+              if (perm !== 'granted') return;
+              return reg.pushManager.getSubscription().then(function(existing) {
+                if (existing) { saveSub(existing); return existing; }
+                return reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                }).then(function(sub) { saveSub(sub); return sub; });
+              });
+            });
+          })
+          .catch(function(e) { console.warn('Web Push setup failed:', e); });
+      }
+
+      /* ---------- DB polling — shows missed notifications on tab reopen ---------- */
+      function checkUnread() {
+        fetch('/notifications/unread', {
+          headers: { 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' }
+        })
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(list) { list.forEach(function(n) { showToast(n.title, n.message); }); })
+        .catch(function() {});
+      }
+      checkUnread();
+      setInterval(checkUnread, 30000);
+      document.addEventListener('visibilitychange', function() { if (!document.hidden) checkUnread(); });
+
+      /* ---------- Pusher — instant toast while tab is open ---------- */
+      <% if ENV['PUSHER_APP_KEY'].present? %>
+      var pusher  = new Pusher('<%= ENV['PUSHER_APP_KEY'] %>', {
         cluster: '<%= ENV['PUSHER_APP_CLUSTER'] %>',
-        channelAuthorization: {
-          endpoint: '/pusher/auth',
-          headers: {
-            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-          }
-        }
+        channelAuthorization: { endpoint: '/pusher/auth', headers: { 'X-CSRF-Token': csrfToken } }
       });
-
       var channel = pusher.subscribe('private-user-<%= current_user.id %>');
-
-      channel.bind('new-edit-request', function(data) {
-        toastr.info(data.message, 'New Edit Request', {
-          timeOut: 10000,
-          closeButton: true,
-          progressBar: true,
-          positionClass: 'toast-top-right'
-        });
-        showBrowserNotification('New Edit Request', data.message);
-      });
-
-      channel.bind('new-leave-request', function(data) {
-        toastr.info(data.message, 'New Leave Request', {
-          timeOut: 10000,
-          closeButton: true,
-          progressBar: true,
-          positionClass: 'toast-top-right'
-        });
-        showBrowserNotification('New Leave Request', data.message);
-      });
+      channel.bind('new-edit-request',  function(d) { showToast(d.title, d.message); });
+      channel.bind('new-leave-request', function(d) { showToast(d.title, d.message); });
+      <% end %>
     })();
   </script>
   <% end %>

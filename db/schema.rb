@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_23_013544) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_08_210516) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -113,6 +113,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_23_013544) do
     t.index ["user_id"], name: "index_leaves_on_user_id"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.text "message", null: false
+    t.string "url", default: "/"
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_id_and_read_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.text "endpoint", null: false
+    t.string "p256dh_key", null: false
+    t.string "auth_key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+  end
+
   create_table "time_clocks", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.datetime "clock_in"
@@ -153,5 +176,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_23_013544) do
   add_foreign_key "edit_requests", "time_clocks"
   add_foreign_key "edit_requests", "users"
   add_foreign_key "leaves", "users"
+  add_foreign_key "notifications", "users"
+  add_foreign_key "push_subscriptions", "users"
   add_foreign_key "time_clocks", "users"
 end

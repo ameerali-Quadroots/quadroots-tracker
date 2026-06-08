@@ -48,7 +48,10 @@ end
 
   get '/hosting-details', to: 'hosting#index', as: 'hosting_details'
 
-  post '/pusher/auth', to: 'pusher#auth'
+  post '/pusher/auth',          to: 'pusher#auth'
+  get  '/notifications/unread', to: 'notifications#unread'
+  post '/push_subscriptions',   to: 'push_subscriptions#create'
+  delete '/push_subscriptions', to: 'push_subscriptions#destroy'
 
   root 'dashboard#index'
   get '/dashboard/manager_status', to: 'dashboard#manager_status'

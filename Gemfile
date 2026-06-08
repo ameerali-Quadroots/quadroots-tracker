@@ -76,4 +76,7 @@ gem 'pry', groups: [:development, :test]
 gem 'arctic_admin'
 gem 'whenever', require: false
 gem 'caxlsx', '~> 3.1'
+gem 'pusher', '~> 2.0'
+gem 'web-push', '~> 3.1'
+gem 'dotenv-rails', '~> 3.0', groups: [:development, :test]
 

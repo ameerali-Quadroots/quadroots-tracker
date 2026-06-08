@@ -40,9 +40,6 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
-
   config.action_mailer.perform_caching = false
 
   # Print deprecation notices to the Rails logger.
@@ -77,30 +74,21 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions
   config.action_controller.raise_on_missing_callback_actions = true
-# Email settings for SMTP
-# === BEGIN SMTP DEBUGGING ===
-puts "[DEBUG] Loading development.rb..."
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = false
 
-config.action_mailer.delivery_method = :smtp
-config.action_mailer.perform_deliveries = true
-config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.smtp_settings = {
+    address:        ENV.fetch('SMTP_ADDRESS',  'mail.quikraistaging.com'),
+    port:           ENV.fetch('SMTP_PORT',     465).to_i,
+    domain:         ENV.fetch('SMTP_DOMAIN',   'quikraistaging.com'),
+    user_name:      ENV.fetch('SMTP_USERNAME', 'development@quikraistaging.com'),
+    password:       ENV.fetch('SMTP_PASSWORD', ''),
+    authentication: :plain,
+    tls:            true
+  }
 
-config.action_mailer.smtp_settings = {
-  address:              'mail.quikraistaging.com',
-  port:                 465,
-  domain:               'quikraistaging.com',
-  user_name:            'development@quikraistaging.com',
-  password:             'Dnmifhja@1',
-  authentication:       'plain',
-  enable_starttls_auto: true,
-  tls: true,
-  ssl: true
-}
-
-config.action_mailer.default_url_options = { host: '10.0.10.10', port: 3000 }
-
-puts "[DEBUG] Mailer delivery method set to: #{config.action_mailer.delivery_method.inspect}"
-# === END SMTP DEBUGGING ===
+  config.action_mailer.default_url_options = { host: ENV.fetch('APP_HOST', '10.0.10.10'), port: 3000 }
 
 
 end

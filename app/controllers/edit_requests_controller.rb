@@ -21,7 +21,6 @@ class EditRequestsController < ApplicationController
   end
 
   if @edit_request.save
-    EditRequestMailer.new_request_notification(@edit_request).deliver_later
     NotificationService.notify_edit_request(@edit_request)
     redirect_back fallback_location: root_path, notice: "Request submitted successfully."
   else

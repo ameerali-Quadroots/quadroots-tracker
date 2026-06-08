@@ -1,5 +1,7 @@
 class User < ApplicationRecord
     has_many :leaves, dependent: :destroy
+    has_many :push_subscriptions, dependent: :destroy
+    has_many :notifications, dependent: :destroy
 
   enum role: { Executive: "Executive", Manager: "Manager", Director: "Director", Intern: "Intern" }
 
