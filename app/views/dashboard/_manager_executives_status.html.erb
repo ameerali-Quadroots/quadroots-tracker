@@ -1,206 +1,272 @@
-<%# --- Calculate shift range --- %>
 <%
-now = Time.zone.now
-if now.hour < 4
-  shift_start = (now - 1.day).change(hour: 18, min: 30)
-  shift_end = now.change(hour: 4)
-else
-  shift_start = now.change(hour: 18, min: 30)
-  shift_end = (now + 1.day).change(hour: 3)
-end
-shift_range = shift_start..shift_end
-%>
+  now = Time.zone.now
+  if now.hour < 4
+    shift_start = (now - 1.day).change(hour: 18, min: 30)
+    shift_end   = now.change(hour: 4)
+  else
+    shift_start = now.change(hour: 18, min: 30)
+    shift_end   = (now + 1.day).change(hour: 3)
+  end
+  shift_range = shift_start..shift_end
 
-<%
   target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
 
   executives = User.includes(time_clocks: :breaks)
                    .where(department: target_departments, employeed: true)
                    .where.not(id: current_user.id)
 
-  dept_colors = {
-    "WEB"     => { header_bg: "#1d4ed8", light_bg: "#eff6ff", badge_bg: "#dbeafe", badge_text: "#1e40af" },
-    "SEO"     => { header_bg: "#15803d", light_bg: "#f0fdf4", badge_bg: "#dcfce7", badge_text: "#166534" },
-    "CONTENT" => { header_bg: "#6d28d9", light_bg: "#faf5ff", badge_bg: "#ede9fe", badge_text: "#5b21b6" },
-    "ADS"     => { header_bg: "#c2410c", light_bg: "#fff7ed", badge_bg: "#ffedd5", badge_text: "#9a3412" },
+  dp = {
+    "WEB"     => { hex: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", muted: "#DBEAFE", text: "#1E40AF", soft: "#F8FBFF" },
+    "SEO"     => { hex: "#059669", bg: "#ECFDF5", border: "#A7F3D0", muted: "#D1FAE5", text: "#065F46", soft: "#F2FDF8" },
+    "CONTENT" => { hex: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD", muted: "#EDE9FE", text: "#5B21B6", soft: "#FAF8FF" },
+    "ADS"     => { hex: "#EA580C", bg: "#FFF7ED", border: "#FDBA74", muted: "#FFEDD5", text: "#9A3412", soft: "#FFFAF6" },
   }
-  default_color = { header_bg: "#334155", light_bg: "#f8fafc", badge_bg: "#e2e8f0", badge_text: "#334155" }
+  dd = { hex: "#64748B", bg: "#F8FAFC", border: "#E2E8F0", muted: "#E2E8F0", text: "#334155", soft: "#FAFAFA" }
 
-  exec_data_all = executives.map { |e| [e, executive_status_data(e, shift_range)] }
-
+  exec_data_all  = executives.map { |e| [e, executive_status_data(e, shift_range)] }
   working_count  = exec_data_all.count { |_, d| d[:status] == 'Working' }
   meeting_count  = exec_data_all.count { |_, d| d[:status] == 'In Meeting' }
-  on_break_count = exec_data_all.count { |_, d| !['Working', 'Off', 'In Meeting', 'Downtime'].include?(d[:status]) }
+  on_break_count = exec_data_all.count { |_, d| !['Working','Off','In Meeting','Downtime'].include?(d[:status]) }
   downtime_count = exec_data_all.count { |_, d| d[:status] == 'Downtime' }
   off_count      = exec_data_all.count { |_, d| d[:status] == 'Off' }
+  total_count    = exec_data_all.count
 %>
 
-<!-- Section Header -->
-<div class="d-flex align-items-center justify-content-between px-4 py-3" style="border-bottom: 1px solid #f1f5f9; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);">
-  <div class="d-flex align-items-center">
-    <div class="d-flex justify-content-center align-items-center me-3" style="width: 36px; height: 36px; background-color: #f3f0fc; border-radius: 8px; color: #6b52c0; font-size: 1.1rem;">
-      <i class="bi bi-people-fill"></i>
+<style nonce="<%= content_security_policy_nonce %>">
+  .mes-exec-row { transition: background 0.15s; }
+  .mes-exec-row:hover { background: #F8FAFF !important; }
+  .mes-dept-card { transition: box-shadow 0.2s; }
+  .mes-dept-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.10) !important; }
+  .mes-sheet-btn { transition: transform 0.15s, opacity 0.15s; }
+  .mes-sheet-btn:hover { transform: scale(1.12); opacity: 0.85; }
+  .mes-kpi-card { transition: transform 0.15s, box-shadow 0.15s; }
+  .mes-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.10) !important; }
+</style>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────── -->
+<div style="padding: 20px 24px 0; background:#fff;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);display:flex;align-items:center;justify-content:center;color:#4F46E5;font-size:1.15rem;flex-shrink:0;">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div style="font-weight:800;color:#0F172A;font-size:1.0rem;letter-spacing:-0.2px;">
+          Department Executives Status
+          <span style="font-weight:500;color:#94A3B8;font-size:0.8rem;margin-left:6px;">(<%= current_user.department == "HOD'S" ? "HOD'S" : current_user.department %>)</span>
+        </div>
+        <div style="font-size:0.70rem;color:#94A3B8;margin-top:2px;">Live · refreshes every 10 s · as of <%= now.strftime("%I:%M:%S %p") %></div>
+      </div>
     </div>
-    <h6 class="mb-0 fw-bold" style="color: #0d6efd; font-size: 1.05rem;">
-      Department Executives Status (<%= current_user.department == "HOD'S" ? "HOD'S" : current_user.department %>)
-    </h6>
-  </div>
-  <div class="d-flex align-items-center gap-3">
-    <span class="text-muted" style="font-size: 0.78rem;"><%= Time.zone.now.strftime("%I:%M %p") %></span>
     <% if action_name != 'team_status' %>
-      <a href="/dashboard/team_status" class="btn btn-sm btn-outline-primary" style="font-weight: 500; border-radius: 6px;">
-        <i class="bi bi-arrows-fullscreen me-1"></i> Full View
+      <a href="/dashboard/team_status" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #E2E8F0;border-radius:9px;color:#475569;font-size:0.78rem;font-weight:600;text-decoration:none;background:#fff;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#6366F1';this.style.color='#4F46E5'" onmouseout="this.style.borderColor='#E2E8F0';this.style.color='#475569'">
+        <i class="bi bi-arrows-fullscreen" style="font-size:0.72rem;"></i> Full View
       </a>
     <% end %>
   </div>
-</div>
 
-<!-- Summary Stats Bar -->
-<div class="px-4 py-2 d-flex align-items-center gap-4 flex-wrap" style="background: #f8faff; border-bottom: 1px solid #f1f5f9;">
-  <div class="d-flex align-items-center gap-2">
-    <div style="width: 9px; height: 9px; border-radius: 50%; background-color: #00b894; box-shadow: 0 0 0 2px #d1fae5;"></div>
-    <span style="font-size: 0.80rem; color: #1e293b; font-weight: 600;"><%= working_count %> Working</span>
-  </div>
-  <div class="d-flex align-items-center gap-2">
-    <div style="width: 9px; height: 9px; border-radius: 50%; background-color: #17a2b8; box-shadow: 0 0 0 2px #cffafe;"></div>
-    <span style="font-size: 0.80rem; color: #1e293b; font-weight: 600;"><%= meeting_count %> In Meeting</span>
-  </div>
-  <div class="d-flex align-items-center gap-2">
-    <div style="width: 9px; height: 9px; border-radius: 50%; background-color: #f59e0b; box-shadow: 0 0 0 2px #fef3c7;"></div>
-    <span style="font-size: 0.80rem; color: #1e293b; font-weight: 600;"><%= on_break_count %> On Break</span>
-  </div>
-  <% if downtime_count > 0 %>
-    <div class="d-flex align-items-center gap-2">
-      <div style="width: 9px; height: 9px; border-radius: 50%; background-color: #dc3545; box-shadow: 0 0 0 2px #fee2e2;"></div>
-      <span style="font-size: 0.80rem; color: #1e293b; font-weight: 600;"><%= downtime_count %> Downtime</span>
-    </div>
-  <% end %>
-  <div class="d-flex align-items-center gap-2">
-    <div style="width: 9px; height: 9px; border-radius: 50%; background-color: #94a3b8; box-shadow: 0 0 0 2px #e2e8f0;"></div>
-    <span style="font-size: 0.80rem; color: #1e293b; font-weight: 600;"><%= off_count %> Off</span>
-  </div>
-  <div class="ms-auto">
-    <span style="font-size: 0.75rem; color: #94a3b8;"><%= executives.count %> total</span>
-  </div>
-</div>
+  <!-- ── KPI METRIC CARDS ──────────────────────────────────────────── -->
+  <div style="display:flex;gap:10px;padding-bottom:20px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;">
 
-<!-- Department Grid Area -->
-<div class="p-4" style="background-color: #fcfcfd;">
-  <div class="row g-4">
-    <% if executives.empty? %>
-      <div class="col-12 text-center text-muted py-5">
-        <i class="bi bi-people display-4 d-block mb-3" style="color: #cbd5e1;"></i>
-        <h5 class="fw-bold" style="color: #334155;">No executives found</h5>
-        <p class="mb-0">No other executives are in your department.</p>
+    <div class="mes-kpi-card" style="flex:1;min-width:90px;padding:13px 16px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:13px;cursor:default;">
+      <div style="font-size:1.9rem;font-weight:900;color:#16A34A;line-height:1;letter-spacing:-1px;"><%= working_count %></div>
+      <div style="font-size:0.62rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;margin-top:5px;">Working</div>
+      <div style="width:100%;height:3px;background:#BBF7D0;border-radius:2px;margin-top:8px;overflow:hidden;">
+        <div style="width:<%= total_count > 0 ? (working_count.to_f/total_count*100).round : 0 %>%;height:100%;background:#16A34A;border-radius:2px;"></div>
       </div>
-    <% else %>
+    </div>
+
+    <div class="mes-kpi-card" style="flex:1;min-width:90px;padding:13px 16px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:13px;cursor:default;">
+      <div style="font-size:1.9rem;font-weight:900;color:#0284C7;line-height:1;letter-spacing:-1px;"><%= meeting_count %></div>
+      <div style="font-size:0.62rem;font-weight:800;color:#0369A1;letter-spacing:0.8px;text-transform:uppercase;margin-top:5px;">Meeting</div>
+      <div style="width:100%;height:3px;background:#BAE6FD;border-radius:2px;margin-top:8px;overflow:hidden;">
+        <div style="width:<%= total_count > 0 ? (meeting_count.to_f/total_count*100).round : 0 %>%;height:100%;background:#0284C7;border-radius:2px;"></div>
+      </div>
+    </div>
+
+    <div class="mes-kpi-card" style="flex:1;min-width:90px;padding:13px 16px;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:13px;cursor:default;">
+      <div style="font-size:1.9rem;font-weight:900;color:#D97706;line-height:1;letter-spacing:-1px;"><%= on_break_count %></div>
+      <div style="font-size:0.62rem;font-weight:800;color:#B45309;letter-spacing:0.8px;text-transform:uppercase;margin-top:5px;">On Break</div>
+      <div style="width:100%;height:3px;background:#FDE68A;border-radius:2px;margin-top:8px;overflow:hidden;">
+        <div style="width:<%= total_count > 0 ? (on_break_count.to_f/total_count*100).round : 0 %>%;height:100%;background:#D97706;border-radius:2px;"></div>
+      </div>
+    </div>
+
+    <% if downtime_count > 0 %>
+    <div class="mes-kpi-card" style="flex:1;min-width:90px;padding:13px 16px;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:13px;cursor:default;">
+      <div style="font-size:1.9rem;font-weight:900;color:#E11D48;line-height:1;letter-spacing:-1px;"><%= downtime_count %></div>
+      <div style="font-size:0.62rem;font-weight:800;color:#BE123C;letter-spacing:0.8px;text-transform:uppercase;margin-top:5px;">Downtime</div>
+      <div style="width:100%;height:3px;background:#FECDD3;border-radius:2px;margin-top:8px;overflow:hidden;">
+        <div style="width:<%= total_count > 0 ? (downtime_count.to_f/total_count*100).round : 0 %>%;height:100%;background:#E11D48;border-radius:2px;"></div>
+      </div>
+    </div>
+    <% end %>
+
+    <div class="mes-kpi-card" style="flex:1;min-width:90px;padding:13px 16px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:13px;cursor:default;">
+      <div style="font-size:1.9rem;font-weight:900;color:#64748B;line-height:1;letter-spacing:-1px;"><%= off_count %></div>
+      <div style="font-size:0.62rem;font-weight:800;color:#475569;letter-spacing:0.8px;text-transform:uppercase;margin-top:5px;">Offline</div>
+      <div style="width:100%;height:3px;background:#E2E8F0;border-radius:2px;margin-top:8px;overflow:hidden;">
+        <div style="width:<%= total_count > 0 ? (off_count.to_f/total_count*100).round : 0 %>%;height:100%;background:#94A3B8;border-radius:2px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── DEPARTMENT GRID ─────────────────────────────────────────────── -->
+<div style="padding:20px;background:#F8FAFC;">
+  <% if executives.empty? %>
+    <div style="text-align:center;padding:48px 24px;color:#94A3B8;">
+      <i class="bi bi-people" style="font-size:2.5rem;display:block;margin-bottom:12px;color:#CBD5E1;"></i>
+      <div style="font-weight:700;color:#475569;font-size:1rem;">No executives found</div>
+      <div style="font-size:0.82rem;margin-top:4px;">No executives in your department(s)</div>
+    </div>
+  <% else %>
+    <div class="row g-3">
       <% target_departments.each do |dept| %>
         <% dept_exec_data = exec_data_all.select { |e, _| e.department == dept } %>
         <% next if dept_exec_data.empty? && target_departments.length > 1 %>
-        <% colors = dept_colors[dept] || default_color %>
+        <% c = dp[dept] || dd %>
 
-        <% dept_working  = dept_exec_data.count { |_, d| d[:status] == 'Working' } %>
-        <% dept_meeting  = dept_exec_data.count { |_, d| d[:status] == 'In Meeting' } %>
-        <% dept_on_break = dept_exec_data.count { |_, d| !['Working', 'Off', 'In Meeting', 'Downtime'].include?(d[:status]) } %>
+        <% dw = dept_exec_data.count { |_, d| d[:status] == 'Working' } %>
+        <% dm = dept_exec_data.count { |_, d| d[:status] == 'In Meeting' } %>
+        <% db = dept_exec_data.count { |_, d| !['Working','Off','In Meeting','Downtime'].include?(d[:status]) } %>
+        <% ddt = dept_exec_data.count { |_, d| d[:status] == 'Downtime' } %>
 
         <div class="<%= target_departments.length > 1 ? 'col-xl-6' : 'col-12' %>">
-          <div class="card h-100 border-0" style="border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.07); border: 1px solid #f1f5f9 !important;">
+          <div class="mes-dept-card" style="border-radius:14px;overflow:hidden;background:#fff;border:1.5px solid <%= c[:border] %>;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
 
             <% if target_departments.length > 1 %>
-              <div class="card-header px-4 py-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, <%= colors[:header_bg] %> 0%, <%= colors[:header_bg] %>cc 100%); border-bottom: none;">
-                <div class="d-flex align-items-center">
-                  <div class="d-flex justify-content-center align-items-center rounded-circle me-2" style="width: 30px; height: 30px; background-color: rgba(255,255,255,0.18); color: #fff;">
-                    <i class="bi bi-diagram-3" style="font-size: 0.85rem;"></i>
-                  </div>
-                  <span class="fw-bold text-white" style="font-size: 0.92rem; letter-spacing: 0.5px;"><%= dept %> DEPARTMENT</span>
+            <!-- Dept header -->
+            <div style="padding:14px 18px;background:linear-gradient(135deg, <%= c[:hex] %> 0%, <%= c[:hex] %>dd 100%);display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.82rem;">
+                  <i class="bi bi-grid-3x3-gap-fill"></i>
                 </div>
-                <div class="d-flex gap-2">
-                  <% if dept_working > 0 %>
-                    <span class="badge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 0.70rem; padding: 3px 9px; border-radius: 20px;"><%= dept_working %> working</span>
-                  <% end %>
-                  <% if dept_meeting > 0 %>
-                    <span class="badge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 0.70rem; padding: 3px 9px; border-radius: 20px;"><%= dept_meeting %> meeting</span>
-                  <% end %>
-                  <% if dept_on_break > 0 %>
-                    <span class="badge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 0.70rem; padding: 3px 9px; border-radius: 20px;"><%= dept_on_break %> break</span>
-                  <% end %>
-                </div>
+                <span style="font-weight:800;color:#fff;font-size:0.85rem;letter-spacing:0.6px;"><%= dept %> DEPARTMENT</span>
               </div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <% if dw > 0 %>
+                  <span style="background:rgba(255,255,255,0.22);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;"><%= dw %> working</span>
+                <% end %>
+                <% if dm > 0 %>
+                  <span style="background:rgba(255,255,255,0.22);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;"><%= dm %> meeting</span>
+                <% end %>
+                <% if db > 0 %>
+                  <span style="background:rgba(255,255,255,0.22);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;"><%= db %> break</span>
+                <% end %>
+                <% if ddt > 0 %>
+                  <span style="background:rgba(255,255,255,0.22);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;"><%= ddt %> downtime</span>
+                <% end %>
+                <span style="background:rgba(0,0,0,0.15);color:rgba(255,255,255,0.8);font-size:0.62rem;font-weight:600;padding:3px 8px;border-radius:20px;"><%= dept_exec_data.count %> total</span>
+              </div>
+            </div>
             <% end %>
 
-            <div class="table-responsive m-0 p-0" style="max-height: 420px; overflow-y: auto;">
-              <table class="table align-middle mb-0" style="border-collapse: collapse;">
-                <thead style="background: linear-gradient(to right, <%= colors[:light_bg] %>, #ffffff); position: sticky; top: 0; z-index: 1;">
-                  <tr>
-                    <th class="px-4 py-3 text-start" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">EXECUTIVE</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">STATUS</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">LIVE</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">MEETINGS</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">MTG DUR.</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">BREAKS</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">BRK DUR.</th>
-                    <th class="px-3 py-3 text-center" style="font-size: 0.68rem; font-weight: 700; color: #475569; letter-spacing: 0.5px; border-bottom: 2px solid <%= colors[:badge_bg] %>;">SHEET</th>
+            <!-- Table -->
+            <div style="overflow-x:auto;overflow-y:auto;max-height:400px;">
+              <table style="width:100%;border-collapse:collapse;min-width:520px;">
+                <thead>
+                  <tr style="background:<%= c[:bg] %>;">
+                    <th style="padding:10px 16px;text-align:left;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Executive</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Status</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Attendance</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Live Time</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Mtgs</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Mtg Dur.</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Breaks</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Brk Dur.</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:0.62rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid <%= c[:muted] %>;white-space:nowrap;">Sheet</th>
                   </tr>
                 </thead>
-                <tbody style="background: #ffffff;">
+                <tbody>
                   <% if dept_exec_data.empty? %>
                     <tr>
-                      <td colspan="8" class="text-center text-muted py-4"><small>No active executives</small></td>
+                      <td colspan="9" style="text-align:center;padding:24px;color:#94A3B8;font-size:0.82rem;">No executives found</td>
                     </tr>
                   <% else %>
-                    <% dept_exec_data.each do |executive, data| %>
-                      <% status_html       = data[:status_html] %>
-                      <% live_label        = data[:live_label] %>
-                      <% meetings_count    = data[:meetings_count] %>
-                      <% meeting_dur_label = data[:meeting_duration_label] %>
-                      <% breaks_count      = data[:breaks_count] %>
-                      <% break_dur_label   = data[:break_duration_label] %>
-                      <% break_since       = data[:break_since] %>
-                      <% row_bg = case data[:status]
-                                  when 'Working'    then '#f0fff8'
-                                  when 'In Meeting' then '#f0f9ff'
-                                  when 'Downtime'   then '#fff5f5'
-                                  else 'white'
-                                  end %>
-
-                      <tr style="background: <%= row_bg %>;">
-                        <td class="px-4 py-3 text-start" style="border-bottom: 1px solid #f8f9fa;">
-                          <div class="d-flex align-items-center">
-                            <div class="rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 36px; height: 36px; min-width: 36px; background: linear-gradient(135deg, <%= colors[:badge_bg] %>, <%= colors[:light_bg] %>); color: <%= colors[:header_bg] %>; font-size: 0.92rem; font-weight: 700;">
+                    <% dept_exec_data.each_with_index do |(executive, data), ri| %>
+                      <%
+                        row_bg = case data[:status]
+                          when 'Working'    then '#F0FFF8'
+                          when 'In Meeting' then '#F0F9FF'
+                          when 'Downtime'   then '#FFF5F5'
+                          else ri.even? ? '#FFFFFF' : '#FAFBFC'
+                        end
+                      %>
+                      <tr class="mes-exec-row" style="background:<%= row_bg %>;">
+                        <!-- Executive -->
+                        <td style="padding:12px 16px;border-bottom:1px solid #F1F5F9;">
+                          <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="width:34px;height:34px;min-width:34px;border-radius:50%;background:linear-gradient(135deg,<%= c[:muted] %>,<%= c[:bg] %>);color:<%= c[:hex] %>;font-size:0.88rem;font-weight:800;display:flex;align-items:center;justify-content:center;border:1.5px solid <%= c[:border] %>;">
                               <%= executive.name.first.upcase %>
                             </div>
-                            <div class="text-start">
-                              <div style="font-weight: 700; color: #1e293b; font-size: 0.87rem; line-height: 1.2; margin-bottom: 2px;"><%= executive.name %></div>
-                              <div style="color: #94a3b8; font-size: 0.70rem;"><%= executive.role %></div>
+                            <div>
+                              <div style="font-weight:700;color:#0F172A;font-size:0.83rem;line-height:1.2;"><%= executive.name %></div>
+                              <div style="color:#94A3B8;font-size:0.68rem;margin-top:1px;"><%= executive.role %></div>
                             </div>
                           </div>
                         </td>
-                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f8f9fa;">
-                          <%= raw status_html %>
+
+                        <!-- Status -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;">
+                          <%= raw data[:status_html] %>
                         </td>
-                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f8f9fa; font-size: 0.83rem; color: #1e293b; font-weight: 600;">
-                          <%= live_label %>
-                        </td>
-                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f8f9fa; font-size: 0.83rem; color: #17a2b8; font-weight: 600;">
-                          <%= meetings_count %>
-                        </td>
-                        <td class="px-3 py-3 text-center text-muted" style="border-bottom: 1px solid #f8f9fa; font-size: 0.80rem;">
-                          <%= meeting_dur_label %>
-                          <% if break_since.present? && data[:current_break_type] == 'Meeting' %>
-                            <div style="font-size: 0.70rem; color: #94a3b8;">(Since <%= break_since %>)</div>
+
+                        <!-- Attendance type -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;">
+                          <% tc_today = data[:time_clock] %>
+                          <% if tc_today.nil? %>
+                            <span style="color:#CBD5E1;font-size:0.78rem;font-weight:600;">—</span>
+                          <% elsif tc_today.status == 'late' %>
+                            <span style="display:inline-block;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.65rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:0.4px;">
+                              <i class="bi bi-clock-history me-1"></i>LATE
+                            </span>
+                          <% else %>
+                            <span style="display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;font-size:0.65rem;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:0.4px;">
+                              <i class="bi bi-check-circle me-1"></i>ON TIME
+                            </span>
                           <% end %>
                         </td>
-                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f8f9fa; font-size: 0.83rem; color: #f59e0b; font-weight: 600;">
-                          <%= breaks_count %>
+
+                        <!-- Live -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:0.82rem;font-weight:700;color:#1E293B;">
+                          <%= data[:live_label] %>
                         </td>
-                        <td class="px-3 py-3 text-center text-muted" style="border-bottom: 1px solid #f8f9fa; font-size: 0.80rem;">
-                          <%= break_dur_label %>
-                          <% if break_since.present? && data[:current_break_type] != 'Meeting' %>
-                            <div style="font-size: 0.70rem; color: #94a3b8;">(Since <%= break_since %>)</div>
+
+                        <!-- Meetings count -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;">
+                          <span style="font-size:0.85rem;font-weight:700;color:<%= data[:meetings_count] > 0 ? '#0284C7' : '#CBD5E1' %>;">
+                            <%= data[:meetings_count] > 0 ? data[:meetings_count] : '—' %>
+                          </span>
+                        </td>
+
+                        <!-- Meeting duration -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:0.78rem;color:#64748B;">
+                          <%= data[:meeting_duration_label] %>
+                          <% if data[:break_since].present? && data[:current_break_type] == 'Meeting' %>
+                            <div style="font-size:0.65rem;color:#94A3B8;margin-top:2px;">since <%= data[:break_since] %></div>
                           <% end %>
                         </td>
-                        <td class="px-3 py-3 text-center" style="border-bottom: 1px solid #f8f9fa;">
-                          <a href="/dashboard/executive_timesheets/<%= executive.id %>" title="View Timesheets" style="display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:<%= colors[:badge_bg] %>; color:<%= colors[:header_bg] %>; text-decoration:none; font-size:0.85rem;">
+
+                        <!-- Breaks count -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;">
+                          <span style="font-size:0.85rem;font-weight:700;color:<%= data[:breaks_count] > 0 ? '#D97706' : '#CBD5E1' %>;">
+                            <%= data[:breaks_count] > 0 ? data[:breaks_count] : '—' %>
+                          </span>
+                        </td>
+
+                        <!-- Break duration -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:0.78rem;color:#64748B;">
+                          <%= data[:break_duration_label] %>
+                          <% if data[:break_since].present? && data[:current_break_type] != 'Meeting' %>
+                            <div style="font-size:0.65rem;color:#94A3B8;margin-top:2px;">since <%= data[:break_since] %></div>
+                          <% end %>
+                        </td>
+
+                        <!-- Sheet link -->
+                        <td style="padding:12px;text-align:center;border-bottom:1px solid #F1F5F9;">
+                          <a href="/dashboard/executive_timesheets/<%= executive.id %>" class="mes-sheet-btn" title="View Timesheet" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:<%= c[:muted] %>;color:<%= c[:hex] %>;text-decoration:none;font-size:0.82rem;border:1px solid <%= c[:border] %>;">
                             <i class="bi bi-calendar3"></i>
                           </a>
                         </td>
@@ -210,9 +276,10 @@ shift_range = shift_start..shift_end
                 </tbody>
               </table>
             </div>
+
           </div>
         </div>
       <% end %>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 </div>

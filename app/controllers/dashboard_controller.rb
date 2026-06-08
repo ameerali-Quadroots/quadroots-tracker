@@ -55,9 +55,30 @@ class DashboardController < ApplicationController
       .to_a
 
     @monthly_dept_stats = {}
+    @dept_summary       = {}
+
     @target_departments.each do |dept|
       dept_exec_ids = exec_users.select { |u| u.department == dept }.map(&:id)
       dept_tcs = all_tcs.select { |tc| dept_exec_ids.include?(tc.user_id) }
+
+      total_clock_ins = dept_tcs.count
+      total_lates     = dept_tcs.count { |tc| tc.status == "late" }
+      total_on_time   = total_clock_ins - total_lates
+
+      late_by_user = dept_tcs.select { |tc| tc.status == "late" }
+                              .group_by(&:user_id)
+                              .transform_values(&:count)
+      most_late_uid   = late_by_user.max_by { |_, n| n }&.first
+      most_late_user  = exec_users.find { |u| u.id == most_late_uid }
+      most_late_count = late_by_user[most_late_uid].to_i
+
+      @dept_summary[dept] = {
+        total_clock_ins: total_clock_ins,
+        total_lates:     total_lates,
+        total_on_time:   total_on_time,
+        most_late_user:  most_late_user,
+        most_late_count: most_late_count
+      }
 
       @monthly_dept_stats[dept] = dept_tcs
         .group_by { |tc| tc.clock_in.beginning_of_month }
@@ -69,11 +90,13 @@ class DashboardController < ApplicationController
               .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
             (tc.clock_out - tc.clock_in).to_i - non_mtg_break_secs < 4 * 3600
           end
+          month_lates = month_tcs.count { |tc| tc.status == "late" }
           {
-            month: month,
-            clock_ins: month_tcs.count,
-            lates: month_tcs.count { |tc| tc.status == "late" },
-            half_days: half_days
+            month:      month,
+            clock_ins:  month_tcs.count,
+            lates:      month_lates,
+            half_days:  half_days,
+            on_time:    month_tcs.count - month_lates
           }
         end.sort_by { |m| m[:month] }.reverse
     end

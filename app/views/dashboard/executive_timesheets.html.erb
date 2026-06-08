@@ -94,14 +94,23 @@
             end
           %>
 
+          <%
+            att_label = if record && is_half_day && record.status == "late"
+              "LATE·HD"
+            elsif record && is_half_day
+              "HALF DAY"
+            elsif record&.status == "late"
+              "LATE"
+            elsif record
+              "ON TIME"
+            end
+          %>
           <div class="day <%= status_class %> <%= 'dimmed' if day.month != current_month.month %>"
                title="<%= day.strftime('%B %d, %Y') %><%= record ? " · In: #{record.clock_in.strftime('%I:%M %p')}" : '' %><%= hours_worked ? " · #{hours_worked}" : '' %><%= is_half_day ? ' (Half Day)' : '' %>">
             <div class="day-number"><%= day.day %></div>
             <% if record %>
               <div class="clock-time"><%= record.clock_in.strftime("%I:%M %p") %></div>
-              <% if is_half_day %>
-                <div class="half-day-tag">HD</div>
-              <% end %>
+              <div class="att-type-tag"><%= att_label %></div>
             <% end %>
           </div>
         <% end %>
@@ -141,8 +150,8 @@
   }
 
   .day {
-    width: 78px;
-    height: 78px;
+    width: 80px;
+    height: 84px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -177,14 +186,16 @@
     opacity: 0.9;
   }
 
-  .day .half-day-tag {
-    font-size: 9px;
+  .day .att-type-tag {
+    font-size: 8px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     margin-top: 2px;
-    background: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.25);
     border-radius: 4px;
     padding: 1px 4px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 
   .day.on-time {
@@ -254,7 +265,7 @@
     .day { width: 46px; height: 46px; font-size: 13px; border-radius: 8px; }
     .day .day-number { font-size: 13px; }
     .day .clock-time { font-size: 8px; }
-    .day .half-day-tag { font-size: 7px; }
+    .day .att-type-tag { font-size: 6px; }
     .week { gap: 6px; }
     .attendance-calendar { gap: 6px; }
     .legend { gap: 14px; font-size: 12px; }
