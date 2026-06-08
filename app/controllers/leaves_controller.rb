@@ -1,40 +1,35 @@
 class LeavesController < ApplicationController
-  before_action :set_leave, only: [:approve, :reject]
   before_action :authenticate_user!
+  before_action :set_leave, only: [:approve, :reject]
 
   def index
-  if current_user.role == "Manager" && current_user.department != "HOD'S"
-    @leaves = Leave.joins(:user)
-                   .where(users: { role: "Executive", department: current_user.department })
-                   .order(created_at: :desc)
-
-  elsif current_user.role == "Manager" && current_user.department == "HOD'S"
-    # HOD manager: sees executives from specific departments
-    hod_departments = ["WEB", "SEO", "ADS", "CONTENT"]
-
-    @leaves = Leave.joins(:user)
-                   .where(users: { role: "Manager", department: hod_departments })
-                   .order(created_at: :desc)
-
-  else
-    # Default fallback (optional)
-    @leaves = Leave.none
+    if current_user.role == "Manager" && current_user.department != "HOD'S"
+      @leaves = Leave.joins(:user)
+                     .where(users: { role: "Executive", department: current_user.department })
+                     .order(created_at: :desc)
+    elsif current_user.role == "Manager" && current_user.department == "HOD'S"
+      @leaves = Leave.joins(:user)
+                     .where(users: { role: "Manager", department: ["WEB", "SEO", "ADS", "CONTENT"] })
+                     .order(created_at: :desc)
+    else
+      @leaves = Leave.none
+    end
   end
-end
+
   def new
     @leave = current_user.leaves.new
   end
 
   def create
     @leave = current_user.leaves.new(leave_params)
-    @leave.status = 'pending'
-    user_id = params[:leave][:user_id] || current_user.id 
-    @leave.user_id = user_id
+    @leave.status  = 'pending'
+    @leave.user_id = params[:leave][:user_id] || current_user.id
+
     if @leave.save
       NotificationService.notify_leave_request(@leave)
       redirect_to root_path, notice: 'Leave request submitted for approval.'
     else
-    redirect_to root_path, alert: "Failed to submit leave request."
+      redirect_to root_path, alert: 'Failed to submit leave request.'
     end
   end
 
@@ -48,8 +43,7 @@ end
     redirect_to request.referer, alert: 'Leave rejected.'
   end
 
-
-   def approve_by_admin
+  def approve_by_admin
     @leave = Leave.find(params[:id])
     @leave.update(status: 'approved')
     redirect_to request.referer, notice: 'Leave approved.'
@@ -58,7 +52,7 @@ end
   def reject_by_admin
     @leave = Leave.find(params[:id])
     @leave.update(status: 'rejected')
-  redirect_to request.referer alert: 'Leave rejected.'
+    redirect_to request.referer, alert: 'Leave rejected.'
   end
 
   private
