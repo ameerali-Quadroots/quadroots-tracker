@@ -45,8 +45,64 @@
   "hideMethod": "fadeOut"   // 👈 fade out
 }
   </script>
+  <% if user_signed_in? && ENV['PUSHER_APP_KEY'].present? %>
+  <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+  <script>
+    (function() {
+      // Request browser notification permission on page load
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+
+      function showBrowserNotification(title, body) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          var n = new Notification(title, {
+            body: body,
+            icon: '/icon.png',
+            tag: title
+          });
+          n.onclick = function() { window.focus(); n.close(); };
+          setTimeout(function() { n.close(); }, 10000);
+        }
+      }
+
+      var pusher = new Pusher('<%= ENV['PUSHER_APP_KEY'] %>', {
+        cluster: '<%= ENV['PUSHER_APP_CLUSTER'] %>',
+        channelAuthorization: {
+          endpoint: '/pusher/auth',
+          headers: {
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          }
+        }
+      });
+
+      var channel = pusher.subscribe('private-user-<%= current_user.id %>');
+
+      channel.bind('new-edit-request', function(data) {
+        toastr.info(data.message, 'New Edit Request', {
+          timeOut: 10000,
+          closeButton: true,
+          progressBar: true,
+          positionClass: 'toast-top-right'
+        });
+        showBrowserNotification('New Edit Request', data.message);
+      });
+
+      channel.bind('new-leave-request', function(data) {
+        toastr.info(data.message, 'New Leave Request', {
+          timeOut: 10000,
+          closeButton: true,
+          progressBar: true,
+          positionClass: 'toast-top-right'
+        });
+        showBrowserNotification('New Leave Request', data.message);
+      });
+    })();
+  </script>
+  <% end %>
+
   <div class="container-fluid">
-  
+
     <div class="row">
       <% if user_signed_in? %>
         <%= render 'layouts/navbar' %>

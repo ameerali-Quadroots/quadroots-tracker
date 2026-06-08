@@ -31,6 +31,7 @@ end
     user_id = params[:leave][:user_id] || current_user.id 
     @leave.user_id = user_id
     if @leave.save
+      NotificationService.notify_leave_request(@leave)
       redirect_to root_path, notice: 'Leave request submitted for approval.'
     else
     redirect_to root_path, alert: "Failed to submit leave request."

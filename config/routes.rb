@@ -48,6 +48,8 @@ end
 
   get '/hosting-details', to: 'hosting#index', as: 'hosting_details'
 
+  post '/pusher/auth', to: 'pusher#auth'
+
   root 'dashboard#index'
   get '/dashboard/manager_status', to: 'dashboard#manager_status'
   get '/dashboard/team_status', to: 'dashboard#team_status'
