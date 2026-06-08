@@ -42,9 +42,9 @@
 
     <% if current_user.role == 'Manager' || current_user.department == "HOD'S" %>
       <!-- Manager Executives Status -->
-      <div class="row g-4 mt-2 mb-4">
+      <div class="row g-4 mt-2 mb-2">
         <div class="col-12">
-          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;" id="manager-status-container">
+          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 14px; background: #ffffff; overflow: hidden;" id="manager-status-container">
             <%= render 'dashboard/manager_executives_status' %>
           </div>
         </div>
@@ -61,9 +61,16 @@
                 }
               })
               .catch(error => console.error("Error updating status:", error));
-          }, 10000); // 15 seconds
+          }, 10000);
         });
       </script>
+
+      <!-- Monthly Department Report -->
+      <div class="row g-4 mt-1 mb-4">
+        <div class="col-12">
+          <%= render 'dashboard/monthly_department_stats' %>
+        </div>
+      </div>
     <% end %>
 
     <!-- Bottom Section -->

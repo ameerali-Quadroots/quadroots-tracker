@@ -1,199 +1,262 @@
-<!-- ✅ Page Title -->
-<h3 class="text-center my-4">
-  Employee Timesheet Calendar for <%= @employee.name %>
-</h3>
+<%
+  current_month = @current_month
 
-<!-- ✅ Month Navigation -->
-<div class="calendar-nav text-center mb-3 my-4">
-  <% current_month = params[:month] ? Date.parse(params[:month]) : Date.current %>
-  <% prev_month = current_month.prev_month %>
-  <% next_month = current_month.next_month %>
+  late_count = @time_clocks.count { |r| r.status == "late" }
+  half_day_count = @time_clocks.count { |r|
+    next false unless r.clock_out.present?
+    non_mtg_secs = r.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
+    (r.clock_out - r.clock_in).to_i - non_mtg_secs < 4 * 3600
+  }
+  on_time_count = @time_clocks.count - late_count
+%>
 
-  <%= link_to "← #{prev_month.strftime('%B')}",
-              dashboard_executive_timesheets_path(@employee, month: prev_month),
-              class: "btn btn-sm btn-outline-secondary" %>
+<div style="max-width: 860px; margin: 0 auto; padding: 24px 16px;">
 
-  <strong class="mx-3"><%= current_month.strftime("%B %Y") %></strong>
-
-  <%= link_to "#{next_month.strftime('%B')} →",
-              dashboard_executive_timesheets_path(@employee, month: next_month),
-              class: "btn btn-sm btn-outline-secondary" %>
-</div>
-
-<!-- ✅ Calendar Grid -->
-<div class="attendance-calendar">
-  <% start_date = current_month.beginning_of_month.beginning_of_week(:sunday) %>
-  <% end_date = current_month.end_of_month.end_of_week(:sunday) %>
-
-  <% (start_date..end_date).each_slice(7) do |week| %>
-    <div class="week">
-      <% week.each do |day| %>
-        <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
-
-        <% status_class =
-          if record&.status == "late"
-            "late"
-          elsif record
-            "on-time"
-          else
-            "no-data"
-          end
-        %>
-
-        <div class="day <%= status_class %> <%= 'dimmed' if day.month != current_month.month %>" 
-             title="<%= day.strftime('%B %d, %Y') %>">
-          <div class="day-number"><%= day.day %></div>
-          <% if record %>
-            <div class="clock-time"><%= record.clock_in.strftime("%I:%M %p") %></div>
-          <% end %>
-        </div>
-      <% end %>
+  <!-- Employee Header -->
+  <div class="text-center mb-4">
+    <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-3" style="width: 56px; height: 56px; background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1d4ed8; font-size: 1.5rem; font-weight: 800;">
+      <%= @employee.name.first.upcase %>
     </div>
-  <% end %>
-</div>
+    <h3 style="font-weight: 700; color: #1e293b; font-size: 1.5rem; margin-bottom: 4px;"><%= @employee.name %></h3>
+    <span style="color: #94a3b8; font-size: 0.83rem;"><%= @employee.department %> Department · <%= @employee.role %></span>
+  </div>
 
-<!-- ✅ Legend -->
-<div class="legend">
-  <div><span class="box on-time"></span> On Time</div>
-  <div><span class="box late"></span> Late</div>
-  <div><span class="box no-data"></span> No Record</div>
-</div>
+  <!-- Month Navigation -->
+  <div class="d-flex justify-content-center align-items-center mb-4" style="gap: 1.5rem;">
+    <% prev_month = current_month.prev_month %>
+    <% next_month = current_month.next_month %>
 
-<div class="text-center mt-5">
-  <a href="/" class="btn btn-primary" style="padding: 10px 20px; font-weight: 500; border-radius: 8px;">Back to Dashboard</a>
+    <%= link_to dashboard_executive_timesheets_path(@employee, month: prev_month),
+                class: "btn btn-sm btn-outline-secondary",
+                style: "border-radius: 8px; padding: 6px 14px; font-size: 0.82rem;" do %>
+      <i class="bi bi-chevron-left me-1"></i><%= prev_month.strftime('%b %Y') %>
+    <% end %>
+
+    <strong style="font-size: 1.1rem; color: #1e293b; font-weight: 700;"><%= current_month.strftime("%B %Y") %></strong>
+
+    <%= link_to dashboard_executive_timesheets_path(@employee, month: next_month),
+                class: "btn btn-sm btn-outline-secondary",
+                style: "border-radius: 8px; padding: 6px 14px; font-size: 0.82rem;" do %>
+      <%= next_month.strftime('%b %Y') %><i class="bi bi-chevron-right ms-1"></i>
+    <% end %>
+  </div>
+
+  <!-- Stats Summary -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <div class="text-center px-4 py-2 rounded-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; min-width: 90px;">
+      <div style="font-size: 1.6rem; font-weight: 800; color: #16a34a; line-height: 1.1;"><%= @time_clocks.count %></div>
+      <div style="font-size: 0.68rem; color: #166534; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">CLOCK-INS</div>
+    </div>
+    <div class="text-center px-4 py-2 rounded-3" style="background: #fef2f2; border: 1px solid #fecaca; min-width: 90px;">
+      <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626; line-height: 1.1;"><%= late_count %></div>
+      <div style="font-size: 0.68rem; color: #991b1b; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">LATES</div>
+    </div>
+    <div class="text-center px-4 py-2 rounded-3" style="background: #fffbeb; border: 1px solid #fde68a; min-width: 90px;">
+      <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; line-height: 1.1;"><%= half_day_count %></div>
+      <div style="font-size: 0.68rem; color: #92400e; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">HALF DAYS</div>
+    </div>
+    <div class="text-center px-4 py-2 rounded-3" style="background: #eff6ff; border: 1px solid #bfdbfe; min-width: 90px;">
+      <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; line-height: 1.1;"><%= on_time_count %></div>
+      <div style="font-size: 0.68rem; color: #1e40af; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px;">ON TIME</div>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="attendance-calendar">
+    <% start_date = current_month.beginning_of_month.beginning_of_week(:sunday) %>
+    <% end_date   = current_month.end_of_month.end_of_week(:sunday) %>
+
+    <% (start_date..end_date).each_slice(7) do |week| %>
+      <div class="week">
+        <% week.each do |day| %>
+          <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
+
+          <%
+            worked_secs = if record&.clock_out.present?
+              non_mtg_secs = record.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
+              (record.clock_out - record.clock_in).to_i - non_mtg_secs
+            end
+            is_half_day = worked_secs && worked_secs < 4 * 3600
+            hours_worked = worked_secs ? "#{(worked_secs / 3600).to_i}h #{((worked_secs % 3600) / 60).to_i}m" : nil
+          %>
+
+          <% status_class =
+            if record && is_half_day && record.status == "late"
+              "late-half-day"
+            elsif record && is_half_day
+              "half-day"
+            elsif record&.status == "late"
+              "late"
+            elsif record
+              "on-time"
+            else
+              "no-data"
+            end
+          %>
+
+          <div class="day <%= status_class %> <%= 'dimmed' if day.month != current_month.month %>"
+               title="<%= day.strftime('%B %d, %Y') %><%= record ? " · In: #{record.clock_in.strftime('%I:%M %p')}" : '' %><%= hours_worked ? " · #{hours_worked}" : '' %><%= is_half_day ? ' (Half Day)' : '' %>">
+            <div class="day-number"><%= day.day %></div>
+            <% if record %>
+              <div class="clock-time"><%= record.clock_in.strftime("%I:%M %p") %></div>
+              <% if is_half_day %>
+                <div class="half-day-tag">HD</div>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div><span class="box on-time"></span> On Time</div>
+    <div><span class="box late"></span> Late</div>
+    <div><span class="box half-day"></span> Half Day</div>
+    <div><span class="box late-half-day"></span> Late + Half Day</div>
+    <div><span class="box no-data"></span> No Record</div>
+  </div>
+
+  <div class="text-center mt-5">
+    <a href="/" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600; border-radius: 8px;">
+      <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
 </div>
 
 <style nonce="<%= content_security_policy_nonce %>">
-  h3.text-center {
-    font-weight: 600;
-    color: #333;
-    font-size: 2rem;
-  }
-
-  .calendar-nav {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5rem;
-  }
-
-  .btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    text-decoration: none;
-    color: #333;
-    background: #fff;
-    transition: all 0.2s ease;
-  }
-
-  .btn:hover {
-    background: #0d6efd;
-    color: #fff;
-    border-color: #0d6efd;
-  }
-
-  .btn-primary {
-    background: #0d6efd;
-    color: white;
-  }
-  .btn-primary:hover {
-    background: #0b5ed7;
-  }
-
   .attendance-calendar {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     justify-content: center;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
   }
 
   .week {
     display: flex;
-    gap: 12px;
+    gap: 10px;
   }
 
   .day {
-    width: 75px; 
-    height: 75px; 
+    width: 78px;
+    height: 78px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     font-weight: 600;
-    font-size: 18px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
+    font-size: 17px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
     background-color: #fff;
-    color: #333;
+    color: #334155;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+    position: relative;
   }
 
   .day:hover {
-    transform: scale(1.10);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    z-index: 2;
+  }
+
+  .day .day-number {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .day .clock-time {
-    font-size: 11px;
-    font-weight: normal;
-    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 3px;
+    opacity: 0.9;
+  }
+
+  .day .half-day-tag {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    padding: 1px 4px;
   }
 
   .day.on-time {
-    background-color: #27ae60;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
     color: #fff;
     border: none;
+    box-shadow: 0 2px 8px rgba(39,174,96,0.3);
   }
 
   .day.late {
-    background-color: #e74c3c;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
     color: #fff;
     border: none;
+    box-shadow: 0 2px 8px rgba(231,76,60,0.3);
+  }
+
+  .day.half-day {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+  }
+
+  .day.late-half-day {
+    background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(231,76,60,0.25);
   }
 
   .day.no-data {
-    background-color: #f0f0f0;
-    color: #999;
+    background: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
   }
 
   .day.dimmed {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 
   .legend {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 24px;
     font-weight: 500;
-    font-size: 16px;
+    font-size: 14px;
+    flex-wrap: wrap;
+    color: #475569;
   }
 
   .legend .box {
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 5px;
-    margin-right: 10px;
+    margin-right: 6px;
     vertical-align: middle;
   }
 
-  @media (max-width: 600px) {
-    .day {
-      width: 55px;
-      height: 55px;
-      font-size: 14px;
-    }
-    .day .clock-time {
-      font-size: 9px;
-    }
-    .legend {
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
+  .legend .box.on-time      { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+  .legend .box.late         { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+  .legend .box.half-day     { background: linear-gradient(135deg, #f59e0b, #f97316); }
+  .legend .box.late-half-day { background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%); }
+  .legend .box.no-data      { background: #e2e8f0; }
+
+  @media (max-width: 640px) {
+    .day { width: 46px; height: 46px; font-size: 13px; border-radius: 8px; }
+    .day .day-number { font-size: 13px; }
+    .day .clock-time { font-size: 8px; }
+    .day .half-day-tag { font-size: 7px; }
+    .week { gap: 6px; }
+    .attendance-calendar { gap: 6px; }
+    .legend { gap: 14px; font-size: 12px; }
   }
 </style>
