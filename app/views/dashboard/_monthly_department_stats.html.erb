@@ -1,209 +1,271 @@
 <% if @monthly_dept_stats.present? && @monthly_dept_stats.values.any?(&:any?) %>
 <%
   dp = {
-    "WEB"     => { hex: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", muted: "#DBEAFE", text: "#1E40AF" },
-    "SEO"     => { hex: "#059669", bg: "#ECFDF5", border: "#A7F3D0", muted: "#D1FAE5", text: "#065F46" },
-    "CONTENT" => { hex: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD", muted: "#EDE9FE", text: "#5B21B6" },
-    "ADS"     => { hex: "#EA580C", bg: "#FFF7ED", border: "#FDBA74", muted: "#FFEDD5", text: "#9A3412" },
+    "WEB"     => { hex: "#2563EB", light: "#EFF6FF", border: "#BFDBFE", muted: "#DBEAFE", text: "#1E40AF", accent: "#1D4ED8" },
+    "SEO"     => { hex: "#059669", light: "#ECFDF5", border: "#A7F3D0", muted: "#D1FAE5", text: "#065F46", accent: "#047857" },
+    "CONTENT" => { hex: "#7C3AED", light: "#F5F3FF", border: "#C4B5FD", muted: "#EDE9FE", text: "#5B21B6", accent: "#6D28D9" },
+    "ADS"     => { hex: "#EA580C", light: "#FFF7ED", border: "#FDBA74", muted: "#FFEDD5", text: "#9A3412", accent: "#C2410C" },
   }
-  dd = { hex: "#64748B", bg: "#F8FAFC", border: "#E2E8F0", muted: "#E2E8F0", text: "#334155" }
+  dd = { hex: "#64748B", light: "#F8FAFC", border: "#E2E8F0", muted: "#E2E8F0", text: "#334155", accent: "#475569" }
 %>
 
 <style nonce="<%= content_security_policy_nonce %>">
-  .mds-row { transition: background 0.12s; }
-  .mds-row:hover { background: #F8FAFF !important; }
-  .mds-card { transition: box-shadow 0.2s, transform 0.15s; }
-  .mds-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.10) !important; transform: translateY(-2px); }
+  .mdr-wrap { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .mdr-card { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #E8ECF0; box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06); transition: box-shadow 0.2s, transform 0.2s; }
+  .mdr-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 12px 40px rgba(0,0,0,0.10); transform: translateY(-2px); }
+  .mdr-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #F1F5F9; }
+  .mdr-kpi-cell { background: #fff; padding: 18px 16px; text-align: center; }
+  .mdr-kpi-num { font-size: 2rem; font-weight: 900; line-height: 1; letter-spacing: -1.5px; }
+  .mdr-kpi-lbl { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 5px; }
+  .mdr-table { width: 100%; border-collapse: collapse; }
+  .mdr-table thead th { padding: 10px 20px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #94A3B8; border-bottom: 1px solid #F1F5F9; white-space: nowrap; background: #FAFBFC; }
+  .mdr-table thead th:first-child { text-align: left; }
+  .mdr-table thead th:not(:first-child) { text-align: right; }
+  .mdr-table tbody tr { border-bottom: 1px solid #F8FAFC; transition: background 0.1s; }
+  .mdr-table tbody tr:last-child { border-bottom: none; }
+  .mdr-table tbody tr:hover { background: #F8FAFF; }
+  .mdr-table tbody td { padding: 12px 20px; }
+  .mdr-table tbody td:first-child { text-align: left; }
+  .mdr-table tbody td:not(:first-child) { text-align: right; }
+  .mdr-bar-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .mdr-bar { flex-shrink: 0; width: 48px; height: 4px; border-radius: 2px; overflow: hidden; background: #F1F5F9; }
+  .mdr-bar-fill { height: 100%; border-radius: 2px; }
+  .mdr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .mdr-scroll { max-height: 340px; overflow-y: auto; }
+  .mdr-scroll::-webkit-scrollbar { width: 4px; }
+  .mdr-scroll::-webkit-scrollbar-track { background: #F8FAFC; }
+  .mdr-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
 </style>
 
-<div style="border-radius:16px;overflow:hidden;background:#fff;border:1.5px solid #E8ECEF;box-shadow:0 2px 16px rgba(0,0,0,0.06);">
+<div class="mdr-wrap">
 
-  <!-- Section header -->
-  <div style="padding:18px 24px;background:linear-gradient(135deg,#fff 0%,#FAFBFF 100%);border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between;">
+  <!-- Section title -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#FEF9C3,#FDE68A);display:flex;align-items:center;justify-content:center;color:#CA8A04;font-size:1.1rem;flex-shrink:0;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#FEF9C3,#FDE68A);display:flex;align-items:center;justify-content:center;color:#B45309;font-size:1rem;flex-shrink:0;box-shadow:0 2px 8px rgba(202,138,4,0.2);">
         <i class="bi bi-graph-up-arrow"></i>
       </div>
       <div>
-        <div style="font-weight:800;color:#0F172A;font-size:0.97rem;letter-spacing:-0.2px;">Monthly Department Report</div>
-        <div style="font-size:0.70rem;color:#94A3B8;margin-top:2px;">Clock-ins &middot; Lates &middot; Half Days &mdash; last 12 months</div>
+        <div style="font-size:1rem;font-weight:800;color:#0F172A;letter-spacing:-0.3px;">Monthly Department Report</div>
+        <div style="font-size:0.72rem;color:#94A3B8;margin-top:2px;font-weight:500;">Clock-ins &middot; Lates &middot; Half Days &mdash; last 12 months</div>
       </div>
     </div>
-    <div style="font-size:0.70rem;color:#CBD5E1;font-weight:600;background:#F8FAFC;padding:4px 10px;border-radius:20px;border:1px solid #E2E8F0;">
+    <span style="font-size:0.68rem;color:#94A3B8;font-weight:600;background:#F8FAFC;padding:5px 12px;border-radius:20px;border:1px solid #E2E8F0;">
       <%= @target_departments.length %> dept<%= @target_departments.length != 1 ? 's' : '' %>
-    </div>
+    </span>
   </div>
 
-  <!-- Grid -->
-  <div style="padding:20px;background:#F8FAFC;">
-    <div class="row g-3">
-      <% @target_departments.each do |dept| %>
-        <% stats = @monthly_dept_stats[dept] %>
-        <% next if stats.blank? %>
-        <% c = dp[dept] || dd %>
-        <% summary = @dept_summary&.dig(dept) || {} %>
+  <!-- Department cards -->
+  <div class="row g-4">
+    <% @target_departments.each do |dept| %>
+      <% stats = @monthly_dept_stats[dept] %>
+      <% next if stats.blank? %>
+      <% c = dp[dept] || dd %>
+      <% summary = @dept_summary&.dig(dept) || {} %>
 
-        <%
-          max_lates = [stats.map { |s| s[:lates] }.max.to_i, 1].max
-          max_hd    = [stats.map { |s| s[:half_days] }.max.to_i, 1].max
-          max_ci    = [stats.map { |s| s[:clock_ins] }.max.to_i, 1].max
-          total_ci  = summary[:total_clock_ins] || stats.sum { |s| s[:clock_ins] }
-          total_lt  = summary[:total_lates]     || stats.sum { |s| s[:lates] }
-          total_hd  = stats.sum { |s| s[:half_days] }
-          total_ot  = summary[:total_on_time]   || (total_ci - total_lt)
-          most_late_user  = summary[:most_late_user]
-          most_late_count = summary[:most_late_count].to_i
-        %>
+      <%
+        max_lates = [stats.map { |s| s[:lates] }.max.to_i, 1].max
+        max_hd    = [stats.map { |s| s[:half_days] }.max.to_i, 1].max
+        max_ci    = [stats.map { |s| s[:clock_ins] }.max.to_i, 1].max
+        total_ci  = summary[:total_clock_ins] || stats.sum { |s| s[:clock_ins] }
+        total_lt  = summary[:total_lates]     || stats.sum { |s| s[:lates] }
+        total_hd  = stats.sum { |s| s[:half_days] }
+        total_ot  = summary[:total_on_time]   || (total_ci - total_lt)
+        most_late_user  = summary[:most_late_user]
+        most_late_count = summary[:most_late_count].to_i
+        late_pct_overall = total_ci > 0 ? (total_lt.to_f / total_ci * 100).round : 0
+        ontime_pct = total_ci > 0 ? (total_ot.to_f / total_ci * 100).round : 0
+      %>
 
-        <div class="col-xl-6">
-          <div class="mds-card" style="border-radius:13px;overflow:hidden;background:#fff;border:1.5px solid <%= c[:border] %>;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+      <div class="<%= @target_departments.length > 1 ? 'col-xl-6' : 'col-12' %>">
+        <div class="mdr-card">
 
-            <!-- Card header -->
-            <div style="padding:13px 18px;background:linear-gradient(135deg,<%= c[:hex] %> 0%,<%= c[:hex] %>dd 100%);display:flex;align-items:center;justify-content:space-between;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <i class="bi bi-grid-3x3-gap-fill" style="color:rgba(255,255,255,0.7);font-size:0.82rem;"></i>
-                <span style="font-weight:800;color:#fff;font-size:0.82rem;letter-spacing:0.6px;"><%= dept %> DEPARTMENT</span>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <span style="background:rgba(255,255,255,0.18);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 9px;border-radius:20px;" title="Total clock-ins">
-                  <i class="bi bi-clock-history me-1"></i><%= total_ci %>
-                </span>
-                <% if total_lt > 0 %>
-                <span style="background:rgba(239,68,68,0.4);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 9px;border-radius:20px;" title="Total lates">
-                  <i class="bi bi-exclamation-circle me-1"></i><%= total_lt %>
-                </span>
-                <% end %>
-                <span style="background:rgba(255,255,255,0.18);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 9px;border-radius:20px;" title="Total on time">
-                  <i class="bi bi-check-circle me-1"></i><%= total_ot %>
-                </span>
-              </div>
-            </div>
+          <!-- Card top bar -->
+          <div style="height:4px;background:linear-gradient(90deg,<%= c[:hex] %>,<%= c[:accent] %>);"></div>
 
-            <!-- Summary pill row -->
-            <div style="padding:10px 18px;background:<%= c[:bg] %>;display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid <%= c[:muted] %>;">
-              <div style="display:flex;align-items:center;gap:5px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:<%= c[:hex] %>;"></div>
-                <span style="font-size:0.68rem;font-weight:700;color:<%= c[:text] %>;"><%= total_ci %> days present</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:5px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#22C55E;"></div>
-                <span style="font-size:0.68rem;font-weight:700;color:#15803D;"><%= total_ot %> on time</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:5px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div>
-                <span style="font-size:0.68rem;font-weight:700;color:#B91C1C;"><%= total_lt %> lates</span>
-              </div>
-              <% if total_hd > 0 %>
-              <div style="display:flex;align-items:center;gap:5px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></div>
-                <span style="font-size:0.68rem;font-weight:700;color:#B45309;"><%= total_hd %> half days</span>
-              </div>
-              <% end %>
-            </div>
-
-            <!-- Most Late Person banner -->
-            <% if most_late_user && most_late_count > 0 %>
-            <div style="padding:9px 18px;background:#FEF2F2;border-bottom:1px solid #FECACA;display:flex;align-items:center;gap:10px;">
-              <div style="width:28px;height:28px;min-width:28px;border-radius:50%;background:linear-gradient(135deg,#FCA5A5,#F87171);color:#fff;font-size:0.78rem;font-weight:800;display:flex;align-items:center;justify-content:center;">
-                <%= most_late_user.name.first.upcase %>
+          <!-- Card header -->
+          <div style="padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:<%= c[:light] %>;border:1px solid <%= c[:border] %>;display:flex;align-items:center;justify-content:center;color:<%= c[:hex] %>;font-size:0.9rem;">
+                <i class="bi bi-building"></i>
               </div>
               <div>
-                <div style="font-size:0.70rem;font-weight:800;color:#B91C1C;">
-                  <i class="bi bi-exclamation-triangle-fill me-1"></i>Most Late: <%= most_late_user.name %>
-                </div>
-                <div style="font-size:0.62rem;color:#EF4444;margin-top:1px;"><%= most_late_count %> lates in last 12 months</div>
-              </div>
-              <div style="margin-left:auto;">
-                <span style="background:#FCA5A5;color:#7F1D1D;font-size:0.68rem;font-weight:800;padding:3px 10px;border-radius:20px;"><%= most_late_count %>×</span>
+                <div style="font-size:0.88rem;font-weight:800;color:#0F172A;letter-spacing:-0.2px;"><%= dept %> Department</div>
+                <div style="font-size:0.68rem;color:#94A3B8;font-weight:500;margin-top:1px;"><%= stats.length %> months tracked</div>
               </div>
             </div>
-            <% end %>
-
-            <!-- Column headers -->
-            <div style="padding:8px 18px;background:#FAFBFC;border-bottom:1px solid #F1F5F9;display:grid;grid-template-columns:90px 1fr 1fr 1fr 1fr;gap:6px;align-items:center;">
-              <div style="font-size:0.60rem;font-weight:800;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;">Month</div>
-              <div style="font-size:0.60rem;font-weight:800;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;">Clock-ins</div>
-              <div style="font-size:0.60rem;font-weight:800;color:#22C55E;letter-spacing:0.8px;text-transform:uppercase;">On Time</div>
-              <div style="font-size:0.60rem;font-weight:800;color:#EF4444;letter-spacing:0.8px;text-transform:uppercase;">Lates</div>
-              <div style="font-size:0.60rem;font-weight:800;color:#F59E0B;letter-spacing:0.8px;text-transform:uppercase;">Half Days</div>
+            <!-- On-time rate badge -->
+            <div style="text-align:right;">
+              <div style="font-size:1.5rem;font-weight:900;color:<%= c[:hex] %>;letter-spacing:-1px;line-height:1;"><%= ontime_pct %>%</div>
+              <div style="font-size:0.60rem;font-weight:700;color:#94A3B8;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">On-time rate</div>
             </div>
-
-            <!-- Rows -->
-            <div style="max-height:300px;overflow-y:auto;">
-              <% stats.each do |stat| %>
-                <% is_current = stat[:month].year == Date.current.year && stat[:month].month == Date.current.month %>
-                <% ci_pct    = (stat[:clock_ins].to_f / max_ci * 100).round %>
-                <% late_pct  = (stat[:lates].to_f     / max_lates * 100).round %>
-                <% hd_pct    = (stat[:half_days].to_f  / max_hd * 100).round %>
-                <% ot_count  = stat[:on_time] || (stat[:clock_ins] - stat[:lates]) %>
-
-                <div class="mds-row" style="padding:10px 18px;border-bottom:1px solid #F8FAFC;display:grid;grid-template-columns:90px 1fr 1fr 1fr 1fr;gap:6px;align-items:center;background:<%= is_current ? c[:bg] : 'white' %>;">
-
-                  <!-- Month label -->
-                  <div>
-                    <div style="font-weight:<%= is_current ? '800' : '600' %>;color:#1E293B;font-size:0.80rem;line-height:1.2;">
-                      <%= stat[:month].strftime("%b %Y") %>
-                    </div>
-                    <% if is_current %>
-                      <span style="font-size:0.58rem;font-weight:800;color:<%= c[:hex] %>;letter-spacing:0.5px;text-transform:uppercase;background:<%= c[:muted] %>;padding:1px 5px;border-radius:4px;">Current</span>
-                    <% end %>
-                  </div>
-
-                  <!-- Clock-ins -->
-                  <div>
-                    <div style="display:flex;align-items:center;gap:7px;">
-                      <div style="flex:1;height:5px;background:#E2E8F0;border-radius:3px;overflow:hidden;max-width:60px;">
-                        <div style="width:<%= ci_pct %>%;height:100%;background:<%= c[:hex] %>;border-radius:3px;"></div>
-                      </div>
-                      <span style="font-weight:800;color:<%= c[:hex] %>;font-size:0.85rem;min-width:20px;"><%= stat[:clock_ins] %></span>
-                    </div>
-                  </div>
-
-                  <!-- On Time -->
-                  <div>
-                    <% if ot_count > 0 %>
-                      <span style="font-weight:800;color:#16A34A;font-size:0.85rem;"><%= ot_count %></span>
-                    <% else %>
-                      <span style="color:#CBD5E1;font-size:0.80rem;font-weight:600;">—</span>
-                    <% end %>
-                  </div>
-
-                  <!-- Lates -->
-                  <div>
-                    <% if stat[:lates] > 0 %>
-                      <div style="display:flex;align-items:center;gap:7px;">
-                        <div style="flex:1;height:5px;background:#FEE2E2;border-radius:3px;overflow:hidden;max-width:60px;">
-                          <div style="width:<%= late_pct %>%;height:100%;background:#EF4444;border-radius:3px;"></div>
-                        </div>
-                        <span style="font-weight:800;color:#DC2626;font-size:0.85rem;min-width:18px;"><%= stat[:lates] %></span>
-                      </div>
-                    <% else %>
-                      <span style="color:#CBD5E1;font-size:0.80rem;font-weight:600;">—</span>
-                    <% end %>
-                  </div>
-
-                  <!-- Half Days -->
-                  <div>
-                    <% if stat[:half_days] > 0 %>
-                      <div style="display:flex;align-items:center;gap:7px;">
-                        <div style="flex:1;height:5px;background:#FEF3C7;border-radius:3px;overflow:hidden;max-width:60px;">
-                          <div style="width:<%= hd_pct %>%;height:100%;background:#F59E0B;border-radius:3px;"></div>
-                        </div>
-                        <span style="font-weight:800;color:#D97706;font-size:0.85rem;min-width:18px;"><%= stat[:half_days] %></span>
-                      </div>
-                    <% else %>
-                      <span style="color:#CBD5E1;font-size:0.80rem;font-weight:600;">—</span>
-                    <% end %>
-                  </div>
-
-                </div>
-              <% end %>
-            </div>
-
           </div>
+
+          <!-- KPI row -->
+          <div style="padding:16px 20px;">
+            <div class="mdr-kpi" style="border-radius:12px;overflow:hidden;border:1px solid #F1F5F9;">
+
+              <div class="mdr-kpi-cell">
+                <div class="mdr-kpi-num" style="color:<%= c[:hex] %>;"><%= total_ci %></div>
+                <div class="mdr-kpi-lbl" style="color:<%= c[:text] %>;">Present</div>
+              </div>
+
+              <div class="mdr-kpi-cell">
+                <div class="mdr-kpi-num" style="color:#16A34A;"><%= total_ot %></div>
+                <div class="mdr-kpi-lbl" style="color:#15803D;">On Time</div>
+              </div>
+
+              <div class="mdr-kpi-cell">
+                <div class="mdr-kpi-num" style="color:#DC2626;"><%= total_lt %></div>
+                <div class="mdr-kpi-lbl" style="color:#B91C1C;">Lates</div>
+              </div>
+
+              <div class="mdr-kpi-cell">
+                <div class="mdr-kpi-num" style="color:#D97706;"><%= total_hd %></div>
+                <div class="mdr-kpi-lbl" style="color:#B45309;">Half Days</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Most late person -->
+          <% if most_late_user && most_late_count > 0 %>
+          <div style="margin:0 20px 16px;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;min-width:32px;border-radius:50%;background:linear-gradient(135deg,#F87171,#EF4444);color:#fff;font-size:0.82rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(239,68,68,0.35);">
+              <%= most_late_user.name.first.upcase %>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.73rem;font-weight:700;color:#991B1B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <i class="bi bi-exclamation-circle-fill me-1" style="font-size:0.68rem;"></i>Most Late &mdash; <%= most_late_user.name %>
+              </div>
+              <div style="font-size:0.62rem;color:#DC2626;margin-top:2px;"><%= most_late_count %> late arrival<%= most_late_count != 1 ? 's' : '' %> in the past 12 months</div>
+            </div>
+            <span style="background:#FCA5A5;color:#7F1D1D;font-size:0.72rem;font-weight:900;padding:4px 10px;border-radius:8px;white-space:nowrap;"><%= most_late_count %>×</span>
+          </div>
+          <% end %>
+
+          <!-- Monthly breakdown -->
+          <div style="border-top:1px solid #F1F5F9;">
+            <div style="padding:12px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:0.70rem;font-weight:700;color:#475569;letter-spacing:0.3px;">Monthly Breakdown</span>
+              <span style="font-size:0.62rem;color:#CBD5E1;font-weight:500;">last <%= stats.length %> months</span>
+            </div>
+
+            <div class="mdr-scroll">
+              <table class="mdr-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th>Clock-ins</th>
+                    <th>On Time</th>
+                    <th>Lates</th>
+                    <th>Half Days</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% stats.each do |stat| %>
+                    <% is_current = stat[:month].year == Date.current.year && stat[:month].month == Date.current.month %>
+                    <% ci_pct   = (stat[:clock_ins].to_f / max_ci    * 100).round %>
+                    <% late_pct = (stat[:lates].to_f     / max_lates * 100).round %>
+                    <% hd_pct   = (stat[:half_days].to_f / max_hd    * 100).round %>
+                    <% ot_count = stat[:on_time] || (stat[:clock_ins] - stat[:lates]) %>
+                    <tr style="background:<%= is_current ? c[:light] : '' %>;">
+
+                      <!-- Month -->
+                      <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                          <% if is_current %>
+                            <span style="width:6px;height:6px;border-radius:50%;background:<%= c[:hex] %>;display:inline-block;flex-shrink:0;"></span>
+                          <% else %>
+                            <span style="width:6px;height:6px;border-radius:50%;background:#E2E8F0;display:inline-block;flex-shrink:0;"></span>
+                          <% end %>
+                          <div>
+                            <div style="font-size:0.82rem;font-weight:<%= is_current ? '800' : '600' %>;color:<%= is_current ? c[:hex] : '#1E293B' %>;white-space:nowrap;">
+                              <%= stat[:month].strftime("%b %Y") %>
+                            </div>
+                            <% if is_current %>
+                              <div style="font-size:0.58rem;font-weight:700;color:<%= c[:hex] %>;letter-spacing:0.4px;text-transform:uppercase;">Current</div>
+                            <% end %>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Clock-ins -->
+                      <td>
+                        <div class="mdr-bar-wrap">
+                          <div class="mdr-bar">
+                            <div class="mdr-bar-fill" style="width:<%= ci_pct %>%;background:<%= c[:hex] %>;"></div>
+                          </div>
+                          <span style="font-size:0.85rem;font-weight:800;color:<%= c[:hex] %>;min-width:22px;"><%= stat[:clock_ins] %></span>
+                        </div>
+                      </td>
+
+                      <!-- On Time -->
+                      <td>
+                        <% if ot_count > 0 %>
+                          <span style="font-size:0.85rem;font-weight:800;color:#16A34A;"><%= ot_count %></span>
+                        <% else %>
+                          <span style="color:#CBD5E1;font-size:0.82rem;">—</span>
+                        <% end %>
+                      </td>
+
+                      <!-- Lates -->
+                      <td>
+                        <% if stat[:lates] > 0 %>
+                          <div class="mdr-bar-wrap">
+                            <div class="mdr-bar">
+                              <div class="mdr-bar-fill" style="width:<%= late_pct %>%;background:#EF4444;"></div>
+                            </div>
+                            <span style="font-size:0.85rem;font-weight:800;color:#DC2626;min-width:18px;"><%= stat[:lates] %></span>
+                          </div>
+                        <% else %>
+                          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                            <span class="mdr-badge" style="background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;">
+                              <i class="bi bi-check2" style="font-size:0.65rem;"></i> Clean
+                            </span>
+                          </div>
+                        <% end %>
+                      </td>
+
+                      <!-- Half Days -->
+                      <td>
+                        <% if stat[:half_days] > 0 %>
+                          <div class="mdr-bar-wrap">
+                            <div class="mdr-bar">
+                              <div class="mdr-bar-fill" style="width:<%= hd_pct %>%;background:#F59E0B;"></div>
+                            </div>
+                            <span style="font-size:0.85rem;font-weight:800;color:#D97706;min-width:18px;"><%= stat[:half_days] %></span>
+                          </div>
+                        <% else %>
+                          <span style="color:#CBD5E1;font-size:0.82rem;">—</span>
+                        <% end %>
+                      </td>
+
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Card footer -->
+          <div style="padding:10px 20px;background:#FAFBFC;border-top:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:<%= c[:hex] %>;"></span>
+              <span style="font-size:0.62rem;color:#94A3B8;font-weight:500;">Clock-ins</span>
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22C55E;margin-left:8px;"></span>
+              <span style="font-size:0.62rem;color:#94A3B8;font-weight:500;">On Time</span>
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EF4444;margin-left:8px;"></span>
+              <span style="font-size:0.62rem;color:#94A3B8;font-weight:500;">Lates</span>
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#F59E0B;margin-left:8px;"></span>
+              <span style="font-size:0.62rem;color:#94A3B8;font-weight:500;">Half Days</span>
+            </div>
+            <span style="font-size:0.62rem;color:#CBD5E1;font-weight:500;"><%= ontime_pct %>% on-time rate</span>
+          </div>
+
         </div>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   </div>
 </div>
 <% end %>
