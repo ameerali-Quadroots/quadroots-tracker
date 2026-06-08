@@ -1,3 +1,9 @@
+<%
+  week_dates = @time_clocks.map { |tc| tc.clock_in.to_date }
+  half_day_leaves = current_user.leaves
+                                .where(leave_type: :half_day, start_date: week_dates)
+                                .index_by(&:start_date)
+%>
 <div class="table-responsive">
   <table class="table table-hover align-middle table-premium">
     <thead>
@@ -13,20 +19,59 @@
     <tbody>
       <% if @time_clocks.present? %>
         <% @time_clocks.each do |tc| %>
+          <%
+            hd_leave = half_day_leaves[tc.clock_in.to_date]
+            non_mtg_secs = tc.breaks.reject { |b| b.break_type == "Meeting" }
+                                    .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
+            worked = tc.total_duration || ((tc.clock_out.present? ? (tc.clock_out - tc.clock_in).to_i : 0) - non_mtg_secs)
+            is_early = tc.clock_out.present? && worked < 16200
+          %>
           <tr>
             <td class="fw-bold text-dark"><%= tc.clock_in.strftime("%a, %d %b") if tc.clock_in %></td>
             <td><span class="text-success fw-semibold"><%= tc.clock_in.strftime("%I:%M %p") if tc.clock_in %></span></td>
-            <td><span class="text-danger fw-semibold"><%= tc.clock_out.strftime("%I:%M %p") if tc.clock_out %></span></td>
+            <td>
+              <% if tc.clock_out.present? %>
+                <span class="text-danger fw-semibold"><%= tc.clock_out.strftime("%I:%M %p") %></span>
+                <% if is_early %>
+                  <span class="badge badge-premium ms-1" style="background:#FEF3C7;color:#92400E;font-size:0.62rem;">Early</span>
+                <% end %>
+              <% else %>
+                <span class="text-warning fw-semibold">—</span>
+              <% end %>
+            </td>
             <td><span class="badge badge-premium bg-light text-dark"><%= tc.formatted_duration(tc.total_duration) %></span></td>
             <td><span class="badge badge-premium bg-light text-dark"><%= tc.formatted_duration(tc.break_duration) %></span></td>
             <td>
-              <% if tc.status == "late" %>
-                <span class="badge badge-premium bg-danger">Late</span>
-              <% elsif tc.status == "on_time" %>
-                <span class="badge badge-premium bg-success">On Time</span>
-              <% else %>
-                <span class="badge badge-premium bg-secondary">N/A</span>
-              <% end %>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+                <% if tc.status == "late" %>
+                  <span class="badge badge-premium bg-danger">Late</span>
+                <% elsif tc.status == "on_time" %>
+                  <span class="badge badge-premium bg-success">On Time</span>
+                <% else %>
+                  <span class="badge badge-premium bg-secondary">N/A</span>
+                <% end %>
+
+                <% if hd_leave %>
+                  <% case hd_leave.status %>
+                  <% when 'approved' %>
+                    <span class="badge badge-premium" style="background:#DCFCE7;color:#15803D;font-size:0.62rem;">
+                      <i class="bi bi-check-circle-fill me-1"></i>Early Check-Out
+                    </span>
+                  <% when 'pending' %>
+                    <span class="badge badge-premium" style="background:#FEF3C7;color:#92400E;font-size:0.62rem;">
+                      <i class="bi bi-hourglass-split me-1"></i>HD Pending
+                    </span>
+                  <% when 'rejected' %>
+                    <span class="badge badge-premium" style="background:#FEE2E2;color:#991B1B;font-size:0.62rem;">
+                      <i class="bi bi-x-circle-fill me-1"></i>HD Rejected
+                    </span>
+                  <% end %>
+                <% elsif is_early %>
+                  <span class="badge badge-premium" style="background:#F1F5F9;color:#64748B;font-size:0.62rem;">
+                    <i class="bi bi-clock me-1"></i>Half Day
+                  </span>
+                <% end %>
+              </div>
             </td>
           </tr>
         <% end %>

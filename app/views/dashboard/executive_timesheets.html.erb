@@ -5,7 +5,7 @@
   half_day_ids = @time_clocks.select { |r|
     next false unless r.clock_out.present?
     non_mtg_secs = r.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
-    (r.clock_out - r.clock_in).to_i - non_mtg_secs < 4 * 3600
+    (r.clock_out - r.clock_in).to_i - non_mtg_secs < 16200
   }.map(&:id)
   half_day_count = half_day_ids.count
   on_time_count = @time_clocks.count - late_count
@@ -94,7 +94,7 @@
               non_mtg_secs = record.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
               (record.clock_out - record.clock_in).to_i - non_mtg_secs
             end
-            is_half_day = worked_secs && worked_secs < 4 * 3600
+            is_half_day = worked_secs && worked_secs < 16200
             hours_worked = worked_secs ? "#{(worked_secs / 3600).to_i}h #{((worked_secs % 3600) / 60).to_i}m" : nil
           %>
 

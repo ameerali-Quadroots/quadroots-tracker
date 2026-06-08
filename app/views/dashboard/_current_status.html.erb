@@ -1,5 +1,16 @@
 <div class="status-content">
   <% if @time_clock.nil? || @time_clock.clock_out.present? %>
+    <%
+      early_checkout = false
+      net_worked     = 0
+      if @time_clock.present? && @time_clock.clock_out.present? && @time_clock.clock_in.to_date == Date.current
+        tc = @time_clock
+        non_mtg_secs = tc.breaks.reject { |b| b.break_type == "Meeting" }
+                                .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
+        net_worked = (tc.clock_out - tc.clock_in).to_i - non_mtg_secs
+        early_checkout = net_worked < 16200
+      end
+    %>
 
     <!-- Not Clocked In State -->
     <div class="status-state text-center">
@@ -26,6 +37,77 @@
         </button>
       </div>
     </div>
+
+    <!-- Early Checkout / Half-Day Request Banner -->
+    <% if early_checkout %>
+      <% hd_leave = @today_half_day_leave %>
+      <div class="mt-4 mx-auto" style="max-width: 500px;">
+        <% if hd_leave.nil? %>
+
+          <div style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1.5px solid #FDE68A;border-radius:16px;padding:20px 22px;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.15);">
+            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 2px 8px rgba(245,158,11,0.4);">
+              <i class="fa-solid fa-arrow-right-from-bracket" style="color:#fff;font-size:1rem;"></i>
+            </div>
+            <div style="font-weight:800;color:#78350F;font-size:0.95rem;margin-bottom:4px;">Early Check-Out Detected</div>
+            <div style="font-size:0.78rem;color:#92400E;margin-bottom:16px;">
+              You worked <strong><%= "#{(net_worked / 3600).to_i}h #{((net_worked % 3600) / 60).to_i}m" %></strong> today —
+              less than 4.5 hours. You can request a half-day leave for approval.
+            </div>
+            <button type="button" class="btn btn-warning btn-premium"
+                    data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
+                    style="font-size:0.84rem;padding:9px 24px;font-weight:700;border-radius:10px;">
+              <i class="fa-solid fa-calendar-days me-2"></i>Request Half Day
+            </button>
+          </div>
+
+        <% elsif hd_leave.status == 'pending' %>
+
+          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
+            <div style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;">
+              <i class="fa-solid fa-hourglass-half" style="color:#D97706;font-size:1rem;"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:#78350F;font-size:0.88rem;">Half Day Request Pending</div>
+              <div style="font-size:0.72rem;color:#92400E;margin-top:2px;">
+                Submitted <%= time_ago_in_words(hd_leave.created_at) %> ago · awaiting manager approval.
+              </div>
+            </div>
+            <span style="background:#FEF3C7;color:#78350F;font-size:0.62rem;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:0.5px;white-space:nowrap;">PENDING</span>
+          </div>
+
+        <% elsif hd_leave.status == 'approved' %>
+
+          <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
+            <div style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#DCFCE7;display:flex;align-items:center;justify-content:center;">
+              <i class="fa-solid fa-circle-check" style="color:#16A34A;font-size:1rem;"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:#14532D;font-size:0.88rem;">Early Check-Out Approved</div>
+              <div style="font-size:0.72rem;color:#15803D;margin-top:2px;">
+                Your half-day leave has been approved by management.
+              </div>
+            </div>
+            <span style="background:#DCFCE7;color:#14532D;font-size:0.62rem;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:0.5px;white-space:nowrap;">APPROVED</span>
+          </div>
+
+        <% elsif hd_leave.status == 'rejected' %>
+
+          <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
+            <div style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;">
+              <i class="fa-solid fa-circle-xmark" style="color:#DC2626;font-size:1rem;"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:#7F1D1D;font-size:0.88rem;">Half Day Request Rejected</div>
+              <div style="font-size:0.72rem;color:#DC2626;margin-top:2px;">
+                Please contact your manager for more details.
+              </div>
+            </div>
+            <span style="background:#FEE2E2;color:#7F1D1D;font-size:0.62rem;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:0.5px;white-space:nowrap;">REJECTED</span>
+          </div>
+
+        <% end %>
+      </div>
+    <% end %>
 
 
   <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
@@ -77,6 +159,10 @@
   <% else %>
 
     <!-- Working State -->
+    <%
+      working_secs = @time_clock.present? ? live_work_seconds(@time_clock) : 0
+      is_early_session = working_secs < 16200
+    %>
     <div class="status-state text-center">
       <div class="status-indicator mb-4">
         <div class="status-icon-wrapper working-active">
@@ -110,7 +196,7 @@
                 { name: "Chai/Coffee Break", icon: "fa-solid fa-mug-saucer" },
                 { name: "Washroom Break", icon: "fa-solid fa-toilet" },
                 { name: "Namaz Break", icon: "fa-solid fa-mosque" },
-                 { name: "Meeting", icon: "fa-solid fa-video" },
+                { name: "Meeting", icon: "fa-solid fa-video" },
                 { name: "Extra Break", icon: "fa-solid fa-clock" },
                 { name: "Downtime", icon: "fa-solid fa-pause" },
               ]
@@ -120,16 +206,29 @@
               <li>
                 <%= button_to break_in_time_clock_breaks_path(@time_clock, break_type: break_option[:name]),
                       method: :post, class: "dropdown-item" do %>
-
                   <i class="<%= break_option[:icon] %> me-2"></i>
                   <%= break_option[:name] %>
-
                 <% end %>
               </li>
             <% end %>
 
           </ul>
         </div>
+
+        <% if is_early_session %>
+          <!-- Early clock-out: show prominent button with confirmation -->
+          <%= button_to clock_out_path, method: :post,
+                class: "btn btn-danger btn-premium btn-action",
+                data: { confirm: "You've worked less than 4.5 hours. Clock out early and request a half-day leave?" } do %>
+            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Early Clock Out
+          <% end %>
+        <% else %>
+          <%= button_to clock_out_path, method: :post,
+                class: "btn btn-danger btn-premium btn-action",
+                data: { confirm: "Are you sure you want to clock out?" } do %>
+            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Clock Out
+          <% end %>
+        <% end %>
 
         <button type="button" class="btn btn-outline-premium btn-premium btn-action"
                 data-bs-toggle="modal" data-bs-target="#editRequestModal">
@@ -153,6 +252,34 @@
               data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
         <i class="fa-solid fa-calendar-check me-2"></i>Request Leave
       </button>
+
+      <% hd_already = @today_half_day_leave %>
+      <% if hd_already %>
+        <% case hd_already.status %>
+        <% when 'pending' %>
+          <button type="button" class="btn btn-warning btn-premium btn-leave" disabled
+                  style="opacity:0.75;cursor:default;">
+            <i class="fa-solid fa-hourglass-half me-2"></i>Half Day Pending
+          </button>
+        <% when 'approved' %>
+          <button type="button" class="btn btn-success btn-premium btn-leave" disabled
+                  style="cursor:default;">
+            <i class="fa-solid fa-circle-check me-2"></i>Early Check-Out Approved
+          </button>
+        <% when 'rejected' %>
+          <button type="button" class="btn btn-danger btn-premium btn-leave"
+                  data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
+                  title="Request rejected — click to resubmit">
+            <i class="fa-solid fa-rotate-right me-2"></i>Resubmit Half Day
+          </button>
+        <% end %>
+      <% else %>
+        <button type="button" class="btn btn-warning btn-premium btn-leave"
+                data-bs-toggle="modal" data-bs-target="#halfDayRequestModal"
+                style="color:#fff;">
+          <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Request Early Leave
+        </button>
+      <% end %>
 
       <% if current_user.role == "Manager" %>
         <button type="button" class="btn btn-dark btn-premium btn-leave"

@@ -15,6 +15,7 @@ class DashboardController < ApplicationController
       .where(clock_in: Time.current.beginning_of_month..Time.current.end_of_month)
       .order(clock_in: :desc)
 
+    @today_half_day_leave = current_user.leaves.where(leave_type: :half_day, start_date: Date.current).last
     load_monthly_dept_stats if current_user.role == 'Manager' || current_user.department == "HOD'S"
   end
 
@@ -98,7 +99,7 @@ class DashboardController < ApplicationController
             non_mtg_break_secs = tc.breaks
               .reject { |b| b.break_type == "Meeting" }
               .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
-            (tc.clock_out - tc.clock_in).to_i - non_mtg_break_secs < 4 * 3600
+            (tc.clock_out - tc.clock_in).to_i - non_mtg_break_secs < 16200
           end
           month_lates = month_tcs.count { |tc| tc.status == "late" }
           {

@@ -19,7 +19,7 @@
     (Time.current - tc.clock_in).to_i - total_reg_secs
   end
 
-  is_half_day = worked_secs && tc.clock_out.present? && worked_secs < 4 * 3600
+  is_half_day = worked_secs && tc.clock_out.present? && worked_secs < 16200
 
   att_type = if is_half_day && tc.status == "late"
     { label: "Late + Half Day", bg: "linear-gradient(135deg,#EF4444,#F59E0B)", color: "#fff" }

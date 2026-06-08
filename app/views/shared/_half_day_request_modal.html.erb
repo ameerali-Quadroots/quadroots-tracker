@@ -1,0 +1,65 @@
+<div class="modal fade" id="halfDayRequestModal" tabindex="-1" aria-labelledby="halfDayRequestModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+    <div class="modal-content dashboard-card" style="border-radius: 16px; overflow: hidden; border: none;">
+
+      <%= form_with(model: Leave.new, url: leaves_path, local: true) do |f| %>
+        <%= f.hidden_field :leave_type, value: "half_day" %>
+        <%= f.hidden_field :start_date, value: Date.current %>
+        <%= f.hidden_field :end_date,   value: Date.current %>
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#F59E0B,#D97706);padding:20px 24px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-calendar-days" style="color:#fff;font-size:1rem;"></i>
+          </div>
+          <div>
+            <div style="font-weight:800;color:#fff;font-size:1rem;">Request Half Day</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.8);margin-top:2px;">
+              <%= Date.current.strftime("%A, %d %B %Y") %>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- Info banner -->
+        <div style="background:#FFFBEB;border-bottom:1px solid #FDE68A;padding:12px 20px;display:flex;align-items:center;gap:10px;">
+          <i class="fa-solid fa-circle-info" style="color:#D97706;font-size:0.9rem;flex-shrink:0;"></i>
+          <div style="font-size:0.75rem;color:#92400E;">
+            <strong>Half Day</strong> — Today (<%= Date.current.strftime("%d %b") %>).
+            <% if current_user.role == "Manager" %>
+              This request will be sent to the <strong>HOD</strong> for approval.
+            <% else %>
+              This request will be sent to your <strong>Manager</strong> for approval.
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body" style="padding: 20px 24px;">
+          <div class="mb-3">
+            <%= f.label :reason, "Reason for Early Check-Out", class: "form-label fw-semibold text-dark", style: "font-size:0.85rem;" %>
+            <%= f.text_area :reason,
+                  rows: 4,
+                  class: "form-control",
+                  placeholder: "Please briefly explain why you are leaving early today...",
+                  required: true,
+                  style: "border-radius:10px;font-size:0.85rem;resize:none;" %>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer" style="padding:14px 24px;border-top:1px solid #F1F5F9;gap:10px;">
+          <button type="button" class="btn btn-outline-secondary btn-premium"
+                  data-bs-dismiss="modal"
+                  style="font-size:0.82rem;padding:8px 18px;border-radius:10px;">
+            Cancel
+          </button>
+          <%= f.submit "Submit Request",
+                class: "btn btn-warning btn-premium",
+                style: "font-size:0.84rem;padding:8px 22px;font-weight:700;border-radius:10px;color:#fff;" %>
+        </div>
+      <% end %>
+
+    </div>
+  </div>
+</div>

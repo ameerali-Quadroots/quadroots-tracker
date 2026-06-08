@@ -38,13 +38,13 @@ end
   end
 
   def approve
-    @leave.update(approved_by_manager: 'true')
+    @leave.update(approved_by_manager: true, status: 'approved')
     redirect_to request.referer, notice: 'Leave approved.'
   end
 
   def reject
-    @leave.update(approved_by_manager: 'false')
-  redirect_to request.referer, alert: 'Leave rejected.'
+    @leave.update(approved_by_manager: false, status: 'rejected')
+    redirect_to request.referer, alert: 'Leave rejected.'
   end
 
 
