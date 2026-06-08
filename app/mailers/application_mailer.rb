@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: 'development@quikraistaging.com'
+  default from: ENV.fetch('SMTP_FROM', 'development@quikraistaging.com')
   layout "mailer"
 end

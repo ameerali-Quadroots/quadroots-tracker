@@ -84,7 +84,7 @@ Rails.application.configure do
     domain:         ENV.fetch('SMTP_DOMAIN',   'quikraistaging.com'),
     user_name:      ENV.fetch('SMTP_USERNAME', 'development@quikraistaging.com'),
     password:       ENV.fetch('SMTP_PASSWORD', ''),
-    authentication: :plain,
+    authentication: :login,
     tls:            true
   }
 
