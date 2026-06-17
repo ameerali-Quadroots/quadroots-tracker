@@ -187,37 +187,7 @@ end
 
   # Show Page
   show do
-    attributes_table do
-      row :user
-      row("Department") { time_clock.employee&.department || "N/A" }
-      row :clock_in
-      row :clock_out
-      row :status
-      row :current_state
-      row("Total Duration") { time_clock.formatted_duration(time_clock.total_duration) }
-      row("Break Duration") { time_clock.formatted_break_duration }
-      row :ip_address
-    end
-
-    panel "Breaks Details" do
-      if time_clock.breaks.any?
-        table_for time_clock.breaks do
-          column("Break In") { |br| br.break_in&.strftime('%Y-%m-%d %H:%M:%S') }
-          column("Break Out") { |br| br.break_out&.strftime('%Y-%m-%d %H:%M:%S') || "Ongoing" }
-          column("Break Duration") do |br|
-            if br.break_in && br.break_out
-              time_clock.formatted_duration(br.break_out - br.break_in)
-            else
-              "Ongoing"
-            end
-          end
-        end
-      else
-        div do
-          status_tag("No Breaks", class: "status_tag warning")
-        end
-      end
-    end
+    render partial: "admin/time_clocks/show", locals: { time_clock: time_clock }
   end
 
   # Edit Page

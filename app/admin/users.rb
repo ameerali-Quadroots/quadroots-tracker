@@ -88,7 +88,7 @@ end
       f.input :address
 
       f.input :department, as: :select,
-        collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'Executive Board', "HOD'S"],
+        collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'Executive Board', "HOD'S", "HAB BDR"],
         prompt: "Select Department"
 
       f.input :role, as: :select,

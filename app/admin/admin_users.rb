@@ -25,7 +25,7 @@ ActiveAdmin.register AdminUser do
       f.input :email
     f.input :role, as: :select, collection: AdminUser.roles.keys,
           input_html: { class: "dropdown", style: "width:50%"}  
-    f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'CORE',"HOD'S"], prompt: "Select Department"
+    f.input :department, as: :select, collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'CORE',"HOD'S", "HAB BDR"], prompt: "Select Department"
      f.input :password
       f.input :password_confirmation
 
