@@ -70,12 +70,15 @@
 
   <!-- 3. MONTHLY ATTENDANCE TABS -->
   <%
-    year = 2025
+    current_year = Time.zone.now.year
+    year = params[:analytics_year].present? ? params[:analytics_year].to_i : current_year
+    active_index = (year == current_year) ? (Time.zone.now.month - 1) : 11
+
     year_start = Time.new(year, 1).beginning_of_year
     year_end = Time.new(year, 12).end_of_year
     
-    # Single SQL query for the entire calendar year to keep page loading super fast
-    all_2025_clocks = TimeClock.where(clock_in: year_start..year_end).select(:user_id, :status, :clock_in).to_a
+    # Fetch all time clocks for the selected year in one query
+    all_year_clocks = TimeClock.where(clock_in: year_start..year_end).select(:user_id, :status, :clock_in, :clock_out, :total_duration).to_a
     active_users = User.where(employeed: true).order(:name).to_a
     
     months = (1..12).to_a
@@ -83,7 +86,7 @@
       month_start = Time.new(year, month_number).beginning_of_month
       month_end   = Time.new(year, month_number).end_of_month
       
-      month_clocks = all_2025_clocks.select { |tc| tc.clock_in >= month_start && tc.clock_in <= month_end }
+      month_clocks = all_year_clocks.select { |tc| tc.clock_in >= month_start && tc.clock_in <= month_end }
       on_time_count = month_clocks.count { |tc| tc.status == "on_time" }
       late_count    = month_clocks.count { |tc| tc.status == "late" }
       
@@ -96,12 +99,29 @@
         total = u_on_time + u_late
         late_ratio = total > 0 ? ((u_late.to_f / total) * 100).round : 0
         
+        # Calculate total duration in hours
+        total_seconds = u_clocks.sum { |tc| tc.total_duration || 0 }
+        total_hours = (total_seconds / 3600.0).round(1)
+        
+        # Calculate average clock-in time
+        in_times = u_clocks.map(&:clock_in).compact
+        avg_in_str = if in_times.any?
+          avg_seconds = in_times.sum { |t| t.hour * 3600 + t.min * 60 + t.sec } / in_times.size
+          avg_hour = avg_seconds / 3600
+          avg_minute = (avg_seconds % 3600) / 60
+          Time.zone.now.change(hour: avg_hour, min: avg_minute).strftime("%I:%M %p")
+        else
+          "N/A"
+        end
+
         {
           user: user,
           on_time: u_on_time,
           late: u_late,
           total: total,
-          late_ratio: late_ratio
+          late_ratio: late_ratio,
+          total_hours: total_hours,
+          avg_in: avg_in_str
         }
       end
 
@@ -118,8 +138,15 @@
   %>
 
   <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04);overflow:hidden;">
-    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Monthly Overview (2025)</h3>
+    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Monthly Overview</h3>
+        <select id="analytics-year-select" onchange="const url = new URL(window.location); url.searchParams.set('analytics_year', this.value); window.location.href = url.toString();" style="padding:4px 12px; border-radius:8px; border:1px solid #CBD5E1; background:#fff; font-size:0.8rem; font-weight:700; color:#334155; outline:none; cursor:pointer;">
+          <option value="2026" <%= 'selected' if year == 2026 %>>2026</option>
+          <option value="2025" <%= 'selected' if year == 2025 %>>2025</option>
+          <option value="2024" <%= 'selected' if year == 2024 %>>2024</option>
+        </select>
+      </div>
       <span style="font-size:0.75rem;background:#E2E8F0;padding:4px 10px;border-radius:20px;font-weight:700;color:#475569;">Interactive Leaderboard</span>
     </div>
 
@@ -129,12 +156,12 @@
       <div class="tablist" role="tablist" aria-label="Monthly Attendance Tabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;">
         <% monthly_stats.each_with_index do |data, index| %>
           <button 
-            class="dash-tab <%= 'active' if index == 10 %>" 
+            class="dash-tab <%= 'active' if index == active_index %>" 
             role="tab"
-            aria-selected="<%= index == 10 %>"
+            aria-selected="<%= index == active_index %>"
             aria-controls="panel-<%= index %>"
             id="tab-<%= index %>"
-            tabindex="<%= index == 10 ? 0 : -1 %>">
+            tabindex="<%= index == active_index ? 0 : -1 %>">
             <%= data[:month_name] %>
           </button>
         <% end %>
@@ -148,8 +175,8 @@
             class="dash-tab-panel" 
             role="tabpanel" 
             aria-labelledby="tab-<%= index %>"
-            aria-hidden="<%= index != 10 %>"
-            <%= 'hidden' if index != 10 %>>
+            aria-hidden="<%= index != active_index %>"
+            <%= 'hidden' if index != active_index %>>
             
             <!-- Summary stats -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
@@ -194,6 +221,7 @@
                   <option value="late-desc">Most Lates</option>
                   <option value="late-asc">Least Lates</option>
                   <option value="ratio-desc">Highest Late Ratio</option>
+                  <option value="hours-desc">Most Hours Worked</option>
                   <option value="on-time-desc">Most On-Time</option>
                   <option value="name">Employee Name</option>
                 </select>
@@ -209,38 +237,58 @@
                   on_time = ud[:on_time]
                   late_ratio = ud[:late_ratio]
                   total = ud[:total]
+                  total_hours = ud[:total_hours]
+                  avg_in = ud[:avg_in]
                 %>
-                <div class="monthly-row-item" data-name="<%= user.name.downcase %>" data-dept="<%= user.department %>" data-late="<%= late %>" data-on-time="<%= on_time %>" data-ratio="<%= late_ratio %>" style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #E2E8F0; padding:12px 18px; border-radius:12px; margin-bottom:10px; transition:all 0.2s; gap: 12px; flex-wrap: wrap;">
+                <a href="<%= admin_employee_path(user) %>" class="monthly-row-item" data-name="<%= user.name.downcase %>" data-dept="<%= user.department %>" data-late="<%= late %>" data-on-time="<%= on_time %>" data-ratio="<%= late_ratio %>" data-hours="<%= total_hours %>" style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #E2E8F0; padding:12px 18px; border-radius:12px; margin-bottom:10px; transition:all 0.2s; gap: 12px; flex-wrap: wrap; text-decoration:none; color:inherit;">
                   
                   <!-- Profile -->
-                  <div style="display:flex; align-items:center; gap:12px; width:240px; flex-shrink:0;">
+                  <div style="display:flex; align-items:center; gap:12px; width:220px; flex-shrink:0;">
                     <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:0.9rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 0 1px #E2E8F0; flex-shrink:0;">
                       <%= user.name&.first&.upcase || "?" %>
                     </div>
                     <div style="min-width:0;">
-                      <a href="<%= admin_employee_path(user) %>" style="font-size:0.85rem; font-weight:700; color:#0F172A; text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="emp-name-link"><%= user.name %></a>
+                      <div style="font-size:0.85rem; font-weight:700; color:#0F172A;" class="emp-name-link"><%= user.name %></div>
                       <span style="font-size:0.7rem; font-weight:700; color:#64748B; text-transform:uppercase;"><%= user.department.presence || 'NO DEPT' %></span>
                     </div>
                   </div>
 
-                  <!-- Stats counts -->
-                  <div style="display:flex; align-items:center; gap:16px; width:160px; justify-content:center; flex-shrink:0;">
-                    <div style="text-align:center; min-width:60px;">
-                      <div style="font-size:0.6rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">On Time</div>
-                      <span style="display:inline-block; margin-top:2px; background:#ECFDF5; color:#059669; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:6px;"><%= on_time %></span>
+                  <!-- Clock stats (Shift Count) -->
+                  <div style="display:flex; align-items:center; gap:16px; width:140px; justify-content:center; flex-shrink:0;">
+                    <div style="text-align:center; min-width:45px;">
+                      <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">On Time</div>
+                      <span style="display:inline-block; margin-top:2px; background:#ECFDF5; color:#059669; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:6px;"><%= on_time %></span>
                     </div>
-                    <div style="text-align:center; min-width:60px;">
-                      <div style="font-size:0.6rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">Late</div>
-                      <span style="display:inline-block; margin-top:2px; background:#FEF2F2; color:#DC2626; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:6px;"><%= late %></span>
+                    <div style="text-align:center; min-width:45px;">
+                      <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">Late</div>
+                      <span style="display:inline-block; margin-top:2px; background:#FEF2F2; color:#DC2626; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:6px;"><%= late %></span>
+                    </div>
+                  </div>
+
+                  <!-- Productivity Info: Hours Worked & Average Clock-In -->
+                  <div style="display:flex; align-items:center; gap:20px; width:220px; flex-shrink:0;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <i class="bi bi-clock-history" style="font-size:0.95rem; color:#2563EB;"></i>
+                      <div>
+                        <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase;">Time Tracked</div>
+                        <div style="font-size:0.8rem; font-weight:750; color:#1E293B;"><%= total_hours %> hrs</div>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <i class="bi bi-box-arrow-in-right" style="font-size:0.95rem; color:#059669;"></i>
+                      <div>
+                        <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase;">Avg In</div>
+                        <div style="font-size:0.8rem; font-weight:750; color:#1E293B;"><%= avg_in %></div>
+                      </div>
                     </div>
                   </div>
 
                   <!-- Ratio Visual Progress -->
-                  <div style="flex:1; display:flex; align-items:center; gap:12px; min-width:180px; justify-content: flex-start;">
-                    <div style="flex:1; height:6px; background:#F1F5F9; border-radius:10px; overflow:hidden; position:relative; max-width:200px;">
+                  <div style="flex:1; display:flex; align-items:center; gap:12px; min-width:150px; justify-content: flex-start;">
+                    <div style="flex:1; height:6px; background:#F1F5F9; border-radius:10px; overflow:hidden; position:relative; max-width:120px;">
                       <div style="position:absolute; top:0; left:0; bottom:0; width:<%= late_ratio %>%; background:linear-gradient(90deg, #EF4444, #F59E0B); border-radius:10px;"></div>
                     </div>
-                    <span style="font-size:0.75rem; font-weight:700; color:#475569; width:35px; text-align:right;"><%= late_ratio %>% ratio</span>
+                    <span style="font-size:0.75rem; font-weight:700; color:#475569; text-align:right;"><%= late_ratio %>% ratio</span>
                   </div>
 
                   <!-- Status Badge -->
@@ -260,7 +308,7 @@
                     <% end %>
                   </div>
 
-                </div>
+                </a>
               <% end %>
             </div>
 
