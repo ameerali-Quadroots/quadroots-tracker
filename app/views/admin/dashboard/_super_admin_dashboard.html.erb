@@ -71,35 +71,56 @@
   <!-- 3. MONTHLY ATTENDANCE TABS -->
   <%
     year = 2025
+    year_start = Time.new(year, 1).beginning_of_year
+    year_end = Time.new(year, 12).end_of_year
+    
+    # Single SQL query for the entire calendar year to keep page loading super fast
+    all_2025_clocks = TimeClock.where(clock_in: year_start..year_end).select(:user_id, :status, :clock_in).to_a
+    active_users = User.where(employeed: true).order(:name).to_a
+    
     months = (1..12).to_a
     monthly_stats = months.map do |month_number|
       month_start = Time.new(year, month_number).beginning_of_month
       month_end   = Time.new(year, month_number).end_of_month
-      month_range = month_start..month_end
+      
+      month_clocks = all_2025_clocks.select { |tc| tc.clock_in >= month_start && tc.clock_in <= month_end }
+      on_time_count = month_clocks.count { |tc| tc.status == "on_time" }
+      late_count    = month_clocks.count { |tc| tc.status == "late" }
+      
+      user_clocks_map = month_clocks.group_by(&:user_id)
+      
+      users_data = active_users.map do |user|
+        u_clocks = user_clocks_map[user.id] || []
+        u_on_time = u_clocks.count { |tc| tc.status == "on_time" }
+        u_late = u_clocks.count { |tc| tc.status == "late" }
+        total = u_on_time + u_late
+        late_ratio = total > 0 ? ((u_late.to_f / total) * 100).round : 0
+        
+        {
+          user: user,
+          on_time: u_on_time,
+          late: u_late,
+          total: total,
+          late_ratio: late_ratio
+        }
+      end
 
-      on_time_count = TimeClock.where(status: "on_time", clock_in: month_range).count
-      late_count    = TimeClock.where(status: "late", clock_in: month_range).count
-
-      late_users = User.joins(:time_clocks)
-                       .where(employeed: true)
-                       .where(time_clocks: { status: "late", clock_in: month_range })
-                       .group("users.id")
-                       .having("COUNT(time_clocks.id) > 3")
-                       .select("users.*, COUNT(time_clocks.id) as late_count")
-                       .order("late_count DESC")
+      # Sort initially by most lates
+      users_data = users_data.sort_by { |d| -d[:late] }
 
       {
         month_name: month_start.strftime("%B"),
         on_time: on_time_count,
         late: late_count,
-        late_users: late_users
+        users_data: users_data
       }
     end
   %>
 
   <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04);overflow:hidden;">
-    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;">
+    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;">
       <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Monthly Overview (2025)</h3>
+      <span style="font-size:0.75rem;background:#E2E8F0;padding:4px 10px;border-radius:20px;font-weight:700;color:#475569;">Interactive Leaderboard</span>
     </div>
 
     <div style="padding:24px;">
@@ -130,52 +151,126 @@
             aria-hidden="<%= index != 10 %>"
             <%= 'hidden' if index != 10 %>>
             
+            <!-- Summary stats -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-              <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:0.7rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">On Time Total</div>
-                <div style="font-size:1.8rem;font-weight:900;color:#16A34A;line-height:1;"><%= data[:on_time] %></div>
+              <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:0.7rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;">On Time Total</div>
+                  <div style="font-size:1.8rem;font-weight:900;color:#16A34A;line-height:1;margin-top:4px;"><%= data[:on_time] %></div>
+                </div>
+                <i class="bi bi-check-circle-fill" style="font-size:2rem;color:#16A34A;opacity:0.8;"></i>
               </div>
-              <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:0.7rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">Late Total</div>
-                <div style="font-size:1.8rem;font-weight:900;color:#E11D48;line-height:1;"><%= data[:late] %></div>
+              <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:0.7rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;">Late Total</div>
+                  <div style="font-size:1.8rem;font-weight:900;color:#E11D48;line-height:1;margin-top:4px;"><%= data[:late] %></div>
+                </div>
+                <i class="bi bi-clock-fill" style="font-size:2rem;color:#E11D48;opacity:0.8;"></i>
               </div>
             </div>
 
-            <div>
-              <h4 style="font-size:0.9rem;font-weight:800;color:#0F172A;margin:0 0 16px 0;padding-bottom:8px;border-bottom:1px solid #F1F5F9;">Chronic Lateness (>3 times)</h4>
-              <% if data[:late_users].any? %>
-                <div style="border:1px solid #E8ECF0;border-radius:12px;overflow:hidden;">
-                  <table style="width:100%;border-collapse:collapse;">
-                    <thead style="background:#F8FAFC;">
-                      <tr>
-                        <th style="text-align:left;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">User</th>
-                        <th style="text-align:left;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">Department</th>
-                        <th style="text-align:center;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">Late Count</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% data[:late_users].each do |user| %>
-                        <tr style="border-top:1px solid #E8ECF0;">
-                          <td style="padding:12px 16px;">
-                            <a href="<%= admin_employee_path(user) %>" style="font-weight:700;color:#2563EB;text-decoration:none;"><%= user.name %></a>
-                          </td>
-                          <td style="padding:12px 16px;font-size:0.85rem;color:#475569;"><%= user.department %></td>
-                          <td style="padding:12px 16px;text-align:center;">
-                            <span style="background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;"><%= user.late_count %></span>
-                          </td>
-                        </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
+            <!-- Interactive Search & Sort Bar -->
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:12px 16px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; flex:1;">
+                <!-- Search -->
+                <div style="position:relative; flex:1; max-width:280px; min-width:180px;">
+                  <input type="text" class="monthly-search-input" data-month-index="<%= index %>" placeholder="Search by employee name..." style="width:100%; padding:8px 12px 8px 32px; border-radius:10px; border:1px solid #E2E8F0; font-size:0.85rem; font-weight:600; outline:none; background:#fff;">
+                  <i class="bi bi-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:0.85rem;"></i>
                 </div>
-              <% else %>
-                <div style="background:#F8FAFC;border:2px dashed #E2E8F0;border-radius:12px;padding:32px;text-align:center;color:#64748B;">
-                  <i class="bi bi-stars" style="font-size:2rem;color:#F59E0B;display:block;margin-bottom:12px;"></i>
-                  <div style="font-weight:600;font-size:0.95rem;">No chronic lateness this month!</div>
-                  <div style="font-size:0.8rem;margin-top:4px;">Everyone stayed under the 3-late threshold.</div>
+                <!-- Dept Filter -->
+                <select class="monthly-dept-filter" data-month-index="<%= index %>" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer;">
+                  <option value="all">All Departments</option>
+                  <% departments = data[:users_data].map { |s| s[:user].department }.compact.uniq.sort %>
+                  <% departments.each do |dept| %>
+                    <option value="<%= dept %>"><%= dept.upcase %></option>
+                  <% end %>
+                </select>
+              </div>
+              
+              <!-- Sort Selector -->
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:0.8rem; font-weight:750; color:#475569;">Sort:</span>
+                <select class="monthly-sort-select" data-month-index="<%= index %>" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer;">
+                  <option value="late-desc">Most Lates</option>
+                  <option value="late-asc">Least Lates</option>
+                  <option value="ratio-desc">Highest Late Ratio</option>
+                  <option value="on-time-desc">Most On-Time</option>
+                  <option value="name">Employee Name</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- List of rows -->
+            <div class="monthly-rows-container" id="container-<%= index %>" style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
+              <% data[:users_data].each do |ud| %>
+                <% 
+                  user = ud[:user]
+                  late = ud[:late]
+                  on_time = ud[:on_time]
+                  late_ratio = ud[:late_ratio]
+                  total = ud[:total]
+                %>
+                <div class="monthly-row-item" data-name="<%= user.name.downcase %>" data-dept="<%= user.department %>" data-late="<%= late %>" data-on-time="<%= on_time %>" data-ratio="<%= late_ratio %>" style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #E2E8F0; padding:12px 18px; border-radius:12px; margin-bottom:10px; transition:all 0.2s; gap: 12px; flex-wrap: wrap;">
+                  
+                  <!-- Profile -->
+                  <div style="display:flex; align-items:center; gap:12px; width:240px; flex-shrink:0;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:0.9rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 0 1px #E2E8F0; flex-shrink:0;">
+                      <%= user.name&.first&.upcase || "?" %>
+                    </div>
+                    <div style="min-width:0;">
+                      <a href="<%= admin_employee_path(user) %>" style="font-size:0.85rem; font-weight:700; color:#0F172A; text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="emp-name-link"><%= user.name %></a>
+                      <span style="font-size:0.7rem; font-weight:700; color:#64748B; text-transform:uppercase;"><%= user.department.presence || 'NO DEPT' %></span>
+                    </div>
+                  </div>
+
+                  <!-- Stats counts -->
+                  <div style="display:flex; align-items:center; gap:16px; width:160px; justify-content:center; flex-shrink:0;">
+                    <div style="text-align:center; min-width:60px;">
+                      <div style="font-size:0.6rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">On Time</div>
+                      <span style="display:inline-block; margin-top:2px; background:#ECFDF5; color:#059669; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:6px;"><%= on_time %></span>
+                    </div>
+                    <div style="text-align:center; min-width:60px;">
+                      <div style="font-size:0.6rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">Late</div>
+                      <span style="display:inline-block; margin-top:2px; background:#FEF2F2; color:#DC2626; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:6px;"><%= late %></span>
+                    </div>
+                  </div>
+
+                  <!-- Ratio Visual Progress -->
+                  <div style="flex:1; display:flex; align-items:center; gap:12px; min-width:180px; justify-content: flex-start;">
+                    <div style="flex:1; height:6px; background:#F1F5F9; border-radius:10px; overflow:hidden; position:relative; max-width:200px;">
+                      <div style="position:absolute; top:0; left:0; bottom:0; width:<%= late_ratio %>%; background:linear-gradient(90deg, #EF4444, #F59E0B); border-radius:10px;"></div>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:700; color:#475569; width:35px; text-align:right;"><%= late_ratio %>% ratio</span>
+                  </div>
+
+                  <!-- Status Badge -->
+                  <div style="width:130px; display:flex; justify-content:flex-end; flex-shrink:0;">
+                    <% if late > 3 %>
+                      <span style="background:#FEF2F2; border:1px solid #FEE2E2; color:#DC2626; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Chronic Late
+                      </span>
+                    <% elsif total == 0 %>
+                      <span style="background:#F8FAFC; border:1px solid #E2E8F0; color:#64748B; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
+                        No Shifts
+                      </span>
+                    <% else %>
+                      <span style="background:#F0FDF4; border:1px solid #DCFCE7; color:#15803D; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
+                        <i class="bi bi-check-circle-fill"></i> Standing OK
+                      </span>
+                    <% end %>
+                  </div>
+
                 </div>
               <% end %>
             </div>
+
+            <!-- Empty State -->
+            <div id="empty-<%= index %>" style="display:none; background:#F8FAFC; border:2px dashed #E2E8F0; border-radius:12px; padding:40px; text-align:center; color:#64748B;">
+              <i class="bi bi-search" style="font-size:2rem;color:#CBD5E1;display:block;margin-bottom:12px;"></i>
+              <div style="font-weight:600;font-size:0.95rem;">No employees match filters</div>
+              <div style="font-size:0.8rem;margin-top:4px;">Try updating your search query or department filter.</div>
+            </div>
+
           </section>
         <% end %>
       </div>
@@ -217,6 +312,23 @@
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    .monthly-row-item:hover {
+      border-color: #CBD5E1 !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+      transform: translateY(-1px);
+    }
+    .monthly-rows-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .monthly-rows-container::-webkit-scrollbar-track {
+      background: #F1F5F9;
+      border-radius: 8px;
+    }
+    .monthly-rows-container::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 8px;
+    }
   </style>
 
   <script>
@@ -234,7 +346,89 @@
           panel.setAttribute("aria-hidden", "false");
         });
       });
+
+      // Client-side filtration & sorting logic for monthly trackers
+      function applyMonthlyFilters(monthIndex) {
+        const container = document.getElementById(`container-${monthIndex}`);
+        if (!container) return;
+
+        const searchInput = document.querySelector(`.monthly-search-input[data-month-index="${monthIndex}"]`);
+        const deptFilter = document.querySelector(`.monthly-dept-filter[data-month-index="${monthIndex}"]`);
+        const sortSelect = document.querySelector(`.monthly-sort-select[data-month-index="${monthIndex}"]`);
+
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const deptVal = deptFilter ? deptFilter.value : 'all';
+        const sortVal = sortSelect ? sortSelect.value : 'late-desc';
+
+        const rows = Array.from(container.querySelectorAll('.monthly-row-item'));
+
+        rows.forEach(row => {
+          const name = row.getAttribute('data-name');
+          const dept = row.getAttribute('data-dept');
+          
+          const matchSearch = name.includes(query);
+          const matchDept = (deptVal === 'all' || dept === deptVal);
+
+          if (matchSearch && matchDept) {
+            row.style.display = 'flex';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        const visibleRows = rows.filter(r => r.style.display !== 'none');
+        const hiddenRows = rows.filter(r => r.style.display === 'none');
+
+        visibleRows.sort((a, b) => {
+          if (sortVal === 'name') {
+            return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+          } else if (sortVal === 'late-desc') {
+            return parseInt(b.getAttribute('data-late')) - parseInt(a.getAttribute('data-late'));
+          } else if (sortVal === 'late-asc') {
+            return parseInt(a.getAttribute('data-late')) - parseInt(b.getAttribute('data-late'));
+          } else if (sortVal === 'ratio-desc') {
+            return parseInt(b.getAttribute('data-ratio')) - parseInt(a.getAttribute('data-ratio'));
+          } else if (sortVal === 'on-time-desc') {
+            return parseInt(b.getAttribute('data-on-time')) - parseInt(a.getAttribute('data-on-time'));
+          }
+          return 0;
+        });
+
+        // Re-append to order them visually
+        container.innerHTML = '';
+        visibleRows.forEach(r => container.appendChild(r));
+        hiddenRows.forEach(r => container.appendChild(r));
+
+        // Toggle Empty State
+        const emptyState = document.getElementById(`empty-${monthIndex}`);
+        if (visibleRows.length === 0) {
+          if (emptyState) emptyState.style.display = 'block';
+        } else {
+          if (emptyState) emptyState.style.display = 'none';
+        }
+      }
+
+      // Attach dynamic events
+      document.querySelectorAll('.monthly-search-input').forEach(input => {
+        input.addEventListener('input', () => {
+          applyMonthlyFilters(input.getAttribute('data-month-index'));
+        });
+      });
+
+      document.querySelectorAll('.monthly-dept-filter').forEach(select => {
+        select.addEventListener('change', () => {
+          applyMonthlyFilters(select.getAttribute('data-month-index'));
+        });
+      });
+
+      document.querySelectorAll('.monthly-sort-select').forEach(select => {
+        select.addEventListener('change', () => {
+          applyMonthlyFilters(select.getAttribute('data-month-index'));
+        });
+      });
     });
-  </script> 
+  </script>
+
+</div> 
 
 </div>
