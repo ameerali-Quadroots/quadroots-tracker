@@ -299,7 +299,7 @@
                 end
             %>
             
-            <div class="emp-card" data-dept="<%= dept %>" data-status="<%= state %>" data-on-time="<%= is_on_time %>" data-late="<%= is_late %>" style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; overflow:hidden;">
+            <a href="<%= admin_employee_path(user) %>" class="emp-card" data-dept="<%= dept %>" data-status="<%= state %>" data-on-time="<%= is_on_time %>" data-late="<%= is_late %>" style="text-decoration:none; color:inherit; background:#fff; border-radius:14px; border:1px solid #E2E8F0; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; overflow:hidden;">
               <div style="display:flex; align-items:center; gap:12px;">
                 <!-- Avatar -->
                  <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:1.05rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; border: 2px solid #fff; box-shadow: 0 0 0 1px #E2E8F0;">
@@ -308,7 +308,7 @@
                 </div>
                 <!-- Info -->
                 <div style="flex:1; min-width:0;">
-                  <a href="<%= admin_employee_path(user) %>" style="font-size:0.9rem; font-weight:700; color:#0F172A; text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition: color 0.15s;" class="emp-name-link"><%= user.name %></a>
+                  <div style="font-size:0.9rem; font-weight:700; color:#0F172A; text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition: color 0.15s;" class="emp-name-link"><%= user.name %></div>
                   <div style="font-size:0.75rem; color:#64748B; margin-top:2px; font-weight:600;"><%= dept.upcase %> &middot; <%= user.role || "Executive" %></div>
                 </div>
               </div>
@@ -323,7 +323,7 @@
                   <%= style[:label] %>
                 </span>
               </div>
-            </div>
+            </a>
             
           <% end %>
         </div>
