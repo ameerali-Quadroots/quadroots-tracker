@@ -1,0 +1,71 @@
+<%# Auto-refreshing wrapper around the Live Command Center.
+    Polls /admin/dashboard/live_state and swaps the content in place so the
+    admin never has to reload the page. Used by both the super-admin and the
+    department-admin dashboards. %>
+<div id="live-state-container">
+  <%= render partial: "admin/dashboard/live_state", locals: { departments: departments } %>
+</div>
+
+<script>
+  (function () {
+    var REFRESH_MS = 15000; // refresh every 15 seconds
+    var URL = "/admin/dashboard/live_state";
+
+    // Re-execute <script> tags inside freshly injected HTML. Browsers do not
+    // run scripts that are set via innerHTML, so we recreate them.
+    function runScripts(container) {
+      container.querySelectorAll("script").forEach(function (oldScript) {
+        var s = document.createElement("script");
+        if (oldScript.src) {
+          s.src = oldScript.src;
+        } else {
+          s.textContent = oldScript.textContent;
+        }
+        oldScript.parentNode.replaceChild(s, oldScript);
+      });
+    }
+
+    function refresh() {
+      var container = document.getElementById("live-state-container");
+      if (!container || document.hidden) return; // skip when tab is hidden
+
+      // Preserve what the admin is currently looking at.
+      var deptEl = document.getElementById("filter-dept");
+      var statusEl = document.getElementById("filter-status");
+      var grid = document.getElementById("employee-grid");
+      var prevDept = deptEl ? deptEl.value : "all";
+      var prevStatus = statusEl ? statusEl.value : "all";
+      var prevScroll = grid ? grid.scrollTop : 0;
+
+      fetch(URL, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        credentials: "same-origin"
+      })
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+        .then(function (html) {
+          container.innerHTML = html;
+          runScripts(container);
+
+          // Restore filters & scroll position.
+          var newDept = document.getElementById("filter-dept");
+          var newStatus = document.getElementById("filter-status");
+          if (newDept) newDept.value = prevDept;
+          if (newStatus) {
+            newStatus.value = prevStatus;
+            newStatus.dispatchEvent(new Event("change"));
+          } else if (newDept) {
+            newDept.dispatchEvent(new Event("change"));
+          }
+
+          var newGrid = document.getElementById("employee-grid");
+          if (newGrid) newGrid.scrollTop = prevScroll;
+        })
+        .catch(function () { /* transient error — retry on next tick */ });
+    }
+
+    // Guard against setting up more than one timer.
+    if (!window.__liveStateTimer) {
+      window.__liveStateTimer = setInterval(refresh, REFRESH_MS);
+    }
+  })();
+</script>

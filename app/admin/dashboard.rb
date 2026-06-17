@@ -21,8 +21,23 @@ ActiveAdmin.register_page "Dashboard" do
             [current_admin_user.department].compact
           end
 
-        render partial: 'admin/dashboard/live_state', locals: { departments: departments_to_show }
+        render partial: 'admin/dashboard/live_state_auto', locals: { departments: departments_to_show }
       end
     end
+  end
+
+  # Polled by the dashboard JS so the Live Command Center refreshes itself
+  # without a full page reload.
+  page_action :live_state, method: :get do
+    departments_to_show =
+      if current_admin_user.super_admin? || current_admin_user.qa_admin?
+        User.distinct.pluck(:department).compact.sort
+      elsif current_admin_user.department == "HOD'S"
+        %w[WEB SEO ADS CONTENT]
+      else
+        [current_admin_user.department].compact
+      end
+
+    render partial: 'admin/dashboard/live_state', locals: { departments: departments_to_show }, layout: false
   end
 end

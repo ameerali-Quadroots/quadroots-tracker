@@ -1,5 +1,5 @@
 <!-- 1. LIVE STATE & COMMAND CENTER -->
-<%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
+<%= render partial: "admin/dashboard/live_state_auto", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
 
 <hr style="border:none;border-top:1px solid #E8ECF0;margin:40px 0;">
 
