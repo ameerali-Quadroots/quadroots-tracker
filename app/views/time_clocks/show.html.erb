@@ -51,7 +51,7 @@
       <div style="height:4px;background:linear-gradient(90deg,<%= tc.status == 'late' ? '#EF4444,#DC2626' : '#22C55E,#16A34A' %>);"></div>
       <div style="padding:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
         <div style="display:flex;align-items:center;gap:16px;">
-          <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#EFF6FF,#BFDBFE);color:#2563EB;font-size:1.4rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#F0EDF9,#D6CCEC);color:#6D5BA8;font-size:1.4rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <%= employee&.name&.first&.upcase || "?" %>
           </div>
           <div>
@@ -90,7 +90,7 @@
 
       <div style="background:#fff;border-radius:14px;border:1px solid #E8ECF0;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         <div style="font-size:0.65rem;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px;">Work Duration</div>
-        <div style="font-size:1.4rem;font-weight:900;color:#2563EB;letter-spacing:-0.5px;line-height:1;margin-top:2px;"><%= fmt_secs.(worked_secs) %></div>
+        <div style="font-size:1.4rem;font-weight:900;color:#6D5BA8;letter-spacing:-0.5px;line-height:1;margin-top:2px;"><%= fmt_secs.(worked_secs) %></div>
         <% if is_half_day %>
           <div style="font-size:0.65rem;font-weight:700;color:#D97706;margin-top:4px;">Half Day</div>
         <% end %>

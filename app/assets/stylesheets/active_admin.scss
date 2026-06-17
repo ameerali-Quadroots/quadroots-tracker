@@ -12,6 +12,16 @@
 // @import "active_admin/base";
 // @import "active_admin/mixins";
 // @import "active_admin/base";
+
+// === Quadroots brand palette — MUST come before the arctic_admin import so
+//     these !default variables are picked up. Purple/violet (#8471BC). ===
+$primary-color: #8471BC;
+$link-primary-color: #6D5BA8;
+$button-primary-color: #8471BC;
+$status-tag-background-color: #8471BC;
+$sidebar-item-hover-background: #EDE9F6;
+$sidebar-nested-item-hover-background: #DDD5EE;
+
 @import "arctic_admin/base";
 
 
@@ -917,3 +927,165 @@ body.logged_in.update .input label {
 #user_shift_time_input .fragment{
       width: 10% !important;
 }
+
+/* =====================================================================
+   QUADROOTS PURPLE THEME (#8471BC) — admin chrome + table polish.
+   Appended last so it wins the cascade. Status colours (green/red/amber)
+   are intentionally left alone so attendance state stays readable.
+   ===================================================================== */
+:root {
+  --qr-purple:        #8471BC;
+  --qr-purple-dark:   #6D5BA8;
+  --qr-purple-darker: #574590;
+  --qr-purple-50:     #F7F5FC;
+  --qr-purple-100:    #EFEAF8;
+  --qr-purple-200:    #DDD5EE;
+}
+
+/* ---- Brand the logo box + login (white box so the purple logo reads) ---- */
+.site_title {
+  background: #ffffff !important;
+  border-bottom: 3px solid var(--qr-purple) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.site_title a { color: var(--qr-purple-darker) !important; }
+#site_title_image,
+.site_title img {
+  max-height: 40px !important;
+  width: auto !important;
+  vertical-align: middle;
+}
+/* Login screen logo panel */
+body.logged_out #login {
+  border-top: 4px solid var(--qr-purple) !important;
+}
+body.logged_out h2 { color: var(--qr-purple-darker) !important; }
+
+/* ---- Active navigation item ---- */
+#tabs > li.current > a,
+#tabs > li > a:hover,
+ul.tabs > li.current > a {
+  background: var(--qr-purple) !important;
+  color: #fff !important;
+}
+
+/* ---- Index tables ---- */
+table.index_table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--qr-purple-200);
+  box-shadow: 0 1px 3px rgba(87,69,144,0.08);
+}
+table.index_table > thead > tr > th {
+  background: var(--qr-purple-100) !important;
+  color: var(--qr-purple-darker) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 0.72rem;
+  padding: 13px 14px;
+  border-bottom: 2px solid var(--qr-purple-200) !important;
+}
+table.index_table > thead > tr > th a {
+  color: var(--qr-purple-darker) !important;
+}
+table.index_table > thead > tr > th.sorted-asc,
+table.index_table > thead > tr > th.sorted-desc {
+  background: var(--qr-purple-200) !important;
+}
+table.index_table > tbody > tr > td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #F1EEF8;
+  vertical-align: middle;
+}
+table.index_table > tbody > tr:nth-child(even) > td { background: #FBFAFE; }
+table.index_table > tbody > tr:hover > td { background: var(--qr-purple-50) !important; }
+
+/* table links (but not status tags / buttons) */
+table.index_table td a:not(.button):not(.status_tag),
+.panel_contents table td a:not(.button) {
+  color: var(--qr-purple-dark);
+  font-weight: 600;
+}
+table.index_table td a:not(.button):hover { color: var(--qr-purple-darker); text-decoration: underline; }
+
+/* ---- Panels ---- */
+.panel > h3 {
+  background: var(--qr-purple-100);
+  color: var(--qr-purple-darker) !important;
+  border-left: 4px solid var(--qr-purple);
+  padding: 12px 16px !important;
+  border-radius: 8px 8px 0 0;
+  font-weight: 800;
+}
+.panel { border-radius: 10px; overflow: hidden; }
+
+/* ---- Buttons / action items (brand actions only — keeps .btn-success/.btn-danger) ---- */
+.action_items a.button,
+a.button,
+.button,
+input[type="submit"],
+button[type="submit"] {
+  background: linear-gradient(135deg, #8471BC, #6D5BA8) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(87,69,144,0.28);
+  transition: filter 0.15s ease;
+}
+.action_items a.button:hover,
+a.button:hover,
+.button:hover,
+input[type="submit"]:hover,
+button[type="submit"]:hover {
+  filter: brightness(0.92);
+}
+
+/* ---- Filter sidebar ---- */
+#filters_sidebar_section h3,
+.sidebar_section > h3 {
+  color: var(--qr-purple-darker);
+  border-bottom: 2px solid var(--qr-purple-100);
+  padding-bottom: 6px;
+}
+
+/* ---- Pagination ---- */
+.pagination span.current,
+.pagination .current {
+  background: var(--qr-purple) !important;
+  border-color: var(--qr-purple) !important;
+  color: #fff !important;
+  border-radius: 6px;
+}
+.pagination a { color: var(--qr-purple-dark) !important; border-radius: 6px; }
+.pagination a:hover { background: var(--qr-purple-50) !important; }
+
+/* ---- Scopes (the filter tabs above an index table) ---- */
+.scopes .scope.selected a,
+.scopes a.selected {
+  color: var(--qr-purple-darker) !important;
+  border-bottom: 3px solid var(--qr-purple) !important;
+}
+
+/* ---- Status tags: keep semantics, only restyle neutral/default ones ---- */
+.status_tag { border-radius: 6px; font-weight: 700; letter-spacing: 0.3px; }
+.status_tag.no,
+.status_tag.unset,
+.status_tag.unconfirmed { background-color: #94A3B8 !important; }
+
+/* ---- Custom dashboard tables echo the same purple header ---- */
+.dept-table th,
+.late-users-table th {
+  background: var(--qr-purple-100) !important;
+  color: var(--qr-purple-darker) !important;
+}
+.dept-table tr:hover td,
+.late-users-table tbody tr:hover td {
+  background: var(--qr-purple-50) !important;
+}
+.dept-table a,
+.late-users-table a { color: var(--qr-purple-dark) !important; }

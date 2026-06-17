@@ -5,6 +5,8 @@ ActiveAdmin.setup do |config|
   # for each of the active admin pages.
   #
   config.site_title = "Clock In Clock Out"
+  # Quadroots brand logo in the header (and on the login screen).
+  config.site_title_image = "logo-2.png"
   config.register_stylesheet 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'
   config.register_javascript 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'
   # Set the link url for the title. For example, to take

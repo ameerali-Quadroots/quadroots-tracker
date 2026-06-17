@@ -49,7 +49,7 @@
 
     <div style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#EFF6FF,#BFDBFE);color:#2563EB;font-size:1.3rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#F0EDF9,#D6CCEC);color:#6D5BA8;font-size:1.3rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <%= @employee.name.first.upcase %>
         </div>
         <div>
@@ -89,7 +89,7 @@
 
     <div style="background:#fff;border-radius:12px;border:1px solid #E8ECF0;padding:18px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
       <div style="font-size:0.62rem;font-weight:700;color:#94A3B8;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Work Duration</div>
-      <div style="font-size:1.3rem;font-weight:900;color:#2563EB;letter-spacing:-0.5px;line-height:1;"><%= fmt_secs.(worked_secs) %></div>
+      <div style="font-size:1.3rem;font-weight:900;color:#6D5BA8;letter-spacing:-0.5px;line-height:1;"><%= fmt_secs.(worked_secs) %></div>
       <% if is_half_day %>
         <div style="font-size:0.62rem;font-weight:700;color:#D97706;margin-top:3px;">Half Day</div>
       <% end %>
