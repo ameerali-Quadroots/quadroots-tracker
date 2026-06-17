@@ -1,4 +1,7 @@
+<!-- 1. LIVE STATE & COMMAND CENTER -->
 <%= render partial: "admin/dashboard/live_state", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
+
+<hr style="border:none;border-top:1px solid #E8ECF0;margin:40px 0;">
 
 <%
   # === Define today's range (3 AM cutoff) ===
@@ -23,291 +26,215 @@
   @unique_late_users_today = @late_time_clocks.select(:user_id).distinct.count
 %>
 
-<div class="time-summary-container" style="margin-top: 30px;">
-  <h2 class="time-summary-title">Workforce Status</h2>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
 
-  <div class="time-summary-grid">
-    <!-- Employed Users -->
-    <a href="<%= admin_employees_url(scope: 'employed') %>" class="summary-card" style="background-color: rgba(35, 191, 127, 0.1); border-left: 4px solid #23BF7F;">
-      <div class="summary-card-body" style="color: #23BF7F !important;">
-        <h3 style="color: #23BF7F !important;"><%= User.where(employeed: true).count %></h3>
-        <p style="color: #23BF7F !important; font-weight: 600;">Total Employed</p>
-      </div>
-    </a>
-
-    <!-- Unemployed Users -->
-    <a href="<%= admin_employees_url(scope: 'unemployed') %>" class="summary-card" style="background-color: rgba(255, 43, 43, 0.1); border-left: 4px solid #FF2B2B;">
-      <div class="summary-card-body" style="color: #FF2B2B !important;">
-        <h3 style="color: #FF2B2B !important;"><%= User.where(employeed: [false, nil]).count %></h3>
-        <p style="color: #FF2B2B !important; font-weight: 600;">Total Unemployed</p>
-      </div>
-    </a>
+  <!-- 2. HISTORICAL ATTENDANCE & WORKFORCE SUMMARY -->
+  <div style="margin-bottom: 24px;">
+    <h2 style="font-size: 1.5rem; font-weight: 900; color: #0F172A; margin: 0;">Attendance Analytics</h2>
+    <p style="font-size: 0.85rem; color: #64748B; margin-top: 4px;">Historical tracking and workforce statistics &middot; Shift Day: <%= start_time.strftime('%b %d, %Y') %></p>
   </div>
-</div>
 
-<div class="time-summary-container">
-  <h2 class="time-summary-title">
-    Time Clock Summary for <%= start_time.strftime('%B %d, %Y') %> (Shift Day)
-  </h2>
-
-  <div class="time-summary-grid">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-bottom:40px;">
+    
     <!-- Users Late Today -->
-    <a href="<%= admin_time_clocks_url(
-                q: {
-                  clock_in_gteq: start_time,
-                  clock_in_lteq: end_time,
-                  status_eq: 'late'
-                },
-                commit: 'Filter',
-                order: 'id_desc'
-              ) %>" class="summary-card summary-late">
-      <div class="summary-card-body">
-        <h3><%= @unique_late_users_today %></h3>
-        <p>Users Late Today</p>
-      </div>
+    <a href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'late'}, commit: 'Filter', order: 'id_desc') %>" 
+       style="text-decoration:none;display:block;background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:0.75rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Late Today</div>
+      <div style="font-size:2rem;font-weight:900;color:#E11D48;line-height:1;"><%= @unique_late_users_today %></div>
     </a>
 
     <!-- Users On Time Today -->
-    <a href="<%= admin_time_clocks_url(
-                q: {
-                  clock_in_gteq: start_time,
-                  clock_in_lteq: end_time,
-                  status_eq: 'on_time'
-                },
-                commit: 'Filter',
-                order: 'id_desc'
-              ) %>" class="summary-card summary-ontime">
-      <div class="summary-card-body">
-        <h3><%= @on_time_count %></h3>
-        <p>Users On Time Today</p>
-      </div>
+    <a href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'on_time'}, commit: 'Filter', order: 'id_desc') %>" 
+       style="text-decoration:none;display:block;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:0.75rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">On Time Today</div>
+      <div style="font-size:2rem;font-weight:900;color:#16A34A;line-height:1;"><%= @on_time_count %></div>
     </a>
+
+    <!-- Total Employed -->
+    <a href="<%= admin_employees_url(scope: 'employed') %>" 
+       style="text-decoration:none;display:block;background:#fff;border:1px solid #E8ECF0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:#3B82F6;"></div>
+      <div style="font-size:0.75rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Total Employed</div>
+      <div style="font-size:2rem;font-weight:900;color:#2563EB;line-height:1;"><%= User.where(employeed: true).count %></div>
+    </a>
+
+    <!-- Total Unemployed -->
+    <a href="<%= admin_employees_url(scope: 'unemployed') %>" 
+       style="text-decoration:none;display:block;background:#fff;border:1px solid #E8ECF0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:#94A3B8;"></div>
+      <div style="font-size:0.75rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Unemployed</div>
+      <div style="font-size:2rem;font-weight:900;color:#64748B;line-height:1;"><%= User.where(employeed: [false, nil]).count %></div>
+    </a>
+
   </div>
-</div>
 
+  <!-- 3. MONTHLY ATTENDANCE TABS -->
+  <%
+    year = 2025
+    months = (1..12).to_a
+    monthly_stats = months.map do |month_number|
+      month_start = Time.new(year, month_number).beginning_of_month
+      month_end   = Time.new(year, month_number).end_of_month
+      month_range = month_start..month_end
 
-<%
-  # === Yearly data setup ===
-  year = 2025
-  months = (1..12).to_a
+      on_time_count = TimeClock.where(status: "on_time", clock_in: month_range).count
+      late_count    = TimeClock.where(status: "late", clock_in: month_range).count
 
-  # Grouped monthly stats
-  monthly_stats = months.map do |month_number|
-    month_start = Time.new(year, month_number).beginning_of_month
-    month_end   = Time.new(year, month_number).end_of_month
-    month_range = month_start..month_end
+      late_users = User.joins(:time_clocks)
+                       .where(employeed: true)
+                       .where(time_clocks: { status: "late", clock_in: month_range })
+                       .group("users.id")
+                       .having("COUNT(time_clocks.id) > 3")
+                       .select("users.*, COUNT(time_clocks.id) as late_count")
+                       .order("late_count DESC")
 
-    on_time_count = TimeClock.where(status: "on_time", clock_in: month_range).count
-    late_count    = TimeClock.where(status: "late", clock_in: month_range).count
+      {
+        month_name: month_start.strftime("%B"),
+        on_time: on_time_count,
+        late: late_count,
+        late_users: late_users
+      }
+    end
+  %>
 
-    late_users = User.joins(:time_clocks)
-                     .where(employeed: true)
-                     .where(time_clocks: { status: "late", clock_in: month_range })
-                     .group("users.id")
-                     .having("COUNT(time_clocks.id) > 3")
-                     .select("users.*, COUNT(time_clocks.id) as late_count")
-                     .order("late_count DESC")
+  <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04);overflow:hidden;">
+    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;">
+      <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Monthly Overview (2025)</h3>
+    </div>
 
-    {
-      month_name: month_start.strftime("%B"),
-      on_time: on_time_count,
-      late: late_count,
-      late_users: late_users
+    <div style="padding:24px;">
+      
+      <!-- Tab Controls -->
+      <div class="tablist" role="tablist" aria-label="Monthly Attendance Tabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;">
+        <% monthly_stats.each_with_index do |data, index| %>
+          <button 
+            class="dash-tab <%= 'active' if index == 10 %>" 
+            role="tab"
+            aria-selected="<%= index == 10 %>"
+            aria-controls="panel-<%= index %>"
+            id="tab-<%= index %>"
+            tabindex="<%= index == 10 ? 0 : -1 %>">
+            <%= data[:month_name] %>
+          </button>
+        <% end %>
+      </div>
+
+      <!-- Tab Panels -->
+      <div class="tab-panels">
+        <% monthly_stats.each_with_index do |data, index| %>
+          <section 
+            id="panel-<%= index %>" 
+            class="dash-tab-panel" 
+            role="tabpanel" 
+            aria-labelledby="tab-<%= index %>"
+            aria-hidden="<%= index != 10 %>"
+            <%= 'hidden' if index != 10 %>>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+              <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:0.7rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">On Time Total</div>
+                <div style="font-size:1.8rem;font-weight:900;color:#16A34A;line-height:1;"><%= data[:on_time] %></div>
+              </div>
+              <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:0.7rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">Late Total</div>
+                <div style="font-size:1.8rem;font-weight:900;color:#E11D48;line-height:1;"><%= data[:late] %></div>
+              </div>
+            </div>
+
+            <div>
+              <h4 style="font-size:0.9rem;font-weight:800;color:#0F172A;margin:0 0 16px 0;padding-bottom:8px;border-bottom:1px solid #F1F5F9;">Chronic Lateness (>3 times)</h4>
+              <% if data[:late_users].any? %>
+                <div style="border:1px solid #E8ECF0;border-radius:12px;overflow:hidden;">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead style="background:#F8FAFC;">
+                      <tr>
+                        <th style="text-align:left;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">User</th>
+                        <th style="text-align:left;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">Department</th>
+                        <th style="text-align:center;padding:12px 16px;font-size:0.75rem;font-weight:700;color:#64748B;text-transform:uppercase;">Late Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% data[:late_users].each do |user| %>
+                        <tr style="border-top:1px solid #E8ECF0;">
+                          <td style="padding:12px 16px;">
+                            <a href="<%= admin_employee_path(user) %>" style="font-weight:700;color:#2563EB;text-decoration:none;"><%= user.name %></a>
+                          </td>
+                          <td style="padding:12px 16px;font-size:0.85rem;color:#475569;"><%= user.department %></td>
+                          <td style="padding:12px 16px;text-align:center;">
+                            <span style="background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;"><%= user.late_count %></span>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              <% else %>
+                <div style="background:#F8FAFC;border:2px dashed #E2E8F0;border-radius:12px;padding:32px;text-align:center;color:#64748B;">
+                  <i class="bi bi-stars" style="font-size:2rem;color:#F59E0B;display:block;margin-bottom:12px;"></i>
+                  <div style="font-weight:600;font-size:0.95rem;">No chronic lateness this month!</div>
+                  <div style="font-size:0.8rem;margin-top:4px;">Everyone stayed under the 3-late threshold.</div>
+                </div>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .dash-tab {
+      border: 1px solid #E2E8F0;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #fff;
+      color: #64748B;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.8rem;
+      transition: all 0.2s;
     }
-  end
-%>
+    .dash-tab:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+      color: #0F172A;
+    }
+    .dash-tab.active {
+      background: #3B82F6;
+      border-color: #3B82F6;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    .dash-tab-panel {
+      display: none;
+      animation: dashFadeIn 0.3s ease;
+    }
+    .dash-tab-panel[aria-hidden="false"] {
+      display: block;
+    }
+    @keyframes dashFadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 
-<div class="yearly-tabs-container">
-  <div class="tablist" role="tablist" aria-label="Monthly Attendance Tabs">
-    <% monthly_stats.each_with_index do |data, index| %>
-      <button 
-        class="tab <%= 'active' if index == 10 %>" 
-        role="tab"
-        aria-selected="<%= index == 0 %>"
-        aria-controls="panel-<%= index %>"
-        id="tab-<%= index %>"
-        tabindex="<%= index == 0 ? 0 : -1 %>">
-        <%= data[:month_name] %>
-      </button>
-    <% end %>
-  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const tabs = document.querySelectorAll(".dash-tab");
+      const panels = document.querySelectorAll(".dash-tab-panel");
 
-  <div class="tab-panels">
-    <% monthly_stats.each_with_index do |data, index| %>
-      <section 
-        id="panel-<%= index %>" 
-        class="tab-panel" 
-        role="tabpanel" 
-        aria-labelledby="tab-<%= index %>"
-        aria-hidden="<%= index != 0 %>"
-        <%= 'hidden' if index != 0 %>>
-        
-        <div class="monthly-overview">
-          <div class="stat on-time">
-            <h3><%= data[:on_time] %></h3>
-            <p>On Time</p>
-          </div>
-          <div class="stat late">
-            <h3><%= data[:late] %></h3>
-            <p>Late</p>
-          </div>
-        </div>
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.forEach(t => t.classList.remove("active"));
+          panels.forEach(p => p.setAttribute("aria-hidden", "true"));
 
-        <div class="late-users-table">
-          <h4>Users with More Than 3 Lates</h4>
-          <% if data[:late_users].any? %>
-            <table>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Department</th>
-                  <th>Late Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% data[:late_users].each do |user| %>
-                  <tr>
-                    <td><%= user.name %></td>
-                    <td><%= link_to user.email, admin_employee_path(user) %></td>
-                    <td><%= user.department %></td>
-                    <td><%= user.late_count %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          <% else %>
-            <p class="no-late-users">🎉 No users with more than 3 lates this month!</p>
-          <% end %>
-        </div>
-      </section>
-    <% end %>
-  </div>
-</div>
-<style>
- .yearly-tabs-container {
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-  }
-
-  .tablist {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .tab {
-    border: none;
-    padding: 8px 16px;
-    border-radius: 999px;
-    background: var(--bg-dark);
-    color: var(--muted);
-    cursor: pointer;
-    font-weight: 600;
-    transition: 0.3s;
-  }
-
-  .tab:hover {
-    background: #64287F;
-    color: #fff;
-  }
-
-  .tab.active {
-    background: #64287F;
-    color: white;
-    transform: translateY(-2px);
-  }
-
-  .tab-panels {
-    border-top: 1px solid #64287F;
-    padding-top: 16px;
-  }
-
-  .tab-panel {
-    display: none;
-    animation: fadeIn 0.3s ease;
-  }
-
-  .tab-panel[aria-hidden="false"] {
-    display: block;
-  }
-
-  .monthly-overview {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .stat {
-    flex: 1;
-    background: rgba(236, 14, 14, 0.05);
-    border-radius: 8px;
-    text-align: center;
-    padding: 12px;
-  }
-
-  .stat h3 {
-    margin: 0;
-    font-size: 1.5rem;
-  }
-
-  .stat p {
-    margin: 0;
-    color: var(--muted);
-  }
-
-  .late-users-table table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .late-users-table th, .late-users-table td {
-    text-align: left;
-    padding: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-
-  .no-late-users {
-    color: var(--muted);
-    text-align: center;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .on-time{
-    background: #23BF7F !important
-  }
-  .late{
-    background: #FF2B2B;
-    color: #fff;
-  }
-
-  .late h3 {
-    color: #fff !important;
-  }
-</style>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const tabs = document.querySelectorAll(".tab");
-    const panels = document.querySelectorAll(".tab-panel");
-
-    tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        // deactivate all
-        tabs.forEach(t => t.classList.remove("active"));
-        panels.forEach(p => p.setAttribute("aria-hidden", "true"));
-
-        // activate current
-        tab.classList.add("active");
-        const panel = document.getElementById(tab.getAttribute("aria-controls"));
-        panel.setAttribute("aria-hidden", "false");
+          tab.classList.add("active");
+          const panel = document.getElementById(tab.getAttribute("aria-controls"));
+          panel.setAttribute("aria-hidden", "false");
+        });
       });
     });
-  });
-</script> 
+  </script> 
+
+</div>
