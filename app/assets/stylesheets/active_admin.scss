@@ -1089,3 +1089,55 @@ button[type="submit"]:hover {
 }
 .dept-table a,
 .late-users-table a { color: var(--qr-purple-dark) !important; }
+
+/* =====================================================================
+   FILTER DRAWER — on index pages arctic_admin renders the filter sidebar
+   as a fixed slide-out drawer opened by a funnel tab on the right edge.
+   By default that tab is an unstyled white box with a black icon, so it
+   looks like a detached/floating glitch. Restyle it into a clear purple
+   "Filters" button and polish the drawer it opens.
+   ===================================================================== */
+
+/* The funnel pull-tab (the :before of #sidebar) */
+body.index #sidebar::before {
+  background: linear-gradient(135deg, var(--qr-purple), var(--qr-purple-dark)) !important;
+  color: #ffffff !important;
+  top: 110px !important;
+  left: -46px !important;
+  width: 46px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  border-top-left-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: -2px 2px 10px rgba(87, 69, 144, 0.30) !important;
+  transition: left 0.15s ease, filter 0.15s ease !important;
+}
+body.index #sidebar:hover::before {
+  filter: brightness(1.08);
+  left: -50px !important;
+}
+
+/* The drawer panel itself, once slid open */
+body.index #sidebar {
+  border-top-left-radius: 12px !important;
+  border-bottom-left-radius: 12px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: -6px 0 22px rgba(87, 69, 144, 0.14) !important;
+  background: #ffffff !important;
+}
+body.index #sidebar .sidebar_section.panel > h3 {
+  background: var(--qr-purple-100);
+  color: var(--qr-purple-darker) !important;
+  border-left: 4px solid var(--qr-purple);
+  margin: -15px -20px 12px -20px !important;
+  padding: 12px 16px !important;
+  border-radius: 0;
+  font-weight: 800;
+}
