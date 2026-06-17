@@ -40,4 +40,14 @@ ActiveAdmin.register_page "Dashboard" do
 
     render partial: 'admin/dashboard/live_state', locals: { departments: departments_to_show }, layout: false
   end
+
+  # Returns just the Monthly Overview section for a given year, so the year
+  # selector can swap it in via AJAX without a full page reload.
+  page_action :monthly_overview, method: :get do
+    unless current_admin_user.super_admin? || current_admin_user.qa_admin?
+      render(plain: "Forbidden", status: :forbidden) and return
+    end
+
+    render partial: 'admin/dashboard/monthly_overview', locals: { year: params[:analytics_year] }, layout: false
+  end
 end
