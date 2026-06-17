@@ -92,7 +92,7 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px;">
       
       <!-- Card: Total Team -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="all" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Total Team</div>
           <div style="font-size:1.8rem; font-weight:800; color:#0F172A; margin-top:4px; line-height:1;"><%= total_users %></div>
@@ -103,7 +103,7 @@
       </div>
 
       <!-- Card: Active Now -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="working" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Working Now</div>
           <div style="font-size:1.8rem; font-weight:800; color:#10B981; margin-top:4px; line-height:1;"><%= count_working %></div>
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Card: On-Time Today -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="on_time" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">On Time Today</div>
           <div style="font-size:1.8rem; font-weight:800; color:#10B981; margin-top:4px; line-height:1;"><%= today_on_time_count %></div>
@@ -127,7 +127,7 @@
       </div>
 
       <!-- Card: Late Today -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="late" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Late Today</div>
           <div style="font-size:1.8rem; font-weight:800; color:#EF4444; margin-top:4px; line-height:1;"><%= today_late_count %></div>
@@ -139,7 +139,7 @@
       </div>
 
       <!-- Card: On Break -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="on_break" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">On Break</div>
           <div style="font-size:1.8rem; font-weight:800; color:#F59E0B; margin-top:4px; line-height:1;"><%= count_break %></div>
@@ -150,7 +150,7 @@
       </div>
 
       <!-- Card: In Meeting -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="meeting" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">In Meeting</div>
           <div style="font-size:1.8rem; font-weight:800; color:#0EA5E9; margin-top:4px; line-height:1;"><%= count_meeting %></div>
@@ -161,7 +161,7 @@
       </div>
 
       <!-- Card: Downtime -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="downtime" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Downtime</div>
           <div style="font-size:1.8rem; font-weight:800; color:#EF4444; margin-top:4px; line-height:1;"><%= count_downtime %></div>
@@ -172,7 +172,7 @@
       </div>
 
       <!-- Card: Offline -->
-      <div class="kpi-card" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s;">
+      <div class="kpi-card" data-filter-status="off" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
         <div>
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Offline</div>
           <div style="font-size:1.8rem; font-weight:800; color:#64748B; margin-top:4px; line-height:1;"><%= count_off %></div>
@@ -249,6 +249,8 @@
             <select id="filter-status" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
               <option value="all">All Statuses</option>
               <option value="working">Working</option>
+              <option value="on_time">On Time (Today)</option>
+              <option value="late">Late (Today)</option>
               <option value="on_break">On Break</option>
               <option value="meeting">Meeting</option>
               <option value="downtime">Downtime</option>
@@ -271,6 +273,9 @@
               last_clock = item[:last_clock]
               last_break = item[:last_break]
               
+              is_on_time = last_clock.present? && last_clock.status == 'on_time'
+              is_late = last_clock.present? && last_clock.status == 'late'
+
               style = case state
                 when "working"  then { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0", dot: "#10B981", label: "Working" }
                 when "on_break" then { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "On Break" }
@@ -294,10 +299,10 @@
                 end
             %>
             
-            <div class="emp-card" data-dept="<%= dept %>" data-status="<%= state %>" style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; overflow:hidden;">
+            <div class="emp-card" data-dept="<%= dept %>" data-status="<%= state %>" data-on-time="<%= is_on_time %>" data-late="<%= is_late %>" style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; overflow:hidden;">
               <div style="display:flex; align-items:center; gap:12px;">
                 <!-- Avatar -->
-                <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:1.05rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; border: 2px solid #fff; box-shadow: 0 0 0 1px #E2E8F0;">
+                 <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:1.05rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; border: 2px solid #fff; box-shadow: 0 0 0 1px #E2E8F0;">
                   <%= user.name&.first&.upcase || "?" %>
                   <span style="position:absolute; bottom:-1px; right:-1px; width:12px; height:12px; border-radius:50%; background:<%= style[:dot] %>; border:2px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); <%= 'animation: pulse 1.5s infinite;' if state == 'working' %>"></span>
                 </div>
@@ -450,7 +455,17 @@
 
           cards.forEach(card => {
             const matchDept = (dVal === "all" || card.getAttribute("data-dept") === dVal);
-            const matchStatus = (sVal === "all" || card.getAttribute("data-status") === sVal);
+            
+            let matchStatus = false;
+            if (sVal === "all") {
+              matchStatus = true;
+            } else if (sVal === "on_time") {
+              matchStatus = (card.getAttribute("data-on-time") === "true");
+            } else if (sVal === "late") {
+              matchStatus = (card.getAttribute("data-late") === "true");
+            } else {
+              matchStatus = (card.getAttribute("data-status") === sVal);
+            }
 
             if (matchDept && matchStatus) {
               card.style.display = "flex";
@@ -467,6 +482,17 @@
           deptFilter.addEventListener("change", filterCards);
           statusFilter.addEventListener("change", filterCards);
         }
+
+        // Click handler for KPI cards to trigger filters
+        document.querySelectorAll("[data-filter-status]").forEach(kpiCard => {
+          kpiCard.addEventListener("click", () => {
+            const statusVal = kpiCard.getAttribute("data-filter-status");
+            if (statusFilter) {
+              statusFilter.value = statusVal;
+              filterCards();
+            }
+          });
+        });
       })();
     </script>
 
