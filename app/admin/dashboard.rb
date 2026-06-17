@@ -8,11 +8,11 @@ ActiveAdmin.register_page "Dashboard" do
   
 
     if current_admin_user.super_admin? || current_admin_user.qa_admin?
-      panel "Live Current State of Users by Department", class: "height-class2" do
+      div class: "height-class2" do
         render partial: 'admin/dashboard/super_admin_dashboard', locals: { current_admin_user: current_admin_user }
       end
     else
-      panel "Live Current State of Your Department", class: "height-class2" do
+      div class: "height-class2" do
         # Special case for HOD'S
         departments_to_show =
           if current_admin_user.department == "HOD'S"
