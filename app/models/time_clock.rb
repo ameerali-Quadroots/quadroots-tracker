@@ -47,13 +47,13 @@ end
   def total_break_seconds
   return 0 if breaks.blank?
 
-  # Only subtract breaks that are NOT meetings
-  breaks.where.not(break_type: "meeting").sum do |b|
-    if b.break_out.present?
-      (b.break_out - b.break_in).to_i
-    else
-      0
-    end
+  # Only subtract breaks that are NOT meetings.
+  # Iterate the loaded association (no extra query) instead of breaks.where(...)
+  breaks.sum do |b|
+    next 0 if b.break_type.blank? || b.break_type == "meeting"
+    next 0 if b.break_out.blank?
+
+    (b.break_out - b.break_in).to_i
   end
 end
 
@@ -73,7 +73,9 @@ end
 
   now = Time.zone.now
 
-  break_seconds = breaks.where.not(break_type: "meeting").sum do |br|
+  break_seconds = breaks.sum do |br|
+    next 0 if br.break_type.blank? || br.break_type == "meeting"
+
     (br.break_out || now) - br.break_in
   end
 
@@ -84,8 +86,9 @@ def calculate_downtime(now = Time.current)
   downtime_seconds = 0
 
   if respond_to?(:breaks) && breaks.any?
-    downtime_breaks = breaks.where(break_type: "Downtime")
-    downtime_seconds = downtime_breaks.sum do |br|
+    downtime_seconds = breaks.sum do |br|
+      next 0 unless br.break_type == "Downtime"
+
       (br.break_out || now) - br.break_in
     end
   end
@@ -104,6 +107,35 @@ end
 
     worked_seconds = (clock_out - clock_in).to_i - total_break_seconds
     self.total_duration = [worked_seconds, 0].max
+  end
+
+  # The datetime the employee's shift was supposed to start for this record,
+  # based on the employee's configured shift_time (defaults to 18:00).
+  def shift_start
+    return nil if clock_in.blank?
+
+    st = employee&.shift_time || Time.zone.parse("18:00")
+    candidate = clock_in.change(hour: st.hour, min: st.min, sec: 0)
+    # Overnight shift: clocked in in the early morning belongs to the previous day's shift
+    candidate -= 1.day if clock_in < candidate - 1.hour
+    candidate
+  end
+
+  # How many whole minutes late the employee clocked in (0 if on time / early).
+  def late_minutes
+    return 0 if clock_in.blank? || shift_start.blank?
+
+    minutes = ((clock_in - shift_start) / 60).to_i
+    minutes.positive? ? minutes : 0
+  end
+
+  # Completed break seconds grouped by break_type, e.g. { "Namaz Break" => 600 }
+  def break_seconds_by_type
+    breaks.each_with_object(Hash.new(0)) do |b, acc|
+      next if b.break_in.blank? || b.break_out.blank?
+
+      acc[b.break_type] += (b.break_out - b.break_in).to_i
+    end
   end
 
   def self.ransackable_attributes(auth_object = nil)

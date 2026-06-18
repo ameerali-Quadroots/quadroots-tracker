@@ -991,6 +991,92 @@ body.index #sidebar .sidebar_section > h3 { display: none; }
 }
 
 // =============================================================================
+//  EXPORT DROPDOWN  (title-bar action item)
+// =============================================================================
+.action_items .dropdown_menu {
+  position: relative !important;
+  display: inline-block !important;
+
+  // AA injects a decorative "nipple" triangle — kill it (it was the stray arrow)
+  .dropdown_menu_nipple { display: none !important; }
+
+  .dropdown_menu_button { position: relative; }
+
+  // The panel: a clean white card, right-aligned so it never clips off-screen.
+  // !important everywhere to beat ActiveAdmin's default gradient wrapper styling.
+  .dropdown_menu_list_wrapper {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    z-index: 1200 !important;
+    min-width: 252px !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    border: 1px solid var(--qr-purple-100) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 16px 40px rgba(46, 35, 71, 0.22) !important;
+    padding: 7px !important;
+    transform-origin: top right;
+    animation: qrDropdownIn 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  // Inner <ul> — strip AA's white inner card / borders / shadows
+  .dropdown_menu_list {
+    display: block !important;
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+
+    li {
+      display: block !important;
+      margin: 0 !important;
+      border: none !important;       // remove default divider lines
+    }
+
+    // Override BOTH the global purple-gradient action-item link AND AA defaults
+    li a {
+      display: block !important;
+      background: transparent !important;
+      background-image: none !important;
+      color: var(--qr-purple-dark) !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 14px !important;
+      margin: 1px 0 !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      text-align: left !important;
+      white-space: nowrap;
+      transition: background 0.13s ease, color 0.13s ease, transform 0.13s ease;
+
+      &:hover,
+      &:active,
+      &:focus {
+        background: var(--qr-purple-50) !important;
+        background-image: none !important;
+        color: var(--qr-purple-darker) !important;
+        transform: translateX(2px) !important;
+        box-shadow: none !important;
+        filter: none !important;
+        text-shadow: none !important;
+      }
+    }
+  }
+}
+
+@keyframes qrDropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+// =============================================================================
 //  LOGIN  (logged out)
 // =============================================================================
 body.logged_out {
