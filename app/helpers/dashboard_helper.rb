@@ -43,8 +43,10 @@ module DashboardHelper
 
     # Returns a hash of pre-computed status values for an executive in the given shift range.
     # Keys: :time_clock, :status, :status_html, :live_label, :breaks_count, :break_duration_label, :meetings_count, :meeting_duration_label, :break_since
-    def executive_status_data(executive, shift_range)
-      tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
+    def executive_status_data(executive, shift_range, tc = :__unset)
+      # Caller can pass a preloaded time_clock (with :breaks eager-loaded) to avoid
+      # a per-executive query. A sentinel default lets an explicit nil mean "no record".
+      tc = executive.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first if tc == :__unset
 
       data = {
         time_clock: tc,
@@ -82,7 +84,8 @@ module DashboardHelper
       meeting_dur_label = format_seconds_to_hms(total_meeting_secs)
 
       if tc.on_break?
-        last_break = tc.breaks.where(break_out: nil).last
+        # Use the already-loaded breaks array instead of re-querying the DB
+        last_break = breaks.select { |b| b.break_out.nil? }.last
         if last_break&.break_type == "Meeting"
           status = 'In Meeting'
           status_html = %Q(<span class="badge rounded-pill" style="background-color: #17a2b8; color: #fff; padding: 5px 14px; font-weight: 600; font-size: 0.75rem;">In Meeting</span>)

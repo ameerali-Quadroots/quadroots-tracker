@@ -11,9 +11,18 @@
 
   target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
 
-  executives = User.includes(time_clocks: :breaks)
-                   .where(department: target_departments, employeed: true)
+  executives = User.where(department: target_departments, employeed: true)
                    .where.not(id: current_user.id)
+                   .order(:name)
+                   .to_a
+
+  # Batch-load only the current shift's time clocks (+ breaks) in one query,
+  # keyed by user_id, so executive_status_data never hits the DB per-row.
+  todays_tcs = TimeClock.includes(:breaks)
+                        .where(user_id: executives.map(&:id), clock_in: shift_range)
+                        .order(clock_in: :desc)
+                        .group_by(&:user_id)
+                        .transform_values(&:first)
 
   dp = {
     "WEB"     => { hex: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", muted: "#DBEAFE", text: "#1E40AF", soft: "#F8FBFF" },
@@ -23,7 +32,7 @@
   }
   dd = { hex: "#64748B", bg: "#F8FAFC", border: "#E2E8F0", muted: "#E2E8F0", text: "#334155", soft: "#FAFAFA" }
 
-  exec_data_all  = executives.map { |e| [e, executive_status_data(e, shift_range)] }
+  exec_data_all  = executives.map { |e| [e, executive_status_data(e, shift_range, todays_tcs[e.id])] }
   working_count  = exec_data_all.count { |_, d| d[:status] == 'Working' }
   meeting_count  = exec_data_all.count { |_, d| d[:status] == 'In Meeting' }
   on_break_count = exec_data_all.count { |_, d| !['Working','Off','In Meeting','Downtime'].include?(d[:status]) }
