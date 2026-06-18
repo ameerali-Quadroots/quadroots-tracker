@@ -1,16 +1,19 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<%# --- Calculate shift range --- %>
+<%# --- Per-employee shift windows -------------------------------------------
+    Each employee has their own shift_time (mostly 18:00, a few 18:18 / 19:00)
+    and may clock in up to 30 minutes early, so a single global 18:30 window
+    silently dropped everyone who clocked in before 18:30 (counting them as
+    Offline and excluding them from On Time / Late). We now bucket each user's
+    clock against THEIR own shift cycle, mirroring TimeClocksController#clock_in.
+    `anchor` is the date the current cycle started on (the evening shift runs
+    past midnight to ~04:00, so before 4am we anchor to the previous day). %>
 <%
   now = Time.zone.now
-  if now.hour < 4
-    shift_start = (now - 1.day).change(hour: 18, min: 30)
-    shift_end = now.change(hour: 4)
-  else
-    shift_start = now.change(hour: 18, min: 30)
-    shift_end = (now + 1.day).change(hour: 3)
-  end
-  shift_range = shift_start..shift_end
+  anchor = now.hour < 4 ? (now - 1.day) : now
+  default_shift = Time.zone.parse("18:00")
+  win_starts = []   # actual shift starts, for the header display
+  win_ends   = []
 %>
 
 <% if departments.empty? %>
@@ -25,7 +28,12 @@
     departments.each do |dept|
       users = User.includes(time_clocks: :breaks).where(department: dept, employeed: true)
       users.each do |user|
-        last_clock = user.time_clocks.where(clock_in: shift_range).order(clock_in: :desc).first
+        st = user.shift_time || default_shift
+        u_start = anchor.change(hour: st.hour, min: st.min, sec: 0)
+        u_window = (u_start - 30.minutes)..(u_start + 9.hours)   # 30-min early grace, 9-hour shift
+        win_starts << u_start
+        win_ends   << (u_start + 9.hours)
+        last_clock = user.time_clocks.where(clock_in: u_window).order(clock_in: :desc).first
         last_break = nil
         
         state = if last_clock.nil?
@@ -60,14 +68,18 @@
     count_downtime = all_states.count { |s| s[:state] == "downtime" }
     count_off = all_states.count { |s| s[:state] == "off" }
 
-    # Today's attendance stats for the scoped departments
-    scoped_user_ids = all_states.map { |s| s[:user].id }
-    today_clocks = TimeClock.where(clock_in: shift_range, user_id: scoped_user_ids)
-    total_today_attendances = today_clocks.count
-    today_late_count = today_clocks.where(status: 'late').count
-    today_on_time_count = today_clocks.where(status: 'on_time').count
-    late_ratio = total_today_attendances > 0 ? ((today_late_count.to_f / total_today_attendances) * 100).round : 0
+    # Today's attendance stats — one record per employee (their own shift-cycle
+    # clock), so counts are distinct employees and respect each user's shift_time.
+    attended = all_states.select { |s| s[:last_clock].present? }
+    total_today_attendances = attended.size
+    today_late_count    = attended.count { |s| s[:last_clock].status == 'late' }
+    today_on_time_count = attended.count { |s| s[:last_clock].status == 'on_time' }
+    late_ratio    = total_today_attendances > 0 ? ((today_late_count.to_f / total_today_attendances) * 100).round : 0
     on_time_ratio = total_today_attendances > 0 ? ((today_on_time_count.to_f / total_today_attendances) * 100).round : 0
+
+    # Header display window spans the earliest shift start to the latest end.
+    shift_start = win_starts.min || anchor.change(hour: default_shift.hour, min: default_shift.min, sec: 0)
+    shift_end   = win_ends.max   || (shift_start + 9.hours)
   %>
 
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAFBFD; padding: 12px; border-radius: 20px;">
