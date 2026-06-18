@@ -47,6 +47,7 @@ body.active_admin {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; // wide tables scroll inside their own wrapper, never the page
 }
 
 a { color: var(--qr-purple-dark); }
@@ -77,22 +78,68 @@ a:hover { color: var(--qr-purple-darker); }
   text-shadow: none;
 
   // --- Brand / logo block at top ---
+  // Native markup is <h1#site_title><img></h1> (no anchor, since
+  // site_title_link is off), so the white "card" lives on the h1 itself.
+  // Lockup: row 1 = link logo + clock-tower mark, row 2 = wordmark.
+  // The clock-tower SVG + wordmark are injected by active_admin.js.
   h1#site_title {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 8px;
     width: auto;
-    margin: 18px 18px 8px;
-    padding: 0;
+    margin: 16px 14px 10px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #ffffff 0%, #f4f1fb 100%);
+    border: 1px solid rgba(132, 113, 188, 0.18);
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(20, 12, 48, 0.28);
 
-    a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #ffffff;
-      border-radius: 10px;
-      padding: 14px 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    img {
+      max-height: 24px;
+      width: auto;
+      top: 0;
+      flex: 0 0 auto;
     }
-    img { max-height: 34px; width: auto; top: 0; }
+
+    // clock-tower mark, sits right of the logo with a divider
+    .qr-brand-clock-wrap {
+      display: inline-flex;
+      align-items: center;
+      padding-left: 10px;
+      border-left: 1px solid rgba(132, 113, 188, 0.22);
+    }
+    .qr-brand-clock {
+      width: 22px;
+      height: 22px;
+      color: var(--qr-purple);
+    }
+
+    // wordmark — full width so it drops to its own row and never clips
+    .qr-brand-lines {
+      flex: 1 0 100%;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      min-width: 0;
+    }
+    .qr-brand-name {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: var(--qr-purple-dark);
+      white-space: nowrap;
+    }
+    .qr-brand-sub {
+      margin-top: 2px;
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #9a8fb8;
+      white-space: nowrap;
+    }
   }
 
   a, a:link { color: #E7E2F2; }
@@ -184,9 +231,13 @@ a:hover { color: var(--qr-purple-darker); }
 //  TITLE BAR  (page heading + action buttons)
 // =============================================================================
 #title_bar {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
   background: #ffffff;
   border: none;
   border-bottom: 1px solid var(--qr-line);
@@ -194,8 +245,22 @@ a:hover { color: var(--qr-purple-darker); }
   padding: 16px 30px;
   margin: 0;
 
-  #titlebar_left, #titlebar_right { display: block; height: auto; }
-  #titlebar_right { text-align: right; }
+  #titlebar_left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: auto;
+  }
+  #titlebar_right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;   // always flush to the right edge
+    height: auto;
+    text-align: right;
+  }
+  .action_items { display: flex; align-items: center; gap: 8px; margin: 0; }
+  .action_items .action_item { margin: 0; }
 
   h2 {
     font-size: 1.5rem;
@@ -262,12 +327,14 @@ table.index_table {
     color: var(--qr-purple-darker);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-size: 0.7rem;
-    padding: 14px 16px;
+    letter-spacing: 0.3px;
+    font-size: 0.66rem;
+    line-height: 1.3;
+    padding: 11px 14px;
     border: none;
     border-bottom: 1px solid var(--qr-line);
-    white-space: nowrap;
+    white-space: normal;        // allow long headers to wrap -> narrower columns
+    vertical-align: bottom;
 
     a { color: var(--qr-purple-darker); }
     &.sorted-asc, &.sorted-desc { background: var(--qr-purple-100); }
@@ -276,7 +343,7 @@ table.index_table {
   > tbody > tr {
     transition: background 0.12s ease;
     > td {
-      padding: 13px 16px;
+      padding: 10px 14px;
       border: none;
       border-bottom: 1px solid #F1EFF7;
       vertical-align: middle;
@@ -294,8 +361,31 @@ table.index_table {
   }
 }
 
-// Index toolbar (scopes / batch actions / pagination row)
-.table_tools { margin-bottom: 16px; }
+// Horizontal scroll wrapper (injected by JS around each index table) so a
+// wide table scrolls on its own instead of overflowing the whole page.
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--qr-radius);
+  &::-webkit-scrollbar { height: 9px; }
+  &::-webkit-scrollbar-track { background: #F1EFF7; border-radius: 6px; }
+  &::-webkit-scrollbar-thumb { background: var(--qr-purple-200); border-radius: 6px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--qr-purple-light); }
+  > table.index_table { margin: 0; box-shadow: none; }
+}
+
+// Index toolbar (batch actions + scopes + filters toggle) on one aligned row
+.table_tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .batch_actions_selector,
+  .scopes { margin: 0; }
+  .filters-toggle { margin-left: auto; }
+}
 
 // =============================================================================
 //  BUTTONS
@@ -404,11 +494,13 @@ a[data-method="put"] {
 // d-flex/gap do nothing here (no Bootstrap in admin), so without this the
 // buttons stack one-per-line and blow up every row's height. Flatten the
 // wrappers to inline and make all action buttons small + uniform so they tile.
+th.col-actions { width: 196px; }
 td.col-actions {
   vertical-align: middle;
   white-space: normal;
   text-align: right;
-  min-width: 168px;
+  width: 196px;
+  max-width: 196px;
 }
 td.col-actions .table_actions,
 td.col-actions .d-flex { display: inline; }
@@ -416,10 +508,10 @@ td.col-actions a,
 td.col-actions .btn {
   display: inline-block;
   margin: 2px !important;
-  padding: 5px 11px !important;
-  font-size: 12px !important;
-  line-height: 1.35;
-  min-width: 56px;
+  padding: 4px 9px !important;
+  font-size: 11.5px !important;
+  line-height: 1.3;
+  min-width: 0;
   text-align: center;
   box-sizing: border-box;
   vertical-align: middle;
@@ -480,15 +572,36 @@ form.formtastic {
     border: 1px solid var(--qr-line);
     border-radius: var(--qr-radius);
     box-shadow: var(--qr-shadow);
-    padding: 22px 24px;
+    padding: 0;                 // section header is full-width; the <ol> is padded
     margin-bottom: 22px;
+    overflow: hidden;           // clip the header to the card's rounded corners
 
-    legend {
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--qr-ink);
-      span { padding-bottom: 6px; }
+    // Section header — override ActiveAdmin's default gray gradient legend
+    // with the same purple header bar used by .panel > h3.
+    > legend {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+
+      > span {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        background: var(--qr-purple-50);
+        background-image: none;
+        color: var(--qr-purple-darker);
+        border-bottom: 1px solid var(--qr-line);
+        border-left: 4px solid var(--qr-purple);
+        padding: 14px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        text-shadow: none;
+      }
     }
+
+    > ol { padding: 20px 24px; margin: 0; }
   }
 
   ol > li.input { margin-bottom: 16px; }
@@ -531,35 +644,181 @@ form.formtastic {
 #user_shift_time_input .fragment { width: auto !important; }
 
 // =============================================================================
-//  FILTER SIDEBAR  (native ActiveAdmin renders this inline on the right)
+//  FILTERS  — professional slide-in drawer (toggle button + backdrop via JS).
+//  Native ActiveAdmin floats the filter sidebar and reserves a wide right
+//  margin, which makes big tables overflow the page. Instead the table gets
+//  the full width and filters live in an off-canvas drawer.
 // =============================================================================
-#active_admin_content #sidebar {
-  float: left;
-  width: 270px;
-  margin-left: -270px;
+// On index pages, reclaim the reserved sidebar margin -> full-width tables.
+body.index #active_admin_content.with_sidebar #main_content_wrapper #main_content {
+  margin-right: 0 !important;
+}
 
-  .sidebar_section {
-    background: #ffffff;
-    border: 1px solid var(--qr-line);
-    border-radius: var(--qr-radius);
-    box-shadow: var(--qr-shadow);
-    padding: 16px 18px;
-    margin-bottom: 20px;
+// The drawer itself (only behaves as a drawer on index screens)
+body.index #sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  float: none;
+  width: 350px;
+  max-width: 88vw;
+  height: 100vh;
+  margin: 0;
+  padding: 66px 22px 28px;
+  background: #ffffff;
+  box-shadow: -10px 0 36px rgba(20, 16, 40, 0.18);
+  transform: translateX(105%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1100;
+  overflow-y: auto;
+}
+body.index.filters-open #sidebar { transform: translateX(0); }
 
-    h3 {
-      color: var(--qr-purple-darker);
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin: 0 0 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--qr-line);
-    }
+// Dim backdrop behind the open drawer
+.filters-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 40, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  z-index: 1095;
+}
+body.filters-open .filters-backdrop { opacity: 1; visibility: visible; }
 
-    label { font-size: 13px; color: #444A59; font-weight: 600; }
-    input, select { width: 100%; box-sizing: border-box; }
+// Drawer heading (injected) + close button
+.filters-drawer-title {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 22px;
+  background: var(--qr-purple-50);
+  border-bottom: 1px solid var(--qr-line);
+  color: var(--qr-purple-darker);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.filters-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--qr-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover { background: var(--qr-purple-100); color: var(--qr-purple-darker); }
+}
+
+// The toggle button (injected into the table toolbar)
+.filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ffffff;
+  color: var(--qr-purple-dark);
+  border: 1px solid var(--qr-purple-200);
+  border-radius: 9px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  svg { width: 15px; height: 15px; }
+  &:hover {
+    background: var(--qr-purple);
+    color: #fff;
+    border-color: var(--qr-purple);
+    box-shadow: 0 3px 10px rgba(132, 113, 188, 0.3);
   }
+}
+
+// Filter fields inside the drawer
+#sidebar .sidebar_section { margin-bottom: 20px; }
+// The injected drawer title already says "Filters" — hide the duplicate panel h3
+body.index #sidebar .sidebar_section > h3 { display: none; }
+
+#sidebar .filter_form_field,
+#sidebar .sidebar_section .input { margin-bottom: 15px; }
+
+#sidebar label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--qr-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+#sidebar input[type="text"],
+#sidebar input[type="email"],
+#sidebar input[type="search"],
+#sidebar input[type="password"],
+#sidebar input[type="number"],
+#sidebar input[type="tel"],
+#sidebar input[type="url"],
+#sidebar input[type="date"],
+#sidebar input[type="datetime-local"],
+#sidebar textarea,
+#sidebar select {
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--qr-ink);
+  background: #fff;
+  border: 1px solid #D4D0E0;
+  border-radius: 9px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  &:focus {
+    border-color: var(--qr-purple);
+    box-shadow: 0 0 0 3px rgba(132, 113, 188, 0.18);
+    outline: none;
+  }
+}
+
+// Custom chevron for native selects
+#sidebar select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+// String filters render a "Contains/Equals" select + a text input — stack them
+#sidebar .filter_form_field.select_and_search {
+  select, input { width: 100%; display: block; float: none; margin: 0 0 8px; }
+}
+#sidebar .buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+#sidebar .buttons input[type="submit"] { width: 100%; }
+#sidebar .buttons a.clear_filters_btn {
+  display: block;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  background: #fff !important;
+  color: var(--qr-purple-dark) !important;
+  border: 1px solid var(--qr-purple-200) !important;
+  box-shadow: none;
+  &:hover { background: var(--qr-purple-50) !important; }
 }
 
 // select2 (used by the filter selects)
@@ -614,29 +873,54 @@ form.formtastic {
 // =============================================================================
 //  SCOPES  /  PAGINATION  /  BATCH ACTIONS
 // =============================================================================
+// Segmented control: a light track, flat unselected tabs, and a crisp
+// "lifted" white pill for the active scope (Apple / Notion style).
 .scopes {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid var(--qr-line);
-  border-radius: 10px;
-  padding: 5px;
+  gap: 2px;
+  background: #ECEAF4;
+  border: 1px solid #E1DDEF;
+  border-radius: 12px;
+  padding: 4px;
 
   .scope {
     a {
-      display: inline-block;
-      padding: 7px 14px;
-      border-radius: 7px;
-      color: var(--qr-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border-radius: 9px;
+      color: #6E6880;
       font-weight: 600;
       font-size: 13px;
+      letter-spacing: 0.1px;
       text-decoration: none;
-      .count { opacity: 0.7; font-weight: 500; }
-      &:hover { background: var(--qr-purple-50); color: var(--qr-purple-dark); }
+      transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+      .count {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #A8A2B8;
+        transition: color 0.15s ease;
+      }
+
+      &:hover {
+        color: var(--qr-purple-dark);
+        background: rgba(255, 255, 255, 0.55);
+        .count { color: var(--qr-purple); }
+      }
     }
-    &.selected a { background: var(--qr-purple); color: #fff; .count { opacity: 0.9; } }
+
+    &.selected a {
+      background: #ffffff;
+      color: var(--qr-purple-darker);
+      font-weight: 700;
+      box-shadow: 0 2px 5px rgba(31, 23, 64, 0.14), 0 1px 1px rgba(31, 23, 64, 0.05);
+      .count { color: var(--qr-purple); }
+      &:hover { background: #ffffff; }
+    }
   }
 }
 
@@ -658,13 +942,51 @@ form.formtastic {
 }
 
 .batch_actions_selector {
+  display: inline-flex;
+  align-items: center;
+
   .dropdown_menu_button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
     background: #fff !important;
     color: var(--qr-purple-dark) !important;
     border: 1px solid var(--qr-purple-200) !important;
-    border-radius: 8px !important;
+    border-radius: 9px !important;
+    padding: 9px 16px !important;
     box-shadow: none;
     font-weight: 600;
+    font-size: 13px;
+    line-height: 1;
+    text-decoration: none;
+
+    // Replace ActiveAdmin's default gray triangle with a clean chevron
+    &::after {
+      content: "" !important;
+      display: inline-block;
+      position: static;
+      width: 7px !important;
+      height: 7px !important;
+      margin: -3px 0 0 0 !important;
+      border: 0 !important;
+      border-right: 2px solid currentColor !important;
+      border-bottom: 2px solid currentColor !important;
+      background: none !important;
+      transform: rotate(45deg);
+      opacity: 0.6;
+    }
+
+    &:hover { background: var(--qr-purple-50) !important; }
+
+    // "Batch Actions" is disabled until rows are selected — make that read as muted
+    &.disabled {
+      color: #9991B0 !important;
+      background: #F7F6FA !important;
+      border-color: var(--qr-line) !important;
+      cursor: default;
+      &:hover { background: #F7F6FA !important; }
+    }
   }
 }
 

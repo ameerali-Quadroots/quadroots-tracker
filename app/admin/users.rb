@@ -31,46 +31,46 @@ ActiveAdmin.register User, as: "Employee" do
     column :department
     column :role
 
-    column "Medical Leaves (Approved)" do |employee|
+    column "Medical Used" do |employee|
       employee.medical_leaves_count
     end
 
-    column "Casual Leaves (Approved)" do |employee|
+    column "Casual Used" do |employee|
       employee.casual_leaves_count
     end
 
-    column "Half Days (Approved)" do |employee|
+    column "Half Days" do |employee|
       employee.half_days_count
     end
 
-    column "Remaining Medical Leaves" do |employee|
+    column "Medical Left" do |employee|
       employee.remaining_medical_leaves
     end
 
-    column "Remaining Casual Leaves" do |employee|
+    column "Casual Left" do |employee|
       employee.remaining_casual_leaves
     end
 
-    column "Absent Days" do |employee|
+    column "Absent" do |employee|
       employee.absent_days_count
     end
     actions defaults: true do |employee|
   # View timesheets
   links = []
-  links << link_to("View Timesheets", admin_employee_time_clocks_path(employee), class: "member_link")
-  links << link_to("View Timesheets Calendar", calendar_timesheets_admin_employee_path(employee), class: "member_link")
+  links << link_to("Timesheets", admin_employee_time_clocks_path(employee), class: "member_link", title: "View Timesheets")
+  links << link_to("Calendar", calendar_timesheets_admin_employee_path(employee), class: "member_link", title: "View Timesheets Calendar")
 
   # Mark as unemployed (only if currently employed)
   if employee.employeed?
-    links << link_to("Mark as Unemployed", mark_as_unemployed_admin_employee_path(employee),
+    links << link_to("Unemploy", mark_as_unemployed_admin_employee_path(employee),
                      method: :put,
                      data: { confirm: "Are you sure you want to mark this employee as unemployed?" },
-                     class: "member_link", style: "color: red;")
+                     class: "member_link", title: "Mark as Unemployed")
   else
-    links << link_to("Mark as  Employed", mark_as_employed_admin_employee_path(employee),
+    links << link_to("Re-employ", mark_as_employed_admin_employee_path(employee),
                      method: :put,
                      data: { confirm: "Are you sure you want to mark this employee as employed?" },
-                     class: "member_link", style: "color: green;")
+                     class: "member_link", title: "Mark as Employed")
   end
 
   safe_join(links, " ")
