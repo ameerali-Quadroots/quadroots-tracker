@@ -16,9 +16,29 @@ class User < ApplicationRecord
   # Devise modules
   devise :database_authenticatable, :registerable, :recoverable, :rememberable, :validatable
   validates :password, presence: true, confirmation: true, if: :password_required?
+
+  validate :acceptable_image
+
   # Helper method for checking admin
   def admin?
     role == 'admin'
+  end
+
+  # Two-letter initials used as an avatar fallback when no image is attached.
+  def initials
+    name.to_s.split.map(&:first).join[0, 2].upcase.presence || "?"
+  end
+
+  def acceptable_image
+    return unless image.attached?
+
+    unless image.blob.content_type.in?(%w[image/png image/jpeg image/jpg image/webp])
+      errors.add(:image, "must be a PNG, JPG, or WEBP file")
+    end
+
+    if image.blob.byte_size > 5.megabytes
+      errors.add(:image, "is too large (maximum is 5 MB)")
+    end
   end
    def password_required?
     new_record? || password.present?

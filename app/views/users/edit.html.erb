@@ -1,16 +1,24 @@
-<div class="container mt-5" style="max-width: 600px;">
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-      <h4 class="mb-0">Edit Profile</h4>
+<div class="page-shell" style="max-width: 640px;">
+  <div class="table-card profile-card">
+
+    <!-- Header -->
+    <div class="table-card__head">
+      <h1 class="table-card__title">
+        <span class="icon"><i class="fas fa-user-gear"></i></span>
+        <span>
+          Edit Profile
+          <span class="table-card__subtitle">Update your photo, name and password</span>
+        </span>
+      </h1>
     </div>
 
-    <div class="card-body">
-      <%= form_with model: @user, url: user_path(@user), method: :patch, local: true do |form| %>
+    <div class="profile-card__body">
+      <%= form_with model: @user, url: user_path(@user), method: :patch, local: true, html: { multipart: true, class: "profile-form" } do |form| %>
 
         <% if @user.errors.any? %>
-          <div class="alert alert-danger">
-            <h5 class="mb-2">Please fix the following errors:</h5>
-            <ul class="mb-0">
+          <div class="profile-errors">
+            <strong><i class="fas fa-exclamation-circle me-1"></i> Please fix the following:</strong>
+            <ul class="mb-0 mt-1">
               <% @user.errors.full_messages.each do |message| %>
                 <li><%= message %></li>
               <% end %>
@@ -18,36 +26,72 @@
           </div>
         <% end %>
 
-        <div class="mb-3">
-          <%= form.label :name, class: "form-label" %>
+        <!-- Profile photo -->
+        <div class="text-center mb-4">
+          <div class="profile-avatar-edit mx-auto mb-3">
+            <% if @user.image.attached? %>
+              <%= image_tag @user.image, id: "avatar-preview", alt: @user.name %>
+              <span id="avatar-initials" style="display:none;"><%= @user.initials %></span>
+            <% else %>
+              <span id="avatar-initials"><%= @user.initials %></span>
+              <img id="avatar-preview" alt="Preview" style="display:none;">
+            <% end %>
+          </div>
+          <div>
+            <%= form.label :image, class: "btn-choose-photo" do %>
+              <i class="fas fa-camera me-1"></i> Choose Photo
+            <% end %>
+            <%= form.file_field :image, accept: "image/png,image/jpeg,image/webp", class: "d-none", id: "user_image_input" %>
+            <div class="profile-hint">PNG, JPG or WEBP · up to 5 MB</div>
+          </div>
+        </div>
+
+        <div class="profile-field">
+          <%= form.label :name, "Full Name", class: "form-label" %>
           <%= form.text_field :name, class: "form-control", required: true %>
         </div>
 
+        <div class="profile-section-title"><i class="fas fa-lock"></i> Change Password</div>
 
-        <hr class="my-4">
-
-        <h5>Change Password</h5>
-
-        <div class="mb-3">
+        <div class="profile-field">
           <%= form.label :current_password, "Current Password", class: "form-label" %>
-          <%= form.password_field :current_password, class: "form-control" %>
+          <%= form.password_field :current_password, class: "form-control", placeholder: "Enter current password" %>
         </div>
 
-        <div class="mb-3">
+        <div class="profile-field">
           <%= form.label :password, "New Password", class: "form-label" %>
-          
-          <%= form.password_field :password, class: "form-control" %>
+          <%= form.password_field :password, class: "form-control", placeholder: "Leave blank to keep current" %>
         </div>
 
-        <div class="mb-3">
-          <%= form.label :password_confirmation, class: "form-label" %>
-          <%= form.password_field :password_confirmation, class: "form-control" %>
+        <div class="profile-field">
+          <%= form.label :password_confirmation, "Confirm New Password", class: "form-label" %>
+          <%= form.password_field :password_confirmation, class: "form-control", placeholder: "Re-enter new password" %>
         </div>
 
-        <div class="d-grid">
-          <%= form.submit "Save Changes", class: "btn btn-primary" %>
-        </div>
+        <%= form.submit "Save Changes", class: "btn-save mt-2" %>
       <% end %>
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("user_image_input");
+    if (!input) return;
+
+    input.addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+
+      const preview = document.getElementById("avatar-preview");
+      const initials = document.getElementById("avatar-initials");
+      const url = URL.createObjectURL(file);
+
+      if (preview) {
+        preview.src = url;
+        preview.style.display = "block";
+      }
+      if (initials) initials.style.display = "none";
+    });
+  });
+</script>

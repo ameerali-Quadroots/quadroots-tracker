@@ -21,6 +21,11 @@
                      <% end %>
                  </li>
                  <li class="nav-item">
+                     <%= link_to "http://10.10.30.30:5173?#{{ department: current_user.department }.to_query}", class: "nav-link", target: "_blank", rel: "noopener" do %>
+                     <i class="fas fa-comment-dots"></i> Feedback
+                     <% end %>
+                 </li>
+                 <li class="nav-item">
                      <%= link_to my_requests_edit_requests_path, class: "nav-link #{'active' if current_page?(my_requests_edit_requests_path)}" do %>
                      <i class="fas fa-clock-rotate-left"></i> My Requests
                      <% my_count = current_user.edit_requests.count %>
@@ -85,7 +90,11 @@
                  <li class="nav-item dropdown">
                      <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                          <div class="user-avatar">
-                             <%= current_user.name.split.map(&:first).join.upcase %>
+                             <% if current_user.image.attached? %>
+                             <%= image_tag current_user.image, alt: current_user.name %>
+                             <% else %>
+                             <%= current_user.initials %>
+                             <% end %>
                          </div>
                          <span class="me-1 d-none d-lg-inline"><%= current_user.name %></span>
                      </a>
