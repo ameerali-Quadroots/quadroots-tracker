@@ -16,6 +16,21 @@ class LeavesController < ApplicationController
     end
   end
 
+  def my_leaves
+    @leaves = current_user.leaves
+
+    @leaves = @leaves.where(status: params[:status]) if params[:status].present?
+    @leaves = @leaves.where(leave_type: params[:leave_type]) if params[:leave_type].present?
+
+    if params[:from_date].present? && params[:to_date].present?
+      from = Date.parse(params[:from_date])
+      to   = Date.parse(params[:to_date])
+      @leaves = @leaves.where(start_date: from..to)
+    end
+
+    @leaves = @leaves.order(created_at: :desc)
+  end
+
   def new
     @leave = current_user.leaves.new
   end

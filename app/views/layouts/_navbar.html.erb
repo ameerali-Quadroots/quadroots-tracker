@@ -1,7 +1,7 @@
- <nav class="navbar navbar-expand-lg navbar-dark">
-     <div class="container">
+ <nav class="navbar navbar-expand-xl app-navbar sticky-top">
+     <div class="container-fluid px-3 px-lg-4">
          <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
-         <%= image_tag "logo-2.png", alt: "Logo", class: "me-2", height: "30" %>
+         <%= image_tag "logo-2.png", alt: "QuadRoots Tracker", class: "me-2", height: "30" %>
          <span>QuadRoots Tracker</span>
          <% end %>
 
@@ -12,12 +12,62 @@
 
          <!-- Navbar links -->
          <div class="collapse navbar-collapse" id="navbarNav">
-             <ul class="navbar-nav ms-auto align-items-center">
-                 <% if user_signed_in? %>
-                 <!-- Notifications -->
-                 <li class="nav-item dropdown me-2">
+             <% if user_signed_in? %>
+             <!-- Primary navigation -->
+             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                 <li class="nav-item">
+                     <%= link_to root_path, class: "nav-link #{'active' if current_page?(root_path)}" do %>
+                     <i class="fas fa-gauge-high"></i> Dashboard
+                     <% end %>
+                 </li>
+                 <li class="nav-item">
+                     <%= link_to my_requests_edit_requests_path, class: "nav-link #{'active' if current_page?(my_requests_edit_requests_path)}" do %>
+                     <i class="fas fa-clock-rotate-left"></i> My Requests
+                     <% my_count = current_user.edit_requests.count %>
+                     <% if my_count > 0 %>
+                     <span class="nav-badge nav-badge-success"><%= my_count %></span>
+                     <% end %>
+                     <% end %>
+                 </li>
+                 <li class="nav-item">
+                     <%= link_to my_leaves_leaves_path, class: "nav-link #{'active' if current_page?(my_leaves_leaves_path)}" do %>
+                     <i class="fas fa-calendar-day"></i> My Leaves
+                     <% my_leaves_count = current_user.leaves.count %>
+                     <% if my_leaves_count > 0 %>
+                     <span class="nav-badge nav-badge-success"><%= my_leaves_count %></span>
+                     <% end %>
+                     <% end %>
+                 </li>
+                 <% if current_user.role == "Manager" %>
+                 <li class="nav-item">
+                     <%= link_to edit_requests_path, class: "nav-link #{'active' if current_page?(edit_requests_path)}" do %>
+                     <i class="fas fa-user-pen"></i> Edit Requests
+                     <% count = edit_requests_count %>
+                     <% if count > 0 %>
+                     <span class="nav-badge"><%= count %></span>
+                     <% end %>
+                     <% end %>
+                 </li>
+                 <li class="nav-item">
+                     <%= link_to leaves_path, class: "nav-link #{'active' if current_page?(leaves_path)}" do %>
+                     <i class="fas fa-calendar-check"></i> Leave Requests
+                     <% leave_count = leaves_count %>
+                     <% if leave_count > 0 %>
+                     <span class="nav-badge"><%= leave_count %></span>
+                     <% end %>
+                     <% end %>
+                 </li>
+                 <% end %>
+             </ul>
 
-                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown">
+             <!-- Right side: notifications + account -->
+             <ul class="navbar-nav ms-auto align-items-center">
+                 <!-- Notifications -->
+                 <li class="nav-item dropdown me-lg-2">
+                     <a class="nav-link nav-icon-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                         <i class="fas fa-bell"></i>
+                     </a>
+                     <ul class="dropdown-menu dropdown-menu-end notification-menu" aria-labelledby="notificationDropdown">
                          <li>
                              <h6 class="dropdown-header">Notifications</h6>
                          </li>
@@ -33,11 +83,11 @@
 
                  <!-- User dropdown menu -->
                  <li class="nav-item dropdown">
-                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                     <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                          <div class="user-avatar">
                              <%= current_user.name.split.map(&:first).join.upcase %>
                          </div>
-                         <span class="me-1"><%= current_user.name %></span>
+                         <span class="me-1 d-none d-lg-inline"><%= current_user.name %></span>
                      </a>
                      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                          <li>
@@ -48,43 +98,24 @@
                              <i class="fas fa-user-edit"></i> Edit Profile
                              <% end %>
                          </li>
-                         <% if current_user.role == "Manager" %>
-                         <li>
-                             <%= link_to edit_requests_path, class: "dropdown-item" do %>
-                             <i class="fas fa-tasks"></i> View Edit Requests
-                             <% count = edit_requests_count %>
-                             <% if count > 0 %>
-                             <span class="badge bg-primary ms-1"><%= count %></span>
-                             <% end %>
-                             <% end %>
-                         </li>
-                         <li>
-                             <%= link_to leaves_path, class: "dropdown-item" do %>
-                             <i class="fas fa-calendar-check"></i> View Leave Requests
-                             <% leave_count = leaves_count %>
-                             <% if leave_count > 0 %>
-                             <span class="badge bg-success ms-1"><%= leave_count %></span>
-                             <% end %>
-                             <% end %>
-                         </li>
-                         <% end %>
                          <li>
                              <%= link_to my_requests_edit_requests_path, class: "dropdown-item" do %>
                              <i class="fas fa-history"></i> My Requests
-                              <span class="badge bg-success ms-1"><%= current_user.edit_requests.count %></span>
                              <% end %>
                          </li>
                          <li>
                              <hr class="dropdown-divider">
                          </li>
                          <li>
-                             <%= button_to destroy_user_session_path, method: :delete, class: "dropdown-item" do %>
+                             <%= button_to destroy_user_session_path, method: :delete, class: "dropdown-item text-danger" do %>
                              <i class="fas fa-sign-out-alt"></i> Logout
                              <% end %>
                          </li>
                      </ul>
                  </li>
-                 <% else %>
+             </ul>
+             <% else %>
+             <ul class="navbar-nav ms-auto align-items-center">
                  <!-- Login/Sign up if user not logged in -->
                  <li class="nav-item">
                      <%= link_to new_user_session_path, class: "nav-link" do %>
@@ -92,12 +123,12 @@
                      <% end %>
                  </li>
                  <li class="nav-item">
-                     <%= link_to new_user_registration_path, class: "nav-link btn btn-outline-light ms-2" do %>
+                     <%= link_to new_user_registration_path, class: "nav-link btn btn-signup ms-2" do %>
                      <i class="fas fa-user-plus me-1"></i> Sign Up
                      <% end %>
                  </li>
-                 <% end %>
              </ul>
+             <% end %>
          </div>
      </div>
  </nav>

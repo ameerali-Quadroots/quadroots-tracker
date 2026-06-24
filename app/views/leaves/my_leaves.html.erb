@@ -4,10 +4,10 @@
     <!-- Header -->
     <div class="table-card__head">
       <h1 class="table-card__title">
-        <span class="icon"><i class="fas fa-calendar-check"></i></span>
+        <span class="icon"><i class="fas fa-calendar-day"></i></span>
         <span>
-          Leave Requests
-          <span class="table-card__subtitle">Review and respond to your team's leave requests</span>
+          My Leaves
+          <span class="table-card__subtitle">Your submitted leave requests</span>
         </span>
       </h1>
       <div class="table-card__stats">
@@ -17,39 +17,53 @@
       </div>
     </div>
 
+    <!-- Filters -->
+    <%= form_with url: my_leaves_leaves_path, method: :get, local: true, class: "table-filter" do |f| %>
+      <div class="field">
+        <%= f.label :status, "Status" %>
+        <%= f.select :status, [["All", ""], ["Pending", "pending"], ["Approved", "approved"], ["Rejected", "rejected"]],
+              { selected: params[:status] }, class: "form-select" %>
+      </div>
+      <div class="field">
+        <%= f.label :from_date, "From" %>
+        <%= f.date_field :from_date, value: params[:from_date], class: "form-control" %>
+      </div>
+      <div class="field">
+        <%= f.label :to_date, "To" %>
+        <%= f.date_field :to_date, value: params[:to_date], class: "form-control" %>
+      </div>
+      <%= f.submit "Filter", class: "btn-filter" %>
+      <%= link_to "Reset", my_leaves_leaves_path, class: "btn-reset" %>
+    <% end %>
+
     <!-- Table -->
     <% if @leaves.any? %>
       <div class="premium-table-wrap">
         <table class="premium-table">
           <thead>
             <tr>
-              <th>Employee</th>
               <th>Leave Type</th>
               <th>Start Date</th>
               <th>End Date</th>
               <th>Reason</th>
+              <th>Approved By Manager</th>
               <th>Status</th>
               <th>Requested At</th>
               <th>Resolved At</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <% @leaves.each do |leave| %>
               <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="user-cell__avatar"><%= leave.user.name.to_s.split.map(&:first).join[0, 2].upcase %></div>
-                    <div>
-                      <div class="user-cell__name"><%= leave.user.name %></div>
-                      <div class="user-cell__email"><%= leave.user.email %></div>
-                    </div>
-                  </div>
-                </td>
                 <td><span class="type-tag text-capitalize"><%= leave.leave_type %></span></td>
                 <td><div class="date-cell"><div class="d"><%= leave.start_date.strftime("%b %d, %Y") %></div></div></td>
                 <td><div class="date-cell"><div class="d"><%= leave.end_date.strftime("%b %d, %Y") %></div></div></td>
                 <td><div class="reason-cell"><%= leave.reason %></div></td>
+                <td>
+                  <span class="pill <%= leave.approved_by_manager? ? 'pill--yes' : 'pill--no' %>">
+                    <%= leave.approved_by_manager? ? 'Yes' : 'No' %>
+                  </span>
+                </td>
                 <td><span class="pill pill--<%= leave.status %>"><%= leave.status.capitalize %></span></td>
                 <td>
                   <div class="date-cell">
@@ -63,20 +77,6 @@
                     <div class="t"><%= leave.updated_at.strftime("%I:%M %p") %></div>
                   </div>
                 </td>
-                <td>
-                  <% unless leave.approved_by_manager %>
-                    <div class="table-actions">
-                      <%= button_to approve_leave_path(leave), method: :patch, class: "btn-act btn-act--approve", data: { turbo: false } do %>
-                        <i class="fas fa-check"></i> Approve
-                      <% end %>
-                      <%= button_to reject_leave_path(leave), method: :patch, class: "btn-act btn-act--reject", data: { turbo: false } do %>
-                        <i class="fas fa-times"></i> Reject
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="no-action">No actions</span>
-                  <% end %>
-                </td>
               </tr>
             <% end %>
           </tbody>
@@ -85,8 +85,8 @@
     <% else %>
       <div class="table-empty">
         <i class="bi bi-calendar-x"></i>
-        <h5>No leave requests found</h5>
-        <p class="mb-0">Leave requests from your team will appear here.</p>
+        <h5>No leaves yet</h5>
+        <p class="mb-0">Your submitted leave requests will appear here.</p>
       </div>
     <% end %>
 

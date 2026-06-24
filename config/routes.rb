@@ -37,6 +37,9 @@ resources :edit_requests, only: [:index, :create] do
 end
 resources :users, only: [:edit, :update]
 resources :leaves do
+  collection do
+    get :my_leaves
+  end
   member do
     patch :approve_by_admin
     patch :approve
