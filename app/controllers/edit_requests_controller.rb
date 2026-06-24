@@ -51,11 +51,15 @@ class EditRequestsController < ApplicationController
   end
 
   def approve
+    return redirect_back(fallback_location: edit_requests_path, alert: manager_window_message) unless @edit_request.manager_actionable?
+
     @edit_request.update(approved_by_manager: true)
     redirect_back fallback_location: edit_requests_path, notice: "Request approved successfully."
   end
 
   def reject
+    return redirect_back(fallback_location: edit_requests_path, alert: manager_window_message) unless @edit_request.manager_actionable?
+
     @edit_request.update(approved_by_manager: false)
     redirect_back fallback_location: edit_requests_path, notice: "Request rejected."
   end
@@ -79,6 +83,10 @@ class EditRequestsController < ApplicationController
 
   def set_edit_request
     @edit_request = EditRequest.find(params[:id])
+  end
+
+  def manager_window_message
+    "This request is more than a week old and can no longer be approved or rejected."
   end
 
   def edit_request_params

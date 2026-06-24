@@ -149,21 +149,27 @@
                   </td>
                   <td data-label="Actions" class="align-middle">
                     <% unless request.approved_by_manager %>
-                      <div class="action-buttons">
-                        <%= button_to approve_edit_request_path(request), 
-                            method: :patch, 
-                            class: "btn btn-outline-success btn-sm",
-                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to approve this request?" } } do %>
-                          <i class="fas fa-check me-1"></i> Approve
-                        <% end %>
+                      <% if request.manager_actionable? %>
+                        <div class="action-buttons">
+                          <%= button_to approve_edit_request_path(request),
+                              method: :patch,
+                              class: "btn btn-outline-success btn-sm",
+                              form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to approve this request?" } } do %>
+                            <i class="fas fa-check me-1"></i> Approve
+                          <% end %>
 
-                        <%= button_to reject_edit_request_path(request), 
-                            method: :patch, 
-                            class: "btn btn-outline-danger btn-sm",
-                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
-                          <i class="fas fa-times me-1"></i> Reject
-                        <% end %>
-                      </div>
+                          <%= button_to reject_edit_request_path(request),
+                              method: :patch,
+                              class: "btn btn-outline-danger btn-sm",
+                              form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
+                            <i class="fas fa-times me-1"></i> Reject
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <span class="badge bg-secondary" data-bs-toggle="tooltip" title="The one-week window to act on this request has passed.">
+                          <i class="fas fa-lock me-1"></i> Expired
+                        </span>
+                      <% end %>
                     <% end %>
                   </td>
                 </tr>
