@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+    has_one_attached :image
     has_many :leaves, dependent: :destroy
     has_many :push_subscriptions, dependent: :destroy
     has_many :notifications, dependent: :destroy

@@ -1,0 +1,315 @@
+<%
+  initials = employee.name.to_s.split.map(&:first).first(2).join.upcase
+  initials = (employee.email.to_s.first || "?").upcase if initials.blank?
+  is_employed = employee.respond_to?(:employeed) ? employee.employeed : true
+%>
+
+<div class="emp-show">
+  <!-- ── Profile Header ── -->
+  <div class="emp-hero">
+    <div class="emp-avatar">
+      <% if employee.image.attached? %>
+        <%= image_tag employee.image, alt: employee.name %>
+      <% else %>
+        <span class="emp-avatar-initials"><%= initials %></span>
+      <% end %>
+    </div>
+
+    <div class="emp-hero-info">
+      <h2 class="emp-name"><%= employee.name.presence || "Unnamed Employee" %></h2>
+      <div class="emp-meta">
+        <span class="emp-role-badge"><%= employee.role %></span>
+        <% if employee.department.present? %>
+          <span class="emp-dot">·</span>
+          <span class="emp-dept"><%= employee.department %></span>
+        <% end %>
+      </div>
+      <div class="emp-email"><%= mail_to employee.email, employee.email %></div>
+    </div>
+
+    <div class="emp-hero-status">
+      <span class="emp-status <%= is_employed ? 'active' : 'inactive' %>">
+        <span class="dot"></span><%= is_employed ? "Active" : "Inactive" %>
+      </span>
+    </div>
+  </div>
+
+  <!-- ── Quick Stats ── -->
+  <div class="emp-stats">
+    <div class="emp-stat">
+      <div class="emp-stat-num"><%= employee.respond_to?(:remaining_medical_leaves) ? employee.remaining_medical_leaves : "—" %></div>
+      <div class="emp-stat-label">Medical Leaves Left</div>
+    </div>
+    <div class="emp-stat">
+      <div class="emp-stat-num"><%= employee.respond_to?(:remaining_casual_leaves) ? employee.remaining_casual_leaves : "—" %></div>
+      <div class="emp-stat-label">Casual Leaves Left</div>
+    </div>
+    <div class="emp-stat">
+      <div class="emp-stat-num"><%= employee.respond_to?(:half_days_count) ? employee.half_days_count : "—" %></div>
+      <div class="emp-stat-label">Half Days</div>
+    </div>
+    <div class="emp-stat">
+      <div class="emp-stat-num"><%= employee.respond_to?(:absent_days_count) ? employee.absent_days_count : "—" %></div>
+      <div class="emp-stat-label">Absent Days</div>
+    </div>
+  </div>
+
+  <!-- ── Details ── -->
+  <div class="emp-card">
+    <div class="emp-card-head">Employee Details</div>
+    <div class="emp-details">
+      <div class="emp-field">
+        <span class="emp-field-label">Phone</span>
+        <span class="emp-field-value <%= 'empty' if employee.phone_number.blank? %>">
+          <%= employee.phone_number.presence || "Not provided" %>
+        </span>
+      </div>
+      <div class="emp-field">
+        <span class="emp-field-label">Address</span>
+        <span class="emp-field-value <%= 'empty' if employee.address.blank? %>">
+          <%= employee.address.presence || "Not provided" %>
+        </span>
+      </div>
+      <div class="emp-field">
+        <span class="emp-field-label">Role</span>
+        <span class="emp-field-value"><%= employee.role %></span>
+      </div>
+      <div class="emp-field">
+        <span class="emp-field-label">Department</span>
+        <span class="emp-field-value <%= 'empty' if employee.department.blank? %>">
+          <%= employee.department.presence || "Not provided" %>
+        </span>
+      </div>
+      <div class="emp-field">
+        <span class="emp-field-label">Shift Time</span>
+        <span class="emp-field-value <%= 'empty' if employee.shift_time.blank? %>">
+          <%= employee.shift_time.present? ? employee.shift_time.strftime("%I:%M %p") : "Not set" %>
+        </span>
+      </div>
+      <div class="emp-field">
+        <span class="emp-field-label">Email</span>
+        <span class="emp-field-value"><%= employee.email %></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Actions ── -->
+  <div class="emp-actions">
+    <%= link_to admin_employee_time_clocks_path(employee), class: "emp-action-btn" do %>
+      <span class="ico">🕑</span> View Timesheets
+    <% end %>
+    <%= link_to calendar_timesheets_admin_employee_path(employee), class: "emp-action-btn primary" do %>
+      <span class="ico">📅</span> Timesheets Calendar
+    <% end %>
+  </div>
+</div>
+
+<style nonce="<%= content_security_policy_nonce %>">
+  .emp-show {
+    max-width: 980px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1f2a37;
+  }
+
+  /* ── Hero ── */
+  .emp-hero {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 26px 28px;
+    background: #fff;
+    border: 1px solid #eceef1;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  }
+
+  .emp-avatar {
+    flex: 0 0 auto;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #7c5cbf, #5b3fa0);
+    box-shadow: 0 4px 14px rgba(124, 92, 191, 0.35);
+  }
+
+  .emp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .emp-avatar-initials {
+    color: #fff;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .emp-hero-info { flex: 1 1 auto; min-width: 0; }
+
+  .emp-name {
+    margin: 0 0 6px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .emp-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.92rem;
+    color: #6b7280;
+  }
+
+  .emp-role-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: #f1ecfb;
+    color: #6f4bb0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .emp-dot { color: #cbd2da; }
+  .emp-dept { font-weight: 600; }
+
+  .emp-email a { color: #6f4bb0; text-decoration: none; font-size: 0.92rem; }
+  .emp-email a:hover { text-decoration: underline; }
+
+  .emp-hero-status { flex: 0 0 auto; align-self: flex-start; }
+
+  .emp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .emp-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .emp-status.active { background: #ecfdf3; color: #15803d; }
+  .emp-status.active .dot { background: #22a565; }
+  .emp-status.inactive { background: #fef2f2; color: #dc2626; }
+  .emp-status.inactive .dot { background: #e23b3b; }
+
+  /* ── Stats ── */
+  .emp-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 18px 0;
+  }
+
+  .emp-stat {
+    background: #fff;
+    border: 1px solid #eceef1;
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  }
+
+  .emp-stat-num { font-size: 1.7rem; font-weight: 800; color: #111827; line-height: 1; }
+  .emp-stat-label {
+    margin-top: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+  }
+
+  /* ── Details card ── */
+  .emp-card {
+    background: #fff;
+    border: 1px solid #eceef1;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  }
+
+  .emp-card-head {
+    padding: 16px 24px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    border-bottom: 1px solid #f0f2f4;
+  }
+
+  .emp-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .emp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #f4f6f8;
+  }
+
+  .emp-field:nth-child(odd) { border-right: 1px solid #f4f6f8; }
+
+  .emp-field-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9aa3ad;
+  }
+
+  .emp-field-value { font-size: 0.95rem; font-weight: 600; color: #1f2a37; }
+  .emp-field-value.empty { color: #b6bcc4; font-weight: 500; font-style: italic; }
+
+  /* ── Actions ── */
+  .emp-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .emp-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 11px;
+    border: 1px solid #e2e6ea;
+    background: #fff;
+    color: #374151;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .emp-action-btn:hover { background: #f9fafb; border-color: #c7cdd4; }
+
+  .emp-action-btn.primary {
+    background: linear-gradient(135deg, #7c5cbf, #5b3fa0);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(124, 92, 191, 0.3);
+  }
+  .emp-action-btn.primary:hover { filter: brightness(1.06); }
+
+  .emp-action-btn .ico { font-size: 1rem; }
+
+  /* ── Responsive ── */
+  @media (max-width: 720px) {
+    .emp-hero { flex-direction: column; text-align: center; }
+    .emp-meta { justify-content: center; }
+    .emp-stats { grid-template-columns: repeat(2, 1fr); }
+    .emp-details { grid-template-columns: 1fr; }
+    .emp-field:nth-child(odd) { border-right: none; }
+  }
+</style>

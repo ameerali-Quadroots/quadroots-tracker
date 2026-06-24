@@ -6,7 +6,7 @@ ActiveAdmin.register User, as: "Employee" do
   # Allow these params to be editable in ActiveAdmin forms
   permit_params :name, :email, :phone_number, :address,
                 :password, :password_confirmation,
-                :role, :department, :shift_time
+                :role, :department, :shift_time, :image
 
   # Filters for search
   filter :name
@@ -82,6 +82,8 @@ end
   # FORM for create/edit
   form do |f|
     f.inputs "Employee Details" do
+      f.input :image, as: :file,
+        hint: f.object.image.attached? ? image_tag(f.object.image, style: "max-width:120px;max-height:120px;border-radius:8px;margin-top:6px;") : "Upload a profile photo (JPG/PNG)"
       f.input :name
       f.input :email
       f.input :phone_number
@@ -111,28 +113,12 @@ end
 
 
   show do
-    attributes_table do
-      row :name
-      row :email
-      row :phone_number
-      row :address
-      row :role
-      row :department
-      row "Shift Time" do |employee|
-        # Display in 12-hour format, e.g. "06:00 PM"
-        employee.shift_time.strftime("%I:%M %p") if employee.shift_time.present?
-      end
-    end
-
-    # Optional: show action buttons for related data
-    panel "Timesheets" do
-      link_to "View Employee Timesheets", admin_employee_time_clocks_path(resource)
-    end
+    render partial: "admin/employees/show", locals: { employee: resource }
   end
 
   member_action :calendar_timesheets, method: :get do
   @employee = resource
-  @time_clocks = @employee.time_clocks.order(:clock_in)
+  @time_clocks = @employee.time_clocks.includes(:breaks).order(:clock_in)
 
   render "admin/employees/calendar_timesheets"
 end

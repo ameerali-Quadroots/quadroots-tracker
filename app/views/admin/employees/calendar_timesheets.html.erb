@@ -1,51 +1,123 @@
 
+<%
+  current_month = params[:month] ? Date.parse(params[:month]) : Date.current
+  prev_month = current_month.prev_month
+  next_month = current_month.next_month
+
+  # Shared status resolver so per-day cells and summary cards stay in sync
+  status_for = lambda do |record|
+    next "no-data" unless record
+
+    worked_secs = if record.clock_out.present?
+      non_mtg_secs = record.breaks.reject { |b| b.break_type == "Meeting" }.sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
+      (record.clock_out - record.clock_in).to_i - non_mtg_secs
+    end
+    is_half_day = worked_secs && worked_secs < 16200
+
+    if is_half_day && record.status == "late"
+      "late-half-day"
+    elsif is_half_day
+      "half-day"
+    elsif record.status == "late"
+      "late"
+    else
+      "on-time"
+    end
+  end
+
+  status_label = {
+    "on-time"       => "ON TIME",
+    "late"          => "LATE",
+    "half-day"      => "HALF DAY",
+    "late-half-day" => "LATE · ½",
+    "no-data"       => nil
+  }
+
+  # Summary counts for the displayed month
+  month_records = @time_clocks.select { |t| t.clock_in.to_date.month == current_month.month && t.clock_in.to_date.year == current_month.year }
+  month_statuses = month_records.map { |r| status_for.call(r) }
+  count_clockins  = month_records.size
+  count_late      = month_statuses.count { |s| s == "late" || s == "late-half-day" }
+  count_half      = month_statuses.count { |s| s == "half-day" || s == "late-half-day" }
+  count_on_time   = month_statuses.count { |s| s == "on-time" }
+%>
+
 <!-- ✅ Page Title -->
-<h3 class="text-center my-4">
-  Employee Timesheet Calendar for <%= @employee.name %>
-</h3>
+<h3 class="ts-title">Timesheet Calendar — <%= @employee.name %></h3>
 
 <!-- ✅ Month Navigation -->
-<div class="calendar-nav text-center mb-3 my-4">
-  <% current_month = params[:month] ? Date.parse(params[:month]) : Date.current %>
-  <% prev_month = current_month.prev_month %>
-  <% next_month = current_month.next_month %>
+<div class="ts-nav">
+  <%= link_to calendar_timesheets_admin_employee_path(@employee, month: prev_month), class: "ts-nav-btn" do %>
+    <span class="chev">‹</span> <%= prev_month.strftime("%b %Y") %>
+  <% end %>
 
-  <%= link_to "← #{prev_month.strftime('%B')}",
-              calendar_timesheets_admin_employee_path(@employee, month: prev_month),
-              class: "btn btn-sm btn-outline-secondary" %>
+  <span class="ts-nav-current"><%= current_month.strftime("%B %Y") %></span>
 
-  <strong class="mx-3"><%= current_month.strftime("%B %Y") %></strong>
+  <%= link_to calendar_timesheets_admin_employee_path(@employee, month: next_month), class: "ts-nav-btn" do %>
+    <%= next_month.strftime("%b %Y") %> <span class="chev">›</span>
+  <% end %>
+</div>
 
-  <%= link_to "#{next_month.strftime('%B')} →",
-              calendar_timesheets_admin_employee_path(@employee, month: next_month),
-              class: "btn btn-sm btn-outline-secondary" %>
+<!-- ✅ Filters -->
+<div class="ts-filters">
+  <%= form_tag calendar_timesheets_admin_employee_path(@employee), method: :get, class: "ts-month-form" do %>
+    <label for="ts-month-input">Jump to</label>
+    <%= month_field_tag :month, current_month.strftime("%Y-%m"), id: "ts-month-input", class: "ts-month-input", onchange: "this.form.submit()" %>
+    <noscript><button type="submit" class="ts-nav-btn">Go</button></noscript>
+  <% end %>
+
+  <div class="ts-status-filter" id="ts-status-filter">
+    <button type="button" class="ts-pill active" data-filter="all">All</button>
+    <button type="button" class="ts-pill" data-filter="on-time"><span class="dot on-time"></span> On Time</button>
+    <button type="button" class="ts-pill" data-filter="late"><span class="dot late"></span> Late</button>
+    <button type="button" class="ts-pill" data-filter="half-day"><span class="dot half-day"></span> Half Day</button>
+    <button type="button" class="ts-pill" data-filter="late-half-day"><span class="dot late-half-day"></span> Late + ½</button>
+  </div>
+</div>
+
+<!-- ✅ Summary Cards -->
+<div class="ts-stats">
+  <div class="ts-card clockins">
+    <div class="ts-card-num"><%= count_clockins %></div>
+    <div class="ts-card-label">Clock-ins</div>
+  </div>
+  <div class="ts-card lates">
+    <div class="ts-card-num"><%= count_late %></div>
+    <div class="ts-card-label">Lates</div>
+  </div>
+  <div class="ts-card halfdays">
+    <div class="ts-card-num"><%= count_half %></div>
+    <div class="ts-card-label">Half Days</div>
+  </div>
+  <div class="ts-card ontime">
+    <div class="ts-card-num"><%= count_on_time %></div>
+    <div class="ts-card-label">On Time</div>
+  </div>
 </div>
 
 <!-- ✅ Calendar Grid -->
-<div class="attendance-calendar">
+<div class="ts-calendar">
   <% start_date = current_month.beginning_of_month.beginning_of_week(:sunday) %>
   <% end_date = current_month.end_of_month.end_of_week(:sunday) %>
 
   <% (start_date..end_date).each_slice(7) do |week| %>
-    <div class="week">
+    <div class="ts-week">
       <% week.each do |day| %>
         <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
+        <% status_class = status_for.call(record) %>
+        <% label = status_label[status_class] %>
 
-        <% status_class =
-          if record&.status == "late"
-            "late"
-          elsif record
-            "on-time"
-          else
-            "no-data"
-          end
-        %>
-
-        <!-- ✅ Link each day to employee’s detailed timesheet -->
         <%= link_to admin_time_clocks_path(q: { user_id_eq: @employee.id, clock_in_date_eq: day }),
-                    class: "day #{status_class} #{'dimmed' if day.month != current_month.month}",
-                    title: "#{day.strftime('%B %d, %Y')}" do %>
-          <%= day.day %>
+                    class: "ts-day #{status_class} #{'dimmed' if day.month != current_month.month}",
+                    data: { status: status_class },
+                    title: "#{day.strftime('%B %d, %Y')}#{record ? " · In: #{record.clock_in.strftime('%I:%M %p')}" : ''}" do %>
+          <span class="ts-day-number"><%= day.day %></span>
+          <% if record %>
+            <span class="ts-day-time"><%= record.clock_in.strftime("%I:%M %p") %></span>
+            <% if label %>
+              <span class="ts-day-badge"><%= label %></span>
+            <% end %>
+          <% end %>
         <% end %>
       <% end %>
     </div>
@@ -53,129 +125,311 @@
 </div>
 
 <!-- ✅ Legend -->
-<div class="legend">
-  <div><span class="box on-time"></span> On Time</div>
-  <div><span class="box late"></span> Late</div>
-  <div><span class="box no-data"></span> No Record</div>
+<div class="ts-legend">
+  <div><span class="dot on-time"></span> On Time</div>
+  <div><span class="dot late"></span> Late</div>
+  <div><span class="dot half-day"></span> Half Day</div>
+  <div><span class="dot late-half-day"></span> Late + Half Day</div>
+  <div><span class="dot no-data"></span> No Record</div>
 </div>
 
 <style nonce="<%= content_security_policy_nonce %>">
-  h3.text-center {
-    font-weight: 600;
-    color: #333;
-    font-size: 2rem; /* Increase font size of the title */
+  .ts-title {
+    text-align: center;
+    font-weight: 700;
+    color: #1f2a37;
+    font-size: 1.6rem;
+    margin: 1.75rem 0 1.25rem;
   }
 
-  .calendar-nav {
-    margin-bottom: 20px;
+  /* ── Month navigation ── */
+  .ts-nav {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 5rem;
+    gap: 14px;
+    margin-bottom: 22px;
   }
 
-  .btn {
-    padding: 8px 16px; /* Increased padding for better button size */
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    text-decoration: none;
-    color: #333;
+  .ts-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    border: 1px solid #e2e6ea;
     background: #fff;
-    transition: all 0.2s ease;
+    color: #4b5563;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    transition: all 0.15s ease;
   }
 
-  .btn:hover {
-    background: #6f2b8a;
-    color: #fff;
-    border-color: #6f2b8a;
+  .ts-nav-btn:hover {
+    border-color: #c7cdd4;
+    color: #1f2a37;
+    background: #f9fafb;
   }
 
-  .attendance-calendar {
+  .ts-nav-btn .chev { font-size: 1.05rem; line-height: 1; }
+
+  .ts-nav-current {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1f2a37;
+    min-width: 150px;
+    text-align: center;
+  }
+
+  /* ── Summary cards ── */
+  .ts-stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .ts-card {
+    width: 104px;
+    padding: 14px 10px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid;
+    background: #fff;
+  }
+
+  .ts-card-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .ts-card-label {
+    margin-top: 6px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .ts-card.clockins { background: #ecfdf3; border-color: #b9f0cf; }
+  .ts-card.clockins .ts-card-num { color: #15803d; }
+
+  .ts-card.lates    { background: #fef2f2; border-color: #fbd0d0; }
+  .ts-card.lates .ts-card-num { color: #dc2626; }
+
+  .ts-card.halfdays { background: #fffbeb; border-color: #fce7aa; }
+  .ts-card.halfdays .ts-card-num { color: #d97706; }
+
+  .ts-card.ontime   { background: #eff6ff; border-color: #bcdbfd; }
+  .ts-card.ontime .ts-card-num { color: #2563eb; }
+
+  /* ── Calendar grid ── */
+  .ts-calendar {
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Increased gap between weeks */
-    justify-content: center;
+    gap: 12px;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 26px;
   }
 
-  .week {
-    display: flex;
-    gap: 12px; /* Increased gap between days */
-  }
+  .ts-week { display: flex; gap: 12px; }
 
-  .day {
-    width: 60px; /* Increased width of each day */
-    height: 60px; /* Increased height of each day */
+  .ts-day {
+    width: 84px;
+    height: 84px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 2px;
+    border-radius: 12px;
+    border: 1px solid #eceff2;
+    background: #f4f6f8;
+    color: #9aa3ad;
     font-weight: 600;
-    font-size: 18px; /* Increased font size */
-    border-radius: 10px; /* Slightly larger border radius */
-    border: 1px solid #ccc;
-    background-color: #fff;
-    color: #333;
-    text-decoration: none;
+    text-decoration: none !important;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .day:hover {
-    transform: scale(1.15); /* Slightly larger hover effect */
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow */
+  .ts-day, .ts-day:hover, .ts-day:focus, .ts-day:visited { text-decoration: none !important; }
+  .ts-day .ts-day-number { text-decoration: none !important; }
+
+  .ts-day:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 24, 40, 0.14);
   }
 
-  .day.on-time {
-    background-color: #27ae60;
+  .ts-day-number { font-size: 17px; line-height: 1; }
+
+  .ts-day-time {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.95;
+    white-space: nowrap;
+  }
+
+  .ts-day-badge {
+    margin-top: 2px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.25);
     color: #fff;
-    border: none;
+    white-space: nowrap;
   }
 
-  .day.late {
-    background-color: #e74c3c;
-    color: #fff;
-    border: none;
-  }
+  .ts-day.on-time       { background: #22a565; color: #fff; border-color: transparent; }
+  .ts-day.late          { background: #e23b3b; color: #fff; border-color: transparent; }
+  .ts-day.half-day      { background: #f0a020; color: #fff; border-color: transparent; }
+  .ts-day.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); color: #fff; border-color: transparent; }
+  .ts-day.no-data .ts-day-number { color: #aab2bc; }
 
-  .day.no-data {
-    background-color: #f0f0f0;
-    color: #999;
-  }
+  .ts-day.dimmed { opacity: 0.45; }
 
-  .day.dimmed {
-    opacity: 0.4;
-  }
-
-  .legend {
+  /* ── Legend ── */
+  .ts-legend {
     display: flex;
     justify-content: center;
-    gap: 30px; /* More space between legend items */
-    font-weight: 500;
-    font-size: 16px; /* Larger font for the legend */
+    flex-wrap: wrap;
+    gap: 24px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4b5563;
   }
 
-  .legend .box {
+  .ts-legend > div { display: inline-flex; align-items: center; }
+
+  .ts-legend .dot {
     display: inline-block;
-    width: 20px; /* Increased size of legend box */
-    height: 20px; /* Increased size of legend box */
-    border-radius: 5px; /* Slightly more rounded boxes */
-    margin-right: 10px;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    margin-right: 8px;
     vertical-align: middle;
   }
 
-  /* ✅ Responsive */
-  @media (max-width: 600px) {
-    .day {
-      width: 50px; /* Adjusted width for smaller screens */
-      height: 50px; /* Adjusted height for smaller screens */
-      font-size: 16px; /* Adjusted font size for smaller screens */
+  .ts-legend .dot.on-time       { background: #22a565; }
+  .ts-legend .dot.late          { background: #e23b3b; }
+  .ts-legend .dot.half-day      { background: #f0a020; }
+  .ts-legend .dot.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); }
+  .ts-legend .dot.no-data       { background: #dfe3e8; }
+
+  /* ── Filters ── */
+  .ts-filters {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+
+  .ts-month-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  .ts-month-input {
+    padding: 6px 10px;
+    border-radius: 9px;
+    border: 1px solid #e2e6ea;
+    background: #fff;
+    color: #1f2a37;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ts-status-filter {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px;
+    background: #f4f6f8;
+    border-radius: 11px;
+  }
+
+  .ts-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #4b5563;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .ts-pill:hover { background: #e9edf1; }
+
+  .ts-pill.active {
+    background: #fff;
+    color: #1f2a37;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+  }
+
+  .ts-pill .dot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+  }
+
+  .ts-pill .dot.on-time       { background: #22a565; }
+  .ts-pill .dot.late          { background: #e23b3b; }
+  .ts-pill .dot.half-day      { background: #f0a020; }
+  .ts-pill .dot.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); }
+
+  /* Dim cells that don't match the active status filter */
+  .ts-day.filtered-out { opacity: 0.18; filter: grayscale(0.6); pointer-events: none; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .ts-day { width: 13.4vw; height: 13.4vw; min-width: 46px; min-height: 46px; }
+    .ts-day-time, .ts-day-badge { display: none; }
+    .ts-stats { gap: 10px; }
+    .ts-card { width: 78px; padding: 10px 6px; }
+    .ts-legend { gap: 14px; font-size: 0.8rem; }
+  }
+</style>
+
+<script nonce="<%= content_security_policy_nonce %>">
+  (function () {
+    var bar = document.getElementById("ts-status-filter");
+    if (!bar) return;
+
+    var pills = bar.querySelectorAll(".ts-pill");
+    var days = document.querySelectorAll(".ts-calendar .ts-day");
+
+    function apply(filter) {
+      days.forEach(function (day) {
+        var match = filter === "all" || day.dataset.status === filter;
+        day.classList.toggle("filtered-out", !match);
+      });
     }
 
-    .legend {
-      flex-direction: column;
-      align-items: center;
-      gap: 12px; /* Increased gap for mobile */
-    }
-  }
-  
-</style>
+    pills.forEach(function (pill) {
+      pill.addEventListener("click", function () {
+        pills.forEach(function (p) { p.classList.remove("active"); });
+        pill.classList.add("active");
+        apply(pill.dataset.filter);
+      });
+    });
+  })();
+</script>
