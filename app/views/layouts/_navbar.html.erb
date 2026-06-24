@@ -13,8 +13,8 @@
          <!-- Navbar links -->
          <div class="collapse navbar-collapse" id="navbarNav">
              <% if user_signed_in? %>
-             <!-- Primary navigation -->
-             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+             <!-- Primary navigation (pushed to the right) -->
+             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                  <li class="nav-item">
                      <%= link_to root_path, class: "nav-link #{'active' if current_page?(root_path)}" do %>
                      <i class="fas fa-gauge-high"></i> Dashboard
@@ -61,7 +61,7 @@
              </ul>
 
              <!-- Right side: notifications + account -->
-             <ul class="navbar-nav ms-auto align-items-center">
+             <ul class="navbar-nav ms-xl-3 align-items-center">
                  <!-- Notifications -->
                  <li class="nav-item dropdown me-lg-2">
                      <a class="nav-link nav-icon-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
