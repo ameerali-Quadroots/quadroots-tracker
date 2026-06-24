@@ -24,9 +24,23 @@ class User < ApplicationRecord
     role == 'admin'
   end
 
+  # Departments whose managers report to the HODs.
+  HOD_MANAGED_DEPARTMENTS = ["WEB", "SEO", "ADS", "CONTENT"].freeze
+
   # Two-letter initials used as an avatar fallback when no image is attached.
   def initials
     name.to_s.split.map(&:first).join[0, 2].upcase.presence || "?"
+  end
+
+  # Where this user's feedback should be directed. Managers of the
+  # HOD-managed departments give feedback to the HODs; everyone else
+  # gives feedback within their own department.
+  def feedback_department
+    if role == "Manager" && HOD_MANAGED_DEPARTMENTS.include?(department)
+      "HOD'S"
+    else
+      department
+    end
   end
 
   def acceptable_image

@@ -21,7 +21,7 @@
                      <% end %>
                  </li>
                  <li class="nav-item">
-                     <%= link_to "http://10.10.30.30:5173?#{{ department: current_user.department }.to_query}", class: "nav-link", target: "_blank", rel: "noopener" do %>
+                     <%= link_to "http://10.10.30.30:5173?#{{ department: current_user.feedback_department }.to_query}", class: "nav-link", target: "_blank", rel: "noopener" do %>
                      <i class="fas fa-comment-dots"></i> Feedback
                      <% end %>
                  </li>
