@@ -5,17 +5,23 @@ class EditRequestsController < ApplicationController
   def create
     @edit_request = current_user.edit_requests.new(edit_request_params)
 
-    if @edit_request.time_clock_id.blank?
-      return redirect_back fallback_location: root_path, alert: "No time clock specified."
-    end
-
-    unless current_user.time_clocks.exists?(id: @edit_request.time_clock_id)
-      return redirect_back fallback_location: root_path, alert: "No matching time record found for this user."
-    end
-
     if @edit_request.requested_clock_in.blank?
       return redirect_back fallback_location: root_path, alert: "Requested date/time is required."
     end
+
+    # The shared modal always submits the *latest* time clock as `time_clock_id`,
+    # regardless of which day the employee is actually correcting. Re-link the request
+    # to the time clock that matches the date/time the employee entered, otherwise an
+    # approval would overwrite an unrelated day's clock-in (e.g. a request to fix
+    # June 11 would rewrite the June 15 record).
+    target_time_clock = time_clock_for_requested_time(@edit_request.requested_clock_in)
+
+    if target_time_clock.nil?
+      return redirect_back fallback_location: root_path,
+        alert: "No time record found for #{@edit_request.requested_clock_in.to_date.strftime('%b %d, %Y')}."
+    end
+
+    @edit_request.time_clock_id = target_time_clock.id
 
     if @edit_request.save
       NotificationService.notify_edit_request(@edit_request)
@@ -80,6 +86,26 @@ class EditRequestsController < ApplicationController
   end
 
   private
+
+  # Finds the current user's time clock that the requested time actually belongs to,
+  # so an edit request corrects the right day instead of the most recent record.
+  # Looks within a 3-day window (to cover night shifts that span midnight) and:
+  #   1. prefers the shift whose clock_in..clock_out range contains the requested time
+  #      (correct for break edits, which land in the middle of a shift), then
+  #   2. falls back to the record clocked in on the same calendar day, closest in time.
+  def time_clock_for_requested_time(requested_time)
+    window = (requested_time.to_date - 1.day).beginning_of_day..(requested_time.to_date + 1.day).end_of_day
+    clocks = current_user.time_clocks.where(clock_in: window).order(clock_in: :desc).to_a
+
+    within_shift = clocks.detect do |tc|
+      tc.clock_in.present? && tc.clock_out.present? && (tc.clock_in..tc.clock_out).cover?(requested_time)
+    end
+    return within_shift if within_shift
+
+    clocks
+      .select { |tc| tc.clock_in&.to_date == requested_time.to_date }
+      .min_by { |tc| (tc.clock_in - requested_time).abs }
+  end
 
   def set_edit_request
     @edit_request = EditRequest.find(params[:id])

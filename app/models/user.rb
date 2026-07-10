@@ -43,6 +43,14 @@ class User < ApplicationRecord
     end
   end
 
+  # Whether this user gets the Feedback form. Managers outside the
+  # core departments (e.g. HR, SALES) do not give feedback.
+  def can_give_feedback?
+    return false if role == "Manager" && !HOD_MANAGED_DEPARTMENTS.include?(department)
+
+    true
+  end
+
   def acceptable_image
     return unless image.attached?
 

@@ -47,7 +47,7 @@ class DashboardController < ApplicationController
     @current_month = params[:month] ? Date.parse(params[:month]) : Date.current
     @time_clocks = @employee.time_clocks
       .includes(:breaks)
-      .where(clock_in: @current_month.beginning_of_month..@current_month.end_of_month)
+      .where(clock_in: @current_month.beginning_of_month.beginning_of_day..@current_month.end_of_month.end_of_day)
       .order(:clock_in)
     render 'dashboard/executive_timesheets'
   end
