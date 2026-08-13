@@ -12,7 +12,16 @@ class Break < ApplicationRecord
     "Namaz Break",
   ]
 
+  MEETING_BREAK_TYPE = "Meeting"
+
   validates :break_type, inclusion: { in: VALID_BREAK_TYPES }
+
+  # Meetings are paid time, so they are never subtracted from the worked total.
+  # Compared case/whitespace insensitively - some rows were stored with stray
+  # casing or a trailing space.
+  def meeting?
+    break_type.to_s.strip.casecmp(MEETING_BREAK_TYPE).zero?
+  end
 
   def duration
     return 0 if break_in.blank? || break_out.blank?

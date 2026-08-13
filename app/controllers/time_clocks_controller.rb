@@ -60,27 +60,8 @@ end
      time_clock = current_user.time_clocks.where(clock_out: nil).last
 
   if time_clock.present?
-    now = Time.current
-    total_worked_seconds = now - time_clock.clock_in
-
-    # Subtract only non-meeting breaks
-    break_seconds = 0
-    if time_clock.respond_to?(:breaks) && time_clock.breaks.any?
-      non_meeting_breaks = time_clock.breaks.where.not(break_type: "Meeting")
-      break_seconds = non_meeting_breaks.sum do |br|
-        (br.break_out || now) - br.break_in
-      end
-
-      total_worked_seconds -= break_seconds
-    end
-
-    # Update the time clock record
-    time_clock.update!(
-      clock_out: now,
-      total_duration: [total_worked_seconds.to_i, 0].max,
-      break_duration: break_seconds.to_i,
-      current_state: "off"
-    )
+    # Also ends any break left running, so it can't stay open after the shift.
+    time_clock.close_out!(at: Time.current)
   end
 
     redirect_to root_path, notice: "Clocked out successfully."

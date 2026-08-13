@@ -26,8 +26,7 @@ end
 def duration_in_hours
   return nil if clock_out.blank? || clock_in.blank?
 
-  total = (clock_out - clock_in) - breaks.where.not(break_type: "meeting").sum(&:duration)
-  (total / 3600).round(2)
+  ([(clock_out - clock_in).to_i - total_break_seconds, 0].max / 3600.0).round(2)
 end
 
   def formatted_duration(seconds)
@@ -43,19 +42,42 @@ end
     breaks.any? && breaks.last.break_out.blank?
   end
 
-
-  def total_break_seconds
-  return 0 if breaks.blank?
-
-  # Only subtract breaks that are NOT meetings.
-  # Iterate the loaded association (no extra query) instead of breaks.where(...)
-  breaks.sum do |b|
-    next 0 if b.break_type.blank? || b.break_type == "meeting"
-    next 0 if b.break_out.blank?
-
-    (b.break_out - b.break_in).to_i
+  # Breaks the employee started but never ended. Iterate the loaded association
+  # (no extra query) instead of breaks.where(...)
+  def open_breaks
+    breaks.select { |b| b.break_in.present? && b.break_out.blank? }
   end
-end
+
+  # Ends the shift. Any break the employee forgot to end is closed at the same
+  # moment - otherwise the break row stays open forever, on_break? never flips
+  # back and every later duration calculation ignores that break entirely.
+  # Used by manual clock out and by AutoClockJob at 4am.
+  def close_out!(at: Time.zone.now)
+    transaction do
+      open_breaks.each { |b| b.update!(break_out: [at, b.break_in].max) }
+
+      break_seconds = total_break_seconds
+
+      update!(
+        clock_out: at,
+        total_duration: [(at - clock_in).to_i - break_seconds, 0].max,
+        break_duration: break_seconds,
+        current_state: "off"
+      )
+    end
+  end
+
+
+  # Completed break seconds, excluding meetings (paid time).
+  # Iterate the loaded association (no extra query) instead of breaks.where(...)
+  def total_break_seconds
+    breaks.sum do |b|
+      next 0 if b.break_type.blank? || b.meeting?
+      next 0 if b.break_in.blank? || b.break_out.blank?
+
+      [(b.break_out - b.break_in).to_i, 0].max
+    end
+  end
 
 
 
@@ -74,7 +96,8 @@ end
   now = Time.zone.now
 
   break_seconds = breaks.sum do |br|
-    next 0 if br.break_type.blank? || br.break_type == "meeting"
+    next 0 if br.break_type.blank? || br.meeting?
+    next 0 if br.break_in.blank?
 
     (br.break_out || now) - br.break_in
   end
@@ -101,13 +124,6 @@ def calculate_downtime(now = Time.current)
 end
 
 
-
-  def calculate_total_duration
-    return if clock_in.blank? || clock_out.blank?
-
-    worked_seconds = (clock_out - clock_in).to_i - total_break_seconds
-    self.total_duration = [worked_seconds, 0].max
-  end
 
   # The datetime the employee's shift was supposed to start for this record,
   # based on the employee's configured shift_time (defaults to 18:00).
