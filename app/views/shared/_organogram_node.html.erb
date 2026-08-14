@@ -1,0 +1,47 @@
+<%#
+  One node of the organogram, rendered recursively.
+  locals: user, children (Hash of parent_id => [users]), depth
+%>
+<%
+  kids   = children[user.id] || []
+  color  = organogram_role_color(user)
+  total  = kids.any? ? organogram_descendant_count(user, children) : 0
+  # Everything below the top level starts collapsed: with 60+ people an
+  # expanded tree is thousands of pixels wide. "Expand all" opens it.
+  collapsed = depth >= 1 && kids.any?
+%>
+<li class="org-node <%= 'is-collapsed' if collapsed %>" data-org-node>
+  <div class="org-card"
+       data-org-name="<%= user.name.to_s.downcase %>"
+       data-org-role="<%= (user.access_role&.name || user[:role]).to_s.downcase %>"
+       data-org-dept="<%= (user.org_department&.name || user[:department]).to_s.downcase %>">
+    <div class="org-avatar">
+      <% if user.image.attached? %>
+        <%= image_tag user.image.variant(resize_to_fill: [96, 96]), alt: user.name %>
+      <% else %>
+        <span><%= user.initials %></span>
+      <% end %>
+    </div>
+    <div class="org-name"><%= user.name.presence || user.email %></div>
+    <div class="org-role" style="background:<%= color[:bg] %>; color:<%= color[:fg] %>;">
+      <%= user.access_role&.name || user[:role] || "No role" %>
+    </div>
+    <div class="org-dept"><%= user.org_department&.name || user[:department] || "—" %></div>
+
+    <% if kids.any? %>
+      <button type="button" class="org-toggle" data-org-toggle
+              title="<%= kids.size %> direct, <%= total %> total">
+        <span class="org-toggle-icon"><%= collapsed ? "+" : "−" %></span>
+        <span class="org-toggle-count"><%= kids.size %></span>
+      </button>
+    <% end %>
+  </div>
+
+  <% if kids.any? %>
+    <ul>
+      <% kids.each do |child| %>
+        <%= render "shared/organogram_node", user: child, children: children, depth: depth + 1 %>
+      <% end %>
+    </ul>
+  <% end %>
+</li>

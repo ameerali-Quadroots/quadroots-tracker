@@ -117,15 +117,31 @@
                     </span>
                   </td>
                   <td data-label="Status" class="align-middle">
-                    <span class="status-indicator"></span>
-                    <% status_class = case request.approved_by_manager
-                                    when false then "bg-warning text-dark"
-                                    when true then "bg-success"
-                                    else "bg-secondary"
-                                    end %>
-                    <span class="badge rounded-pill <%= status_class %> px-3 py-2">
-                      <%= request.approved_by_manager? ? 'Yes' : 'No' %>
-                    </span>
+                    <%# Where the request sits in the configured approval chain. %>
+                    <% step = request.current_step %>
+                    <% if step.nil? %>
+                      <span class="badge rounded-pill <%= request.status == 'rejected' ? 'bg-danger' : 'bg-success' %> px-3 py-2">
+                        Complete
+                      </span>
+                    <% else %>
+                      <span class="badge rounded-pill <%= request.actionable_by?(current_user) ? 'bg-warning text-dark' : 'bg-secondary' %> px-3 py-2">
+                        <%= if request.actionable_by?(current_user)
+                              "Awaiting you"
+                            elsif step.admin_step?
+                              "Awaiting admin"
+                            else
+                              "Awaiting #{step}"
+                            end %>
+                      </span>
+                    <% end %>
+                    <div class="text-muted small mt-1">
+                      <% request.approvals.ordered.each_with_index do |approval, i| %>
+                        <span title="<%= approval.approver&.name %>">
+                          <%= i.positive? ? "› " : "" %><%= approval.role_name %><%
+                            %><%= { "approved" => " ✓", "rejected" => " ✗", "skipped" => " –" }[approval.status] %>
+                        </span>
+                      <% end %>
+                    </div>
                   </td>
                   <td data-label="Requested At" class="align-middle">
                     <div class="fw-bold">
@@ -148,7 +164,8 @@
                     <% end %>
                   </td>
                   <td data-label="Actions" class="align-middle">
-                    <% unless request.approved_by_manager %>
+                    <%# Buttons only for the person the chain is actually waiting on. %>
+                    <% if request.actionable_by?(current_user) %>
                       <% if request.manager_actionable? %>
                         <div class="action-buttons">
                           <%= button_to approve_edit_request_path(request),
@@ -170,6 +187,13 @@
                           <i class="fas fa-lock me-1"></i> Expired
                         </span>
                       <% end %>
+                    <% elsif request.current_step %>
+                      <span class="text-muted small">
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        With <%= request.current_step.admin_step? ? "the admin team" : (request.current_approver&.name || request.current_step.to_s) %>
+                      </span>
+                    <% else %>
+                      <span class="text-muted small">—</span>
                     <% end %>
                   </td>
                 </tr>

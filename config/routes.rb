@@ -50,6 +50,7 @@ end
 
 
   get '/hosting-details', to: 'hosting#index', as: 'hosting_details'
+  get '/organogram', to: 'organogram#index', as: 'organogram'
 
   post '/pusher/auth',          to: 'pusher#auth'
   get  '/notifications/unread', to: 'notifications#unread'

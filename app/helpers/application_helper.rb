@@ -1,35 +1,22 @@
 module ApplicationHelper
+  # Both counts are scoped by the organogram (everyone below you in the
+  # reporting tree) and gated by the role's page permissions, replacing the
+  # old hardcoded role/department lists.
   def edit_requests_count
-    if current_user.role == "Manager" && current_user.department != "HOD'S"
-      EditRequest.where(department: current_user.department)
-                 .where.not(user_id: current_user.id)
-                 .count
-    elsif current_user.department == "HOD'S"
-      departments = ["WEB", "SEO", "ADS", "CONTENT"]
-      manager_ids = User.where(role: "Manager", department: departments).pluck(:id)
-      EditRequest.where(user_id: manager_ids).count
-    else
-      0
-    end
+    return 0 unless can_view?("edit_requests.review")
+
+    EditRequest.where(user_id: reviewable_user_ids).count
   end
 
-   def leaves_count
-    if current_user.role == "Manager" && current_user.department != "HOD'S"
-      # Regular Manager: sees Executives in their department
-      Leave.joins(:user)
-           .where(users: { role: "Executive", department: current_user.department })
-           .count
+  def leaves_count
+    return 0 unless can_view?("leaves.review")
 
-    elsif current_user.role == "Manager" && current_user.department == "HOD'S"
-      # HOD Manager: sees Managers from specific departments
-      hod_departments = ["WEB", "SEO", "ADS", "CONTENT"]
+    Leave.where(user_id: reviewable_user_ids).count
+  end
 
-      Leave.joins(:user)
-           .where(users: { role: "Manager", department: hod_departments })
-           .count
+  private
 
-    else
-      0
-    end
-    end
+  def reviewable_user_ids
+    @reviewable_user_ids ||= current_user.subordinate_ids
+  end
 end

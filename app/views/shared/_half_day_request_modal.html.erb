@@ -26,8 +26,11 @@
           <i class="fa-solid fa-circle-info" style="color:#D97706;font-size:0.9rem;flex-shrink:0;"></i>
           <div style="font-size:0.75rem;color:#92400E;">
             <strong>Half Day</strong> — Today (<%= Date.current.strftime("%d %b") %>).
-            <% if current_user.role == "Manager" %>
-              This request will be sent to the <strong>HOD</strong> for approval.
+            <%# Names the actual approver(s) from the organogram instead of guessing. %>
+            <% approvers = current_user.managers.to_a %>
+            <% if approvers.any? %>
+              This request will be sent to <strong><%= approvers.map(&:name).to_sentence %></strong>
+              <%= approvers.size > 1 ? "(any one approval is enough)" : "(#{approvers.first.access_role&.name || approvers.first[:role]})" %> for approval.
             <% else %>
               This request will be sent to your <strong>Manager</strong> for approval.
             <% end %>

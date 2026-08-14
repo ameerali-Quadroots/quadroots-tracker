@@ -1,4 +1,6 @@
 class EditRequest < ApplicationRecord
+  include Approvable
+
   # Max edit requests an employee may submit within a single calendar month.
   MONTHLY_LIMIT = 3
   # Managers may only approve/reject a request within this window of its creation.
@@ -23,6 +25,39 @@ class EditRequest < ApplicationRecord
   # window (one week from when it was submitted).
   def manager_actionable?
     created_at.nil? || created_at >= MANAGER_ACTION_WINDOW.ago
+  end
+
+  # Applies the correction to the time clock. Previously lived inline in
+  # app/admin/edit_requests.rb; now the last approval in the chain triggers it,
+  # whether that approval came from the admin panel or the tracker app.
+  def apply_to_time_clock!
+    return false if requested_clock_in.blank? || time_clock.blank?
+
+    case request_type
+    when "Clock tower not working"
+      time_clock.update(clock_in: requested_clock_in, status: "on_time")
+    when "Forgot to end break", "Forgot to add break"
+      time_clock.breaks
+                .where(break_type: break_reason)
+                .update_all(break_out: requested_clock_in, updated_at: Time.current)
+      # The break totals stored on the shift are now stale.
+      time_clock.reload
+      break_seconds = time_clock.total_break_seconds
+      if time_clock.clock_out.present?
+        time_clock.update_columns(
+          break_duration: break_seconds,
+          total_duration: [(time_clock.clock_out - time_clock.clock_in).to_i - break_seconds, 0].max,
+          updated_at: Time.current
+        )
+      end
+    end
+
+    true
+  end
+
+  # Called by Approvable once every step has approved.
+  def after_chain_approved
+    apply_to_time_clock!
   end
 
 

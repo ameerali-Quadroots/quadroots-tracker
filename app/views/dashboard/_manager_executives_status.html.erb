@@ -9,12 +9,12 @@
   end
   shift_range = shift_start..shift_end
 
-  target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
-
-  executives = User.where(department: target_departments, employeed: true)
-                   .where.not(id: current_user.id)
+  # Your team is everyone below you in the organogram.
+  executives = User.employed
+                   .where(id: current_user.subordinate_ids)
                    .order(:name)
                    .to_a
+  target_departments = executives.map { |u| u[:department] }.compact.uniq.sort
 
   # Batch-load only the current shift's time clocks (+ breaks) in one query,
   # keyed by user_id, so executive_status_data never hits the DB per-row.
@@ -62,7 +62,7 @@
       <div>
         <div style="font-weight:800;color:#0F172A;font-size:1.0rem;letter-spacing:-0.2px;">
           Department Executives Status
-          <span style="font-weight:500;color:#94A3B8;font-size:0.8rem;margin-left:6px;">(<%= current_user.department == "HOD'S" ? "HOD'S" : current_user.department %>)</span>
+          <span style="font-weight:500;color:#94A3B8;font-size:0.8rem;margin-left:6px;">(<%= target_departments.presence&.join(", ") || current_user.department %>)</span>
         </div>
         <div style="font-size:0.70rem;color:#94A3B8;margin-top:2px;">Live · refreshes every 10 s · as of <%= now.strftime("%I:%M:%S %p") %></div>
       </div>

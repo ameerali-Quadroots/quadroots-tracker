@@ -1,4 +1,8 @@
 ActiveAdmin.register_page "Dashboard" do
+  # Sidebar order is set explicitly on every item; without a priority
+  # ActiveAdmin falls back to alphabetical, which buried the dashboard.
+  menu priority: 1
+
   content do
     div do
       raw "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"

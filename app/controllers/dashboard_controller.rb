@@ -1,5 +1,9 @@
 class DashboardController < ApplicationController
   before_action :authenticate_user!
+  # Page permissions from Settings -> Roles & Permissions. Viewing a specific
+  # person's timesheet additionally requires managing them (checked per action).
+  before_action -> { authorize_page!("executive_timesheets") },
+                only: %i[timesheet_record executive_timesheets]
   include DashboardHelper
 
   def index
@@ -16,19 +20,22 @@ class DashboardController < ApplicationController
       .order(clock_in: :desc)
 
     @today_half_day_leave = current_user.leaves.where(leave_type: :half_day, start_date: Date.current).last
-    load_monthly_dept_stats if current_user.role == 'Manager' || current_user.department == "HOD'S"
+    load_monthly_dept_stats if can_view?("department_stats") && current_user.direct_reports.any?
   end
 
   def manager_status
+    return head :forbidden unless can_view?("manager_status")
+
     render partial: 'dashboard/manager_executives_status', layout: false
   end
 
   def team_status
+    authorize_page!("team_status")
   end
 
   def timesheet_record
     @employee = User.find(params[:id])
-    unless ["HOD'S", @employee.department].include?(current_user.department)
+    unless current_user.manages?(@employee)
       redirect_to root_path, alert: "Not authorized."
       return
     end
@@ -39,7 +46,7 @@ class DashboardController < ApplicationController
   def executive_timesheets
     @employee = User.find(params[:id])
 
-    unless ["HOD'S", @employee.department].include?(current_user.department)
+    unless current_user.manages?(@employee)
       redirect_to root_path, alert: "Not authorized to view this executive."
       return
     end
@@ -55,8 +62,10 @@ class DashboardController < ApplicationController
   private
 
   def load_monthly_dept_stats
-    @target_departments = current_user.department == "HOD'S" ? ["WEB", "SEO", "CONTENT", "ADS"] : [current_user.department]
-    exec_users = User.where(department: @target_departments, employeed: true).where.not(id: current_user.id).to_a
+    # Your team is everyone below you in the organogram, whatever department
+    # they sit in - no hardcoded department list needed.
+    exec_users = User.employed.where(id: current_user.subordinate_ids).to_a
+    @target_departments = exec_users.map { |u| u[:department] }.compact.uniq.sort
     exec_ids = exec_users.map(&:id)
 
     twelve_months_ago = 12.months.ago.beginning_of_month

@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <% if current_user.role == 'Manager' || current_user.department == "HOD'S" %>
+    <% if can_view?("manager_status") && current_user.direct_reports.any? %>
       <!-- Manager Executives Status -->
       <div class="row g-4 mt-2 mb-2">
         <div class="col-12">
@@ -111,7 +111,7 @@
 <%= render 'shared/edit_request_modal' %>
 <%= render 'shared/leave_request_modal' %>
 <%= render 'shared/half_day_request_modal' %>
-<%= render 'shared/manager_leave_modal' if current_user.role == "Manager" %>
+<%= render 'shared/manager_leave_modal' if current_user.direct_reports.any? %>
 
 <script>
 // Enhanced Dashboard JavaScript with Interactive Particles

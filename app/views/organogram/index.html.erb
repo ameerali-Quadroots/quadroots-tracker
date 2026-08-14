@@ -1,0 +1,8 @@
+<div class="container-fluid" style="max-width:1400px; padding:24px 16px;">
+  <div style="margin-bottom:18px;">
+    <h3 style="font-weight:700; color:#1e293b; font-size:1.5rem; margin-bottom:4px;">Organogram</h3>
+    <p style="color:#64748B; font-size:0.88rem; margin:0;">Who reports to whom across the company.</p>
+  </div>
+
+  <%= render "shared/organogram", roots: @roots, children: @children %>
+</div>

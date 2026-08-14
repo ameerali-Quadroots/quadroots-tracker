@@ -1,18 +1,19 @@
 # app/admin/employees.rb
 ActiveAdmin.register User, as: "Employee" do
   # Display "Employees" in the sidebar menu
-  menu label: "Employees"
+  menu label: "Employees", priority: 2
 
   # Allow these params to be editable in ActiveAdmin forms
   permit_params :name, :email, :phone_number, :address,
                 :password, :password_confirmation,
-                :role, :department, :shift_time, :image
+                :shift_time, :image,
+                :role_id, :department_id, manager_ids: []
 
   # Filters for search
   filter :name
   filter :email
-  filter :department
-  filter :role
+  filter :org_department, as: :select, collection: -> { Department.ordered.pluck(:name, :id) }, label: "Department"
+  filter :access_role, as: :select, collection: -> { Role.for_scope(:employee).ordered.pluck(:name, :id) }, label: "Role"
   filter :time_clocks_clock_in
   filter :time_clocks_clock_out
   filter :time_clocks_created_at
@@ -21,6 +22,16 @@ ActiveAdmin.register User, as: "Employee" do
   scope :all, default: true
   scope("Employed", :employed) { |users| users.where(employeed: true) }
   scope("Unemployed", :unemployed) { |users| users.where(employeed: [false, nil]) }
+  # An employee with no role has no page permissions at all, so these gaps
+  # need to be visible rather than silently locking someone out.
+  scope("Missing role") { |users| users.where(role_id: nil) }
+  scope("No manager set") { |users| users.where.missing(:reporting_relationships) }
+
+  controller do
+    def scoped_collection
+      super.includes(:managers)
+    end
+  end
 
   # INDEX page
   index do
@@ -28,8 +39,18 @@ ActiveAdmin.register User, as: "Employee" do
 
     column :name
     column :email
-    column :department
-    column :role
+    column("Department") { |e| e.org_department&.name || e[:department] }
+    column("Role") do |e|
+      if e.access_role
+        e.access_role.name
+      else
+        status_tag "No role", class: "error"
+      end
+    end
+    column("Reports to") do |e|
+      names = e.managers.map(&:name)
+      names.any? ? names.join(", ") : status_tag("Top level", class: "warning")
+    end
 
     column "Medical Used" do |employee|
       employee.medical_leaves_count
@@ -89,13 +110,21 @@ end
       f.input :phone_number
       f.input :address
 
-      f.input :department, as: :select,
-        collection: ['SEO', 'SALES', 'ADS', 'PMO', 'WEB', 'SMM', 'CST', 'HR', 'IT','CONTENT','QA','ACCOUNTS', 'Executive Board', "HOD'S", "HAB BDR"],
-        prompt: "Select Department"
-
-      f.input :role, as: :select,
-        collection: User.roles.keys,
+      # Departments and roles are managed under Settings, not hardcoded here.
+      f.input :department_id, as: :select,
+        collection: Department.active.ordered.pluck(:name, :id),
+        prompt: "Select Department",
         input_html: { class: "dropdown", style: "width:50%" }
+
+      f.input :role_id, as: :select, label: "Role",
+        collection: Role.active.for_scope(:employee).ordered.pluck(:name, :id),
+        prompt: "Select Role",
+        input_html: { class: "dropdown", style: "width:50%" }
+
+      f.input :manager_ids, as: :select, multiple: true, label: "Reports to",
+        collection: User.reporting_options(except: f.object),
+        hint: "Select one or more managers. No selection leaves them at the top of the organogram.",
+        input_html: { class: "select2-filter", style: "width:50%" }
 
       f.input :shift_time
       f.input :password

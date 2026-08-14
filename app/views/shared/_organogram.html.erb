@@ -1,0 +1,232 @@
+<%#
+  Company organogram. Self-contained: inline styles + vanilla JS so it renders
+  identically inside the custom ActiveAdmin theme (no Bootstrap there) and in
+  the employee-facing app.
+
+  locals: roots, children, editable (optional, links cards to the admin edit page)
+%>
+<% editable = defined?(editable) ? editable : false %>
+<% unassigned = roots.count %>
+
+<style>
+  .org-wrap { --org-line:#CBD5E1; --org-ink:#1E293B; --org-mute:#64748B; --org-card:#FFFFFF;
+    background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; overflow:hidden; }
+
+  .org-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px 18px;
+    background:#fff; border-bottom:1px solid #E2E8F0; }
+  .org-bar input[type=search] { flex:1 1 240px; min-width:180px; padding:8px 12px; font-size:0.86rem;
+    border:1px solid #E2E8F0; border-radius:8px; outline:none; color:var(--org-ink); background:#fff; }
+  .org-bar input[type=search]:focus { border-color:#7C5CBF; box-shadow:0 0 0 3px rgba(124,92,191,0.12); }
+  .org-btn { padding:7px 13px; font-size:0.8rem; font-weight:600; color:#475569; background:#fff;
+    border:1px solid #E2E8F0; border-radius:8px; cursor:pointer; line-height:1.2; }
+  .org-btn:hover { background:#F1F5F9; color:#1E293B; }
+  .org-count { font-size:0.78rem; color:var(--org-mute); margin-left:auto; white-space:nowrap; }
+
+  .org-hint { margin:0; padding:11px 18px; background:#FFFBEB; border-bottom:1px solid #FDE68A;
+    color:#92400E; font-size:0.82rem; }
+
+  .org-scroll { overflow:auto; padding:26px 20px 34px; cursor:grab; }
+  .org-scroll:active { cursor:grabbing; }
+  .org-stage { transform-origin:top center; transition:transform 0.18s ease; display:inline-block;
+    min-width:100%; }
+
+  /* Pure-CSS connectors: no charting library needed. */
+  .org-tree, .org-tree ul { display:flex; justify-content:center; list-style:none; margin:0;
+    padding:0; position:relative; }
+  .org-tree ul { padding-top:22px; }
+  .org-tree li { position:relative; padding:22px 9px 0; text-align:center; list-style:none; }
+
+  .org-tree li::before, .org-tree li::after { content:''; position:absolute; top:0; right:50%;
+    border-top:2px solid var(--org-line); width:50%; height:22px; }
+  .org-tree li::after { right:auto; left:50%; border-left:2px solid var(--org-line); }
+  .org-tree li:only-child::before, .org-tree li:only-child::after { display:none; }
+  .org-tree li:only-child { padding-top:0; }
+  .org-tree li:first-child::before, .org-tree li:last-child::after { border:0 none; }
+  .org-tree li:last-child::before { border-right:2px solid var(--org-line); border-radius:0 7px 0 0; }
+  .org-tree li:first-child::after { border-radius:7px 0 0 0; }
+  .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; width:0; height:22px;
+    border-left:2px solid var(--org-line); }
+  /* Top level sits side by side with no incoming connector. */
+  .org-tree > li::before, .org-tree > li::after { display:none; }
+  .org-tree > li { padding-top:0; }
+
+  .org-card { position:relative; display:inline-block; width:172px; padding:14px 12px 12px;
+    background:var(--org-card); border:1px solid #E2E8F0; border-radius:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 6px 18px rgba(0,0,0,0.05); vertical-align:top;
+    transition:box-shadow 0.15s, border-color 0.15s, transform 0.15s; text-decoration:none; }
+  a.org-card:hover, .org-card:hover { border-color:#C4B5FD; transform:translateY(-2px);
+    box-shadow:0 4px 10px rgba(0,0,0,0.06), 0 14px 32px rgba(0,0,0,0.09); }
+
+  .org-avatar { width:52px; height:52px; margin:0 auto 9px; border-radius:50%; overflow:hidden;
+    background:linear-gradient(135deg,#7C5CBF,#A78BFA); display:flex; align-items:center;
+    justify-content:center; color:#fff; font-weight:700; font-size:1rem; letter-spacing:0.5px; }
+  .org-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+
+  .org-name { font-size:0.86rem; font-weight:700; color:var(--org-ink); line-height:1.3;
+    margin-bottom:6px; word-break:break-word; }
+  .org-role { display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.68rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:5px; }
+  .org-dept { font-size:0.72rem; color:var(--org-mute); }
+
+  .org-toggle { position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:4px; padding:2px 9px; background:#fff;
+    border:1px solid #E2E8F0; border-radius:20px; cursor:pointer; font-size:0.68rem;
+    font-weight:700; color:#7C5CBF; line-height:1.6; z-index:2; }
+  .org-toggle:hover { background:#7C5CBF; color:#fff; border-color:#7C5CBF; }
+  .org-toggle-icon { font-size:0.8rem; }
+
+  .org-node.is-collapsed > ul { display:none; }
+
+  /* Search */
+  .org-card.org-dim { opacity:0.28; }
+  .org-card.org-hit { border-color:#7C5CBF; box-shadow:0 0 0 3px rgba(124,92,191,0.22); }
+
+  .org-empty { padding:40px 20px; text-align:center; color:var(--org-mute); font-size:0.9rem; }
+
+  @media print {
+    .org-bar, .org-hint { display:none; }
+    .org-wrap { border:0; background:#fff; }
+    .org-scroll { overflow:visible; padding:0; }
+    .org-node.is-collapsed > ul { display:flex; }
+  }
+</style>
+
+<div class="org-wrap" data-org-wrap>
+  <div class="org-bar">
+    <input type="search" placeholder="Search name, role or department…" data-org-search aria-label="Search the organogram">
+    <button type="button" class="org-btn" data-org-expand>Expand all</button>
+    <button type="button" class="org-btn" data-org-collapse>Collapse all</button>
+    <button type="button" class="org-btn" data-org-zoom="-1" aria-label="Zoom out">&minus;</button>
+    <button type="button" class="org-btn" data-org-zoom="1" aria-label="Zoom in">+</button>
+    <button type="button" class="org-btn" data-org-print>Print</button>
+    <span class="org-count" data-org-count></span>
+  </div>
+
+  <% if unassigned > 5 %>
+    <p class="org-hint">
+      <strong><%= unassigned %> people</strong> have no manager set, so they all appear at the top level.
+      Set <strong>Reports to</strong> on an employee to place them under someone.
+    </p>
+  <% end %>
+
+  <div class="org-scroll">
+    <div class="org-stage" data-org-stage>
+      <% if roots.empty? %>
+        <div class="org-empty">No employees to show yet.</div>
+      <% else %>
+        <ul class="org-tree">
+          <% roots.each do |root| %>
+            <%= render "shared/organogram_node", user: root, children: children, depth: 0 %>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var wrap = document.querySelector('[data-org-wrap]');
+    if (!wrap || wrap.dataset.orgReady) return;
+    wrap.dataset.orgReady = '1';
+
+    var stage    = wrap.querySelector('[data-org-stage]');
+    var scroller = wrap.querySelector('.org-scroll');
+    var cards    = Array.prototype.slice.call(wrap.querySelectorAll('.org-card'));
+    var zoom     = 1;
+
+    wrap.querySelector('[data-org-count]').textContent = cards.length + ' people';
+
+    // The tree is far wider than the screen, so the root sits in the middle of
+    // the canvas. Without this the first thing you see is empty left margin.
+    function center() {
+      scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
+    }
+    center();
+    window.addEventListener('resize', center);
+
+    // Drag to pan.
+    var dragging = false, startX = 0, startScroll = 0;
+    scroller.addEventListener('mousedown', function (e) {
+      if (e.target.closest('.org-card')) return;
+      dragging = true; startX = e.pageX; startScroll = scroller.scrollLeft;
+      scroller.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mouseup', function () {
+      dragging = false; scroller.style.cursor = '';
+    });
+    scroller.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      e.preventDefault();
+      scroller.scrollLeft = startScroll - (e.pageX - startX);
+    });
+
+    // Collapse / expand a single branch
+    wrap.addEventListener('click', function (e) {
+      var toggle = e.target.closest('[data-org-toggle]');
+      if (!toggle) return;
+      e.preventDefault();
+      var node = toggle.closest('[data-org-node]');
+      node.classList.toggle('is-collapsed');
+      toggle.querySelector('.org-toggle-icon').textContent =
+        node.classList.contains('is-collapsed') ? '+' : '−';
+    });
+
+    function setAll(collapsed) {
+      wrap.querySelectorAll('[data-org-node]').forEach(function (node) {
+        if (!node.querySelector('ul')) return;
+        node.classList.toggle('is-collapsed', collapsed);
+        var icon = node.querySelector(':scope > .org-card .org-toggle-icon');
+        if (icon) icon.textContent = collapsed ? '+' : '−';
+      });
+    }
+    wrap.querySelector('[data-org-expand]').addEventListener('click', function () { setAll(false); center(); });
+    wrap.querySelector('[data-org-collapse]').addEventListener('click', function () { setAll(true); center(); });
+
+    // Zoom
+    wrap.querySelectorAll('[data-org-zoom]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        zoom = Math.min(1.4, Math.max(0.4, zoom + (parseInt(btn.dataset.orgZoom, 10) * 0.15)));
+        stage.style.transform = 'scale(' + zoom + ')';
+      });
+    });
+
+    wrap.querySelector('[data-org-print]').addEventListener('click', function () { window.print(); });
+
+    // Search: highlight matches, dim the rest, and open any branch hiding a hit.
+    var search = wrap.querySelector('[data-org-search]');
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      if (!q) {
+        cards.forEach(function (c) { c.classList.remove('org-dim', 'org-hit'); });
+        return;
+      }
+      var hits = 0, first = null;
+      cards.forEach(function (c) {
+        var hay = (c.dataset.orgName || '') + ' ' + (c.dataset.orgRole || '') + ' ' + (c.dataset.orgDept || '');
+        var hit = hay.indexOf(q) !== -1;
+        c.classList.toggle('org-hit', hit);
+        c.classList.toggle('org-dim', !hit);
+        if (hit) {
+          hits++;
+          if (!first) first = c;
+          var parent = c.closest('[data-org-node]');
+          while (parent) {
+            parent.classList.remove('is-collapsed');
+            var icon = parent.querySelector(':scope > .org-card .org-toggle-icon');
+            if (icon) icon.textContent = '−';
+            parent = parent.parentElement ? parent.parentElement.closest('[data-org-node]') : null;
+          }
+        }
+      });
+      wrap.querySelector('[data-org-count]').textContent = hits + ' of ' + cards.length + ' match';
+      // Bring the first match into view - matches are usually off-screen.
+      // Measured from bounding rects so the zoom transform is accounted for.
+      if (first) {
+        var cr = first.getBoundingClientRect();
+        var sr = scroller.getBoundingClientRect();
+        scroller.scrollLeft += (cr.left - sr.left) - (scroller.clientWidth / 2) + (cr.width / 2);
+      }
+    });
+  })();
+</script>

@@ -1,4 +1,5 @@
 ActiveAdmin.register TimeClock do
+  menu label: "Time Clocks", priority: 3
 
 controller do
   def scoped_collection

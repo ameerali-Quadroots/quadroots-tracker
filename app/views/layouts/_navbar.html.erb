@@ -20,7 +20,9 @@
                      <i class="fas fa-gauge-high"></i> Dashboard
                      <% end %>
                  </li>
-                 <% if current_user.can_give_feedback? %>
+                 <%# Admin toggle (Roles & Permissions) AND the routing rule:
+                     managers who don't report to an HOD have no feedback target. %>
+                 <% if can_view?("feedback") && current_user.can_give_feedback? %>
                  <li class="nav-item">
                      <%= link_to "http://10.10.30.30:5173?#{{ department: current_user.feedback_department }.to_query}", class: "nav-link", target: "_blank", rel: "noopener" do %>
                      <i class="fas fa-comment-dots"></i> Feedback
@@ -45,7 +47,8 @@
                      <% end %>
                      <% end %>
                  </li>
-                 <% if current_user.role == "Manager" %>
+                 <%# Gated by the role's page permissions, not a hardcoded role name. %>
+                 <% if can_view?("edit_requests.review") %>
                  <li class="nav-item">
                      <%= link_to edit_requests_path, class: "nav-link #{'active' if current_page?(edit_requests_path)}" do %>
                      <i class="fas fa-user-pen"></i> Edit Requests
@@ -55,6 +58,8 @@
                      <% end %>
                      <% end %>
                  </li>
+                 <% end %>
+                 <% if can_view?("leaves.review") %>
                  <li class="nav-item">
                      <%= link_to leaves_path, class: "nav-link #{'active' if current_page?(leaves_path)}" do %>
                      <i class="fas fa-calendar-check"></i> Leave Requests
@@ -62,6 +67,13 @@
                      <% if leave_count > 0 %>
                      <span class="nav-badge"><%= leave_count %></span>
                      <% end %>
+                     <% end %>
+                 </li>
+                 <% end %>
+                 <% if can_view?("organogram") %>
+                 <li class="nav-item">
+                     <%= link_to organogram_path, class: "nav-link #{'active' if current_page?(organogram_path)}" do %>
+                     <i class="fas fa-sitemap"></i> Organogram
                      <% end %>
                  </li>
                  <% end %>

@@ -1,4 +1,6 @@
 ActiveAdmin.register Leave do
+  menu label: "Leaves", priority: 5
+
   # ✅ Permit parameters (including file attachment)
   permit_params :user_id, :leave_type, :start_date, :end_date, :reason, :status, :approved_by_manager, :medical_certificate
 

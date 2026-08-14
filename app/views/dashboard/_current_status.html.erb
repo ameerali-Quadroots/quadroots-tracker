@@ -267,7 +267,8 @@
         </button>
       <% end %>
 
-      <% if current_user.role == "Manager" %>
+      <%# Anyone with people reporting to them, whatever their role is called. %>
+      <% if current_user.direct_reports.any? %>
         <button type="button" class="btn btn-dark btn-premium btn-leave"
                 data-bs-toggle="modal" data-bs-target="#managerLeaveModal">
           <i class="fa-solid fa-user-plus me-2"></i>For Executive

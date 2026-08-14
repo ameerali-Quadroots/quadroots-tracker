@@ -1,0 +1,120 @@
+<%#
+  Permission matrix for a role.
+  Self-styled: the admin panel runs a custom ActiveAdmin theme with no Bootstrap.
+%>
+<%
+  resource_perms = Permission.resources.ordered.group_by(&:group)
+  page_perms     = Permission.pages.ordered.group_by(&:group)
+  selected       = role.permission_ids.to_set
+  locked         = role.system?
+  actions        = Permission::ACTIONS
+  action_labels  = { "read" => "View", "create" => "Create", "update" => "Edit", "destroy" => "Delete" }
+%>
+
+<style>
+  .perm-matrix { --pm-line:#E2E8F0; --pm-head:#F8FAFC; --pm-ink:#1E293B; --pm-mute:#64748B; }
+  .perm-matrix .pm-note { background:#FFFBEB; border:1px solid #FDE68A; color:#92400E;
+    padding:10px 14px; border-radius:8px; font-size:0.82rem; margin-bottom:14px; }
+  .perm-matrix .pm-section { font-size:0.72rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.6px; color:var(--pm-mute); margin:18px 0 8px; }
+  .perm-matrix table { width:100%; border-collapse:separate; border-spacing:0;
+    border:1px solid var(--pm-line); border-radius:10px; overflow:hidden; background:#fff; }
+  .perm-matrix th, .perm-matrix td { padding:9px 12px; text-align:left; font-size:0.85rem;
+    border-bottom:1px solid var(--pm-line); }
+  .perm-matrix tr:last-child th, .perm-matrix tr:last-child td { border-bottom:0; }
+  .perm-matrix thead th { background:var(--pm-head); color:var(--pm-mute); font-size:0.72rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+  .perm-matrix thead th.pm-act, .perm-matrix td.pm-act { text-align:center; width:78px; }
+  .perm-matrix tbody th { font-weight:600; color:var(--pm-ink); }
+  .perm-matrix tbody tr:hover { background:#F8FAFC; }
+  .perm-matrix input[type=checkbox] { width:16px; height:16px; cursor:pointer; margin:0; }
+  .perm-matrix input[type=checkbox]:disabled { cursor:not-allowed; opacity:0.5; }
+  .perm-matrix .pm-rowtoggle { font-size:0.7rem; color:#7C5CBF; cursor:pointer;
+    text-decoration:underline; margin-left:8px; font-weight:500; }
+  .perm-matrix .pm-pages { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:8px; border:1px solid var(--pm-line); border-radius:10px; padding:14px; background:#fff; }
+  .perm-matrix .pm-page { display:flex; align-items:center; gap:9px; font-size:0.85rem; color:var(--pm-ink); }
+  .perm-matrix .pm-page small { color:var(--pm-mute); font-size:0.72rem; }
+  .perm-matrix .pm-group { font-size:0.7rem; font-weight:700; color:var(--pm-mute);
+    text-transform:uppercase; letter-spacing:0.5px; margin:6px 0 2px; grid-column:1/-1; }
+</style>
+
+<div class="perm-matrix">
+  <% if locked %>
+    <div class="pm-note">
+      <strong><%= role.name %></strong> is a system role with unrestricted access.
+      Its permissions cannot be changed, so that the admin panel can never be locked out entirely.
+    </div>
+  <% end %>
+
+  <%# Ensures an empty selection still submits, otherwise unticking everything is a no-op. %>
+  <%= hidden_field_tag "role[permission_ids][]", "", id: nil %>
+
+  <div class="pm-section">Admin panel resources</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Resource</th>
+        <% actions.each do |action| %>
+          <th class="pm-act"><%= action_labels[action] %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% resource_perms.each do |group, perms| %>
+        <% by_action = perms.index_by(&:action) %>
+        <tr>
+          <th>
+            <%= group %>
+            <% unless locked %>
+              <span class="pm-rowtoggle" data-pm-row>all</span>
+            <% end %>
+          </th>
+          <% actions.each do |action| %>
+            <td class="pm-act">
+              <% permission = by_action[action] %>
+              <% if permission %>
+                <%= check_box_tag "role[permission_ids][]", permission.id,
+                      selected.include?(permission.id),
+                      id: "role_permission_#{permission.id}",
+                      disabled: locked,
+                      title: permission.label %>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <div class="pm-section">Tracker app pages</div>
+  <div class="pm-pages">
+    <% page_perms.each do |group, perms| %>
+      <div class="pm-group"><%= group %></div>
+      <% perms.each do |permission| %>
+        <label class="pm-page" for="role_permission_<%= permission.id %>">
+          <%= check_box_tag "role[permission_ids][]", permission.id,
+                selected.include?(permission.id),
+                id: "role_permission_#{permission.id}",
+                disabled: locked %>
+          <span>
+            <%= permission.label %><br>
+            <small><%= permission.key %></small>
+          </span>
+        </label>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  (function () {
+    document.querySelectorAll('.perm-matrix [data-pm-row]').forEach(function (toggle) {
+      toggle.addEventListener('click', function () {
+        var boxes = toggle.closest('tr').querySelectorAll('input[type=checkbox]:not(:disabled)');
+        var turnOn = Array.prototype.some.call(boxes, function (b) { return !b.checked; });
+        boxes.forEach(function (b) { b.checked = turnOn; });
+      });
+    });
+  })();
+</script>

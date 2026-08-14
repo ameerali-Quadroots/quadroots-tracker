@@ -352,4 +352,17 @@ ActiveAdmin.setup do |config|
   # You can switch to using Webpacker here.
   #
   # config.use_webpacker = true
+
+  # == Sidebar menu
+  #
+  # The "Settings" group is created implicitly by the resources that declare
+  # `menu parent: "Settings"` (Roles, Departments, Approval Flows). Declaring it
+  # here is the only way to give the group itself a priority, which pins it to
+  # the bottom of the sidebar instead of letting it sort alphabetically in
+  # among the real pages.
+  config.namespace :admin do |admin|
+    admin.build_menu do |menu|
+      menu.add label: "Settings", priority: 90
+    end
+  end
 end

@@ -3,17 +3,15 @@ class LeavesController < ApplicationController
   before_action :set_leave, only: [:approve, :reject]
 
   def index
-    if current_user.role == "Manager" && current_user.department != "HOD'S"
-      @leaves = Leave.joins(:user)
-                     .where(users: { role: "Executive", department: current_user.department })
+    # Scoped by the organogram rather than hardcoded department lists: you
+    # review leaves for anyone below you in the reporting tree.
+    @leaves = if can_view?("leaves.review")
+                Leave.includes(:user)
+                     .where(user_id: current_user.subordinate_ids)
                      .order(created_at: :desc)
-    elsif current_user.role == "Manager" && current_user.department == "HOD'S"
-      @leaves = Leave.joins(:user)
-                     .where(users: { role: "Manager", department: ["WEB", "SEO", "ADS", "CONTENT"] })
-                     .order(created_at: :desc)
-    else
-      @leaves = Leave.none
-    end
+              else
+                Leave.none
+              end
   end
 
   def my_leaves

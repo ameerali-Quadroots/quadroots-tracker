@@ -1,6 +1,6 @@
 ActiveAdmin.register EditRequest do
   # ✅ Menu options (optional)
-  menu label: "Edit Requests", priority: 2
+  menu label: "Edit Requests", priority: 4
 
   # ✅ Allowed fields for form updates
   permit_params :name, :email, :requested_clock_in, :reason, :status, :resolved_at, :time_clock_id
@@ -107,6 +107,35 @@ end
       end
       row :created_at
       row :resolved_at
+      row("Waiting on") do |r|
+        step = r.current_step
+        if step.nil?
+          "Nothing — chain complete"
+        elsif step.admin_step?
+          "#{step} — approve or reject from this page"
+        else
+          approver = r.current_approver
+          "#{step}#{approver ? " — #{approver.name}" : ' (nobody above the requester holds this role)'}"
+        end
+      end
+    end
+
+    panel "Approval chain" do
+      if resource.approvals.empty?
+        para "No approval flow matched this request. Configure one under Settings → Approval Flows."
+      else
+        table_for resource.approvals.ordered do
+          column("#") { |a| a.position + 1 }
+          column("Step") { |a| a.role_name }
+          column("Status") do |a|
+            css = { "approved" => "ok", "rejected" => "error", "pending" => "warning" }[a.status] || "default"
+            status_tag a.status.capitalize, class: css
+          end
+          column("Approver") { |a| a.approver.try(:name) || a.approver.try(:email) || "—" }
+          column("When") { |a| a.acted_at&.strftime("%b %d, %Y %I:%M %p") || "—" }
+          column("Note") { |a| a.note }
+        end
+      end
     end
 
     # if !resource.approved_by_admin
@@ -140,50 +169,26 @@ end
   end
 
   # ✅ Custom Approve action
+  # Admin override: settles every remaining step in the chain at once and
+  # applies the correction to the time clock (EditRequest#apply_to_time_clock!).
   member_action :approve, method: :patch do
-  if resource.requested_clock_in.present?
-    if resource.time_clock.present? && resource.request_type == "Clock tower not working"
-      resource.time_clock.update(
-        clock_in: resource.requested_clock_in,
-        status: "on_time"
-      )
+    if resource.requested_clock_in.blank?
+      redirect_back(fallback_location: collection_path, alert: "No requested clock-in time present.")
+      next
     end
 
-    if resource.time_clock.present? &&
-       (resource.request_type == "Forgot to end break" ||
-        resource.request_type == "Forgot to add break")
+    skipped = resource.approvals.pending.count
+    resource.force_approve!(by: current_admin_user, note: "Approved from the admin panel.")
 
-      resource.time_clock.breaks
-               .where(break_type: resource.break_reason)
-               .update_all(break_out: resource.requested_clock_in)
-    end
-
-    resource.update(
-      status: "approved",
-      resolved_at: Time.current,
-      approved_by_admin: true
-    )
-
-    redirect_back(
-      fallback_location: collection_path,
-      notice: "Request approved and time clock updated."
-    )
-  else
-    redirect_back(
-      fallback_location: collection_path,
-      alert: "No requested clock-in time present."
-    )
+    notice = "Request approved and time clock updated."
+    notice += " #{skipped} outstanding approval step(s) were signed off." if skipped.positive?
+    redirect_back(fallback_location: collection_path, notice: notice)
   end
-end
 
-# ✅ Reject action
-member_action :reject, method: :patch do
-  resource.update(status: "rejected", resolved_at: Time.current)
-
-  redirect_back(
-    fallback_location: collection_path,
-    notice: "Request rejected."
-  )
-end
+  # ✅ Reject action
+  member_action :reject, method: :patch do
+    resource.force_reject!(by: current_admin_user, note: "Rejected from the admin panel.")
+    redirect_back(fallback_location: collection_path, notice: "Request rejected.")
+  end
 
 end

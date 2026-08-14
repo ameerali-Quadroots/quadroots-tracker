@@ -1,0 +1,54 @@
+<%# Read-only view of what a role can do, for the Role show page. %>
+<%
+  granted   = role.permissions.to_a
+  resources = granted.select { |p| p.kind == "resource" }.group_by(&:group)
+  pages     = granted.select { |p| p.kind == "page" }.sort_by(&:position)
+  labels    = { "read" => "View", "create" => "Create", "update" => "Edit", "destroy" => "Delete" }
+%>
+
+<style>
+  .perm-sum { font-size:0.85rem; color:#1E293B; }
+  .perm-sum .ps-empty { color:#64748B; font-style:italic; }
+  .perm-sum .ps-row { display:flex; gap:12px; padding:8px 0; border-bottom:1px solid #E2E8F0; }
+  .perm-sum .ps-row:last-child { border-bottom:0; }
+  .perm-sum .ps-name { min-width:170px; font-weight:600; }
+  .perm-sum .ps-tag { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.7rem;
+    font-weight:600; background:#EEF2FF; color:#4338CA; margin-right:6px; }
+  .perm-sum .ps-head { font-size:0.72rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.6px; color:#64748B; margin:14px 0 6px; }
+</style>
+
+<div class="perm-sum">
+  <% if role.super_admin? %>
+    <p><strong>Unrestricted.</strong> This role bypasses the matrix and can manage everything.</p>
+  <% end %>
+
+  <div class="ps-head">Admin panel resources</div>
+  <% if resources.empty? %>
+    <div class="ps-empty">No resource access.</div>
+  <% else %>
+    <% resources.each do |group, perms| %>
+      <div class="ps-row">
+        <div class="ps-name"><%= group %></div>
+        <div>
+          <% perms.sort_by(&:position).each do |p| %>
+            <span class="ps-tag"><%= labels[p.action] || p.action %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
+  <div class="ps-head">Tracker app pages</div>
+  <% if pages.empty? %>
+    <div class="ps-empty">No page access.</div>
+  <% else %>
+    <div class="ps-row">
+      <div>
+        <% pages.each do |p| %>
+          <span class="ps-tag"><%= p.label %></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

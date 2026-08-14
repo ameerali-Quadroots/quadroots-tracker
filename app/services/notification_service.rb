@@ -10,6 +10,22 @@ class NotificationService
     EditRequestMailer.new_request_notification(edit_request, recipient_emails_for(user)).deliver_later
   end
 
+  # Tells the next approver in the chain that it is their turn. Called after a
+  # step is approved; silent once the chain is finished.
+  def self.notify_edit_request_advanced(edit_request)
+    approver = edit_request.current_approver
+    return if approver.blank?
+
+    title   = "Edit Request Awaiting You"
+    message = "#{edit_request.user.name}'s edit request is now at the " \
+              "#{edit_request.current_step} step and needs your approval"
+    url     = "/edit_requests"
+
+    approver.notifications.create!(title: title, message: message, url: url)
+    push_realtime(approver, "edit-request-awaiting", title: title, message: message, url: url)
+    push_web(approver, title, message, url)
+  end
+
   def self.notify_leave_request(leave)
     user      = leave.user
     title     = "New Leave Request"
@@ -58,14 +74,12 @@ class NotificationService
     end
   end
 
+  # Everyone above this user in the organogram (across every manager they
+  # report to, at any depth), plus HR. Replaces the old lookup that
+  # hardcoded `role: "Manager", department: "HOD'S"`.
   def self.recipients_for(user)
-    recipients = []
-    if user.role == "Executive"
-      manager = User.find_by(role: "Manager", department: user.department, employeed: true)
-      recipients << manager if manager
-    end
-    hod = User.find_by(role: "Manager", department: "HOD'S", employeed: true)
-    recipients << hod if hod
+    recipients = User.employed.where(id: user.manager_ids).to_a
+
     hr = User.find_by(email: HR_EMAIL)
     recipients << hr if hr
     recipients.compact.uniq(&:id)

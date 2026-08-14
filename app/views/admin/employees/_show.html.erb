@@ -18,10 +18,14 @@
     <div class="emp-hero-info">
       <h2 class="emp-name"><%= employee.name.presence || "Unnamed Employee" %></h2>
       <div class="emp-meta">
-        <span class="emp-role-badge"><%= employee.role %></span>
-        <% if employee.department.present? %>
+        <% if employee.access_role %>
+          <span class="emp-role-badge"><%= employee.access_role.name %></span>
+        <% else %>
+          <span class="emp-role-badge no-role">No role</span>
+        <% end %>
+        <% if employee.org_department&.name.presence || employee.department.present? %>
           <span class="emp-dot">·</span>
-          <span class="emp-dept"><%= employee.department %></span>
+          <span class="emp-dept"><%= employee.org_department&.name || employee.department %></span>
         <% end %>
       </div>
       <div class="emp-email"><%= mail_to employee.email, employee.email %></div>
@@ -72,12 +76,14 @@
       </div>
       <div class="emp-field">
         <span class="emp-field-label">Role</span>
-        <span class="emp-field-value"><%= employee.role %></span>
+        <span class="emp-field-value <%= 'empty' unless employee.access_role %>">
+          <%= employee.access_role&.name || "No role assigned" %>
+        </span>
       </div>
       <div class="emp-field">
         <span class="emp-field-label">Department</span>
-        <span class="emp-field-value <%= 'empty' if employee.department.blank? %>">
-          <%= employee.department.presence || "Not provided" %>
+        <span class="emp-field-value <%= 'empty' if employee.org_department.nil? && employee.department.blank? %>">
+          <%= employee.org_department&.name || employee.department.presence || "Not provided" %>
         </span>
       </div>
       <div class="emp-field">
@@ -173,6 +179,11 @@
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.02em;
+  }
+
+  .emp-role-badge.no-role {
+    background: #fef2f2;
+    color: #dc2626;
   }
 
   .emp-dot { color: #cbd2da; }
