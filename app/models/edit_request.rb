@@ -1,8 +1,6 @@
 class EditRequest < ApplicationRecord
   include Approvable
 
-  # Max edit requests an employee may submit within a single calendar month.
-  MONTHLY_LIMIT = 3
   # Managers may only approve/reject a request within this window of its creation.
   MANAGER_ACTION_WINDOW = 1.week
 
@@ -78,11 +76,12 @@ def self.ransackable_associations(auth_object = nil)
   def within_monthly_limit
     return if user_id.blank?
 
+    limit = AppSetting.instance.edit_request_monthly_limit
     month_range = Time.current.beginning_of_month..Time.current.end_of_month
     existing = user.edit_requests.where(created_at: month_range).count
 
-    if existing >= MONTHLY_LIMIT
-      errors.add(:base, "You have reached the limit of #{MONTHLY_LIMIT} edit requests for this month.")
+    if existing >= limit
+      errors.add(:base, "You have reached the limit of #{limit} edit requests for this month.")
     end
   end
 

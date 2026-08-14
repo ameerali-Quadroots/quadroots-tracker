@@ -13,7 +13,8 @@ class Permission < ApplicationRecord
     "Leave"        => "Leaves",
     "Role"         => "Roles",
     "Department"   => "Departments",
-    "ApprovalFlow" => "Approval Flows"
+    "ApprovalFlow" => "Approval Flows",
+    "AppSetting"   => "Request Limits"
   }.freeze
 
   # Named screens in the employee-facing app. These replace the hardcoded
