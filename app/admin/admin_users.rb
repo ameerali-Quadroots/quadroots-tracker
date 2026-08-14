@@ -9,7 +9,7 @@ ActiveAdmin.register AdminUser do
     end
   end
   
-  permit_params :email, :password, :password_confirmation, :role_id, :department_id
+  permit_params :email, :password, :password_confirmation, :role_id, :department_id, additional_department_ids: []
 
   index do
     selectable_column
@@ -17,6 +17,7 @@ ActiveAdmin.register AdminUser do
     column :email
     column("Role") { |a| a.access_role&.name || a[:role] }
     column("Department") { |a| a.org_department&.name || a[:department] }
+    column("Additional Departments") { |a| a.additional_departments.map(&:name).join(", ") }
     actions
   end
 
@@ -36,6 +37,9 @@ ActiveAdmin.register AdminUser do
         collection: Department.active.ordered.pluck(:name, :id),
         prompt: "Select Department",
         input_html: { class: "dropdown", style: "width:50%" }
+      f.input :additional_department_ids, as: :check_boxes, label: "Additional Departments (view access)",
+        collection: Department.active.ordered.pluck(:name, :id),
+        hint: "Grants this admin visibility into these departments' Dashboard and Time Clocks data, in addition to their own Department above."
       f.input :password
       f.input :password_confirmation
     end

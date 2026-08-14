@@ -5,6 +5,12 @@ class AdminUser < ApplicationRecord
   belongs_to :access_role, class_name: "Role", foreign_key: :role_id, optional: true
   belongs_to :org_department, class_name: "Department", foreign_key: :department_id, optional: true
 
+  # Extra departments this admin can view on top of their own org_department,
+  # e.g. an HR admin also granted visibility into WEB/SEO for reporting.
+  # Managed from Admin Users > Additional Departments.
+  has_many :admin_department_accesses, dependent: :destroy
+  has_many :additional_departments, through: :admin_department_accesses, source: :department
+
   before_save :sync_legacy_role_and_department
 
   # Devise modules
@@ -41,6 +47,14 @@ class AdminUser < ApplicationRecord
 
   def can_access?(action, subject)
     access_role&.can?(action, subject) || false
+  end
+
+  # Department names this admin is scoped to for Dashboard/Time Clocks: their
+  # own department plus any granted via additional_departments. Super/QA
+  # admins bypass this entirely at the call site (they see everything), so
+  # this only needs to handle the department-scoped case.
+  def viewable_department_names
+    ([org_department&.name] + additional_departments.pluck(:name)).compact.uniq
   end
 
   def password_required?

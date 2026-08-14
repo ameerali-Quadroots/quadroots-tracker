@@ -17,13 +17,7 @@ ActiveAdmin.register_page "Dashboard" do
       end
     else
       div class: "height-class2" do
-        # Special case for HOD'S
-        departments_to_show =
-          if current_admin_user.department == "HOD'S"
-            %w[WEB SEO ADS CONTENT]
-          else
-            [current_admin_user.department].compact
-          end
+        departments_to_show = current_admin_user.viewable_department_names
 
         render partial: 'admin/dashboard/live_state_auto', locals: { departments: departments_to_show }
       end
@@ -36,10 +30,8 @@ ActiveAdmin.register_page "Dashboard" do
     departments_to_show =
       if current_admin_user.super_admin? || current_admin_user.qa_admin?
         User.distinct.pluck(:department).compact.sort
-      elsif current_admin_user.department == "HOD'S"
-        %w[WEB SEO ADS CONTENT]
       else
-        [current_admin_user.department].compact
+        current_admin_user.viewable_department_names
       end
 
     render partial: 'admin/dashboard/live_state', locals: { departments: departments_to_show }, layout: false

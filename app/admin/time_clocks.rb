@@ -12,10 +12,8 @@ controller do
 
     if current_admin_user.super_admin? || current_admin_user.qa_admin?
       scope
-    elsif current_admin_user.department&.upcase == "HOD'S"
-      scope.where(users: { department: %w[WEB SEO ADS CONTENT] })
     else
-      scope.where(users: { department: current_admin_user.department })
+      scope.where(users: { department: current_admin_user.viewable_department_names })
     end
   end
 
@@ -25,10 +23,8 @@ controller do
     scope =
       if current_admin_user.super_admin? || current_admin_user.qa_admin?
         scope
-      elsif current_admin_user.department&.upcase == "HOD'S"
-        scope.where(department: %w[WEB SEO ADS CONTENT])
       else
-        scope.where(department: current_admin_user.department)
+        scope.where(department: current_admin_user.viewable_department_names)
       end
     scope.order(:department, :name)
   end
@@ -80,10 +76,8 @@ end
          collection: -> {
            if current_admin_user.super_admin? || current_admin_user.qa_admin?
              TimeClock.joins(:employee).distinct.pluck('users.department').compact.uniq.sort
-           elsif current_admin_user.department&.upcase == "HOD'S"
-             %w[WEB SEO ADS CONTENT]
            else
-             [current_admin_user.department]
+             current_admin_user.viewable_department_names
            end
          }
 
