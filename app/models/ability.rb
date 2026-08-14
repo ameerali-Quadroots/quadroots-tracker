@@ -52,6 +52,15 @@ class Ability
 
       actions = permissions.map { |p| p.action.to_sym }
 
+      # EditRequest/Leave's admin-panel Approve/Reject buttons are custom
+      # member_actions (app/admin/edit_requests.rb, app/admin/leaves.rb).
+      # ActiveAdmin's CanCanAdapter authorizes those against the literal
+      # :approve/:reject action name - only the standard CRUD verbs get
+      # remapped to :update - so without this, granting "Edit" alone leaves
+      # the buttons silently unauthorized even though update access is
+      # clearly the intent.
+      actions += %i[approve reject] if actions.include?(:update)
+
       # All four actions ticked means full control, so `authorize! :manage, X`
       # (used by app/admin/admin_users.rb) behaves the way the matrix reads.
       actions = [:manage] if (Permission::ACTIONS.map(&:to_sym) - actions).empty?

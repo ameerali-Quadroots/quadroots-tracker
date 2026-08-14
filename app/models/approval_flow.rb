@@ -14,6 +14,17 @@ class ApprovalFlow < ApplicationRecord
 
   scope :active, -> { where(active: true) }
 
+  # The admin form's "All (catch-all for this subject)" option posts request_type
+  # as "". Left as-is, that permanently breaks `.for`'s `request_type: nil`
+  # fallback lookup (an empty string never matches an IS NULL query), so the
+  # catch-all silently stops catching anything.
+  before_validation :nilify_blank_request_type
+
+  def nilify_blank_request_type
+    self.request_type = nil if request_type.blank?
+  end
+  private :nilify_blank_request_type
+
   # The flow that governs a record: the one matching its request_type, falling
   # back to the subject's catch-all flow (request_type nil).
   def self.for(subject_type, request_type = nil)
