@@ -17,7 +17,10 @@ class ApprovalFlowSeeder
   def call
     ActiveRecord::Base.transaction do
       seed_flows
+      seed_leave_flow
+      list_flows
       backfill_existing
+      backfill_existing_leaves
 
       if @dry_run
         say ""
@@ -59,10 +62,30 @@ class ApprovalFlowSeeder
       flow.approval_steps.create!(role: manager_role, position: 0, name: "Manager")
       flow.approval_steps.create!(role: admin_role, position: 1, name: "Admin panel")
     end
+  end
 
+  # Leave has no request_type column, so a single catch-all flow covers every
+  # leave. Same default chain as edit requests: a Manager signs off, then an
+  # admin finalises - so a leave can never reach "approved" without its
+  # manager step clearing first, while reject remains available on whichever
+  # step is currently pending (Approvable#reject!/#force_reject!).
+  def seed_leave_flow
+    flow = ApprovalFlow.find_or_initialize_by(subject_type: "Leave", request_type: nil)
+    flow.name = "Leave requests"
+    flow.active = true
+    flow.save!
+
+    flow.approval_steps.destroy_all if ENV["RESET_STEPS"] == "true"
+    return if flow.approval_steps.any?
+
+    flow.approval_steps.create!(role: manager_role, position: 0, name: "Manager")
+    flow.approval_steps.create!(role: admin_role, position: 1, name: "Admin panel")
+  end
+
+  def list_flows
     say "Approval flows:"
     ApprovalFlow.order(:subject_type, :request_type).each do |f|
-      say "  #{(f.request_type || '(catch-all)').ljust(28)} #{f.summary}"
+      say "  #{f.subject_type.ljust(12)} #{(f.request_type || '(catch-all)').ljust(28)} #{f.summary}"
     end
   end
 
@@ -100,6 +123,41 @@ class ApprovalFlowSeeder
     say ""
     say "Backfilled #{created} approval rows across #{EditRequest.count} edit requests."
     say "  #{pending.size} pending requests are waiting on:"
+    waiting.sort_by { |k, v| -v.size }.each { |step, rs| say "    #{step.to_s.ljust(24)} #{rs.size}" }
+  end
+
+  # Same idea as backfill_existing, but for leaves: they only have
+  # approved_by_manager/status to infer past state from (no admin flag, no
+  # resolved_at), so a decided leave settles every step at once.
+  def backfill_existing_leaves
+    created = 0
+    Leave.includes(:approvals).find_each do |leave|
+      next if leave.approvals.any?
+
+      leave.build_approvals!
+      leave.reload
+
+      leave.approvals.each do |approval|
+        case leave.status
+        when "approved"
+          approval.update!(status: "approved", acted_at: leave.updated_at)
+        when "rejected"
+          approval.update!(status: "rejected", acted_at: leave.updated_at)
+        else
+          if leave.approved_by_manager? && !approval.approval_step.admin_step?
+            approval.update!(status: "approved", acted_at: leave.updated_at)
+          end
+        end
+      end
+      created += leave.approvals.size
+    end
+
+    pending = Leave.where(status: "pending").includes(approvals: { approval_step: :role }).to_a
+    waiting = pending.group_by { |l| l.current_step&.to_s || "nothing (chain complete)" }
+
+    say ""
+    say "Backfilled #{created} approval rows across #{Leave.count} leaves."
+    say "  #{pending.size} pending leaves are waiting on:"
     waiting.sort_by { |k, v| -v.size }.each { |step, rs| say "    #{step.to_s.ljust(24)} #{rs.size}" }
   end
 end

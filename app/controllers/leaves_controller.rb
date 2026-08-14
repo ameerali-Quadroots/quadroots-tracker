@@ -47,24 +47,33 @@ class LeavesController < ApplicationController
   end
 
   def approve
-    @leave.update(approved_by_manager: true, status: 'approved')
-    redirect_to request.referer, notice: 'Leave approved.'
+    return redirect_back(fallback_location: leaves_path, alert: not_your_step_message) unless @leave.actionable_by?(current_user)
+
+    @leave.approve!(by: current_user, note: params[:note])
+
+    next_step = @leave.current_step
+    notice = next_step ? "Approved. Now waiting on #{next_step}." : "Approved."
+    redirect_to request.referer, notice: notice
   end
 
   def reject
-    @leave.update(approved_by_manager: false, status: 'rejected')
+    return redirect_back(fallback_location: leaves_path, alert: not_your_step_message) unless @leave.actionable_by?(current_user)
+
+    @leave.reject!(by: current_user, note: params[:note])
     redirect_to request.referer, alert: 'Leave rejected.'
   end
 
+  # Admin-panel style override: settles every remaining step in one action,
+  # mirroring EditRequest#force_approve! / #force_reject!.
   def approve_by_admin
     @leave = Leave.find(params[:id])
-    @leave.update(status: 'approved')
+    @leave.force_approve!(by: current_user, note: params[:note])
     redirect_to request.referer, notice: 'Leave approved.'
   end
 
   def reject_by_admin
     @leave = Leave.find(params[:id])
-    @leave.update(status: 'rejected')
+    @leave.force_reject!(by: current_user, note: params[:note])
     redirect_to request.referer, alert: 'Leave rejected.'
   end
 
@@ -76,5 +85,12 @@ class LeavesController < ApplicationController
 
   def leave_params
     params.require(:leave).permit(:leave_type, :start_date, :end_date, :reason, :approved_by_manager, :medical_certificate)
+  end
+
+  def not_your_step_message
+    step = @leave.current_step
+    return "This request has already been fully processed." if step.nil?
+
+    "This request is waiting on #{step}, not you."
   end
 end

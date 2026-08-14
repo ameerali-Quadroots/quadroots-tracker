@@ -138,13 +138,15 @@ ActiveAdmin.register Leave do
   end
 
   # ✅ CUSTOM ACTIONS
+  # Admin override: settles every remaining step in the chain at once, same as
+  # EditRequest's admin panel (Approvable#force_approve!).
   member_action :approve, method: :patch do
-    resource.update(status: "approved", approved_by_manager: true)
+    resource.force_approve!(by: current_admin_user, note: "Approved from the admin panel.")
     redirect_back fallback_location: admin_leaves_path, notice: "Leave approved successfully."
   end
 
   member_action :reject, method: :patch do
-    resource.update(status: "rejected", approved_by_manager: false)
+    resource.force_reject!(by: current_admin_user, note: "Rejected from the admin panel.")
     redirect_back fallback_location: admin_leaves_path, alert: "Leave rejected."
   end
 end

@@ -1,4 +1,6 @@
 class Leave < ApplicationRecord
+  include Approvable
+
   belongs_to :user
   belongs_to :manager, class_name: 'User', foreign_key: 'approved_by', optional: true
 

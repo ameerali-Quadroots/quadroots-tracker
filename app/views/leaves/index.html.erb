@@ -64,7 +64,9 @@
                   </div>
                 </td>
                 <td>
-                  <% unless leave.approved_by_manager %>
+                  <%# Approve only shows for whoever the chain is currently waiting on; reject
+                      is offered on the same condition, since either action settles this step. %>
+                  <% if leave.actionable_by?(current_user) %>
                     <div class="table-actions">
                       <%= button_to approve_leave_path(leave), method: :patch, class: "btn-act btn-act--approve", data: { turbo: false } do %>
                         <i class="fas fa-check"></i> Approve
@@ -73,6 +75,10 @@
                         <i class="fas fa-times"></i> Reject
                       <% end %>
                     </div>
+                  <% elsif leave.current_step %>
+                    <span class="no-action">
+                      With <%= leave.current_step.admin_step? ? "the admin team" : (leave.current_approver&.name || leave.current_step.to_s) %>
+                    </span>
                   <% else %>
                     <span class="no-action">No actions</span>
                   <% end %>
