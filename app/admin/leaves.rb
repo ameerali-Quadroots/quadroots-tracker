@@ -55,12 +55,18 @@ ActiveAdmin.register Leave do
     column :created_at
 
     actions defaults: true do |leave|
-      if leave.status == "pending"
+      step = leave.current_step
+      if step.present?
         div class: "d-flex gap-2 justify-content-center" do
-          span do
-            link_to "Approve", approve_admin_leave_path(leave),
-              method: :patch,
-              class: "btn btn-success btn-sm"
+          # Approve only once the chain has reached the admin step - the
+          # manager (and any step before the admin) must have already
+          # approved. Reject stays available regardless of whose turn it is.
+          if step.admin_step?
+            span do
+              link_to "Approve", approve_admin_leave_path(leave),
+                method: :patch,
+                class: "btn btn-success btn-sm"
+            end
           end
           span do
             link_to "Reject", reject_admin_leave_path(leave),
@@ -139,8 +145,15 @@ ActiveAdmin.register Leave do
 
   # ✅ CUSTOM ACTIONS
   # Admin override: settles every remaining step in the chain at once, same as
-  # EditRequest's admin panel (Approvable#force_approve!).
+  # EditRequest's admin panel (Approvable#force_approve!). Blocked until the
+  # chain has reached the admin step - a manager must have already approved.
   member_action :approve, method: :patch do
+    step = resource.current_step
+    if step.present? && !step.admin_step?
+      redirect_back fallback_location: admin_leaves_path, alert: "This leave is still waiting on #{step} - it can't be approved until they act."
+      next
+    end
+
     resource.force_approve!(by: current_admin_user, note: "Approved from the admin panel.")
     redirect_back fallback_location: admin_leaves_path, notice: "Leave approved successfully."
   end

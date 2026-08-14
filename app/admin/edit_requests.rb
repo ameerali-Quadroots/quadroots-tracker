@@ -67,17 +67,24 @@ end
     end
 
     actions defaults: true do |r|
-      if !r.approved_by_admin
-        span do
-          link_to "✅ Approve", approve_admin_edit_request_path(r), method: :patch,
-            class: "member_link green", data: { confirm: "Approve this request?" }
+      step = r.current_step
+      if step.nil?
+        span "—", class: "text-muted"
+      else
+        # Approve only once the chain has actually reached the admin step (i.e.
+        # the manager - and any step before the admin - has already signed
+        # off). Reject stays available regardless, so a bad request can still
+        # be stopped while it's waiting on someone else.
+        if step.admin_step?
+          span do
+            link_to "✅ Approve", approve_admin_edit_request_path(r), method: :patch,
+              class: "member_link green", data: { confirm: "Approve this request?" }
+          end
         end
         span do
           link_to "❌ Reject", reject_admin_edit_request_path(r), method: :patch,
             class: "member_link red", data: { confirm: "Reject this request?" }
         end
-      else
-        span "—", class: "text-muted"
       end
     end
   end
@@ -171,9 +178,17 @@ end
   # ✅ Custom Approve action
   # Admin override: settles every remaining step in the chain at once and
   # applies the correction to the time clock (EditRequest#apply_to_time_clock!).
+  # Blocked until the chain has reached the admin step - a manager (and any
+  # step ahead of the admin) must have already approved.
   member_action :approve, method: :patch do
     if resource.requested_clock_in.blank?
       redirect_back(fallback_location: collection_path, alert: "No requested clock-in time present.")
+      next
+    end
+
+    step = resource.current_step
+    unless step.nil? || step.admin_step?
+      redirect_back(fallback_location: collection_path, alert: "This request is still waiting on #{step} - it can't be approved until they act.")
       next
     end
 
