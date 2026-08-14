@@ -61,14 +61,17 @@ module Approvable
   end
 
   # Can this user act on the step that is currently waiting?
-  # They must hold the step's role and sit above the requester in the tree
-  # (or be the resolved approver for it).
+  # Admin-scope steps are settled from the admin panel only. Otherwise,
+  # anyone above the requester in the reporting tree can act - not just
+  # whoever holds the step's own role - so if the immediate manager is
+  # unavailable the next manager up (HOD, CEO, ...) can step in instead of
+  # the request stalling on one person.
   def actionable_by?(user)
     return false if user.blank?
 
     approval = current_approval
     return false if approval.nil?
-    return false if user.role_id != approval.approval_step.role_id
+    return false if approval.approval_step.admin_step?
     return false if requester.present? && user.id == requester.id
 
     user.manages?(requester) || approval.approval_step.approver_for(requester)&.id == user.id

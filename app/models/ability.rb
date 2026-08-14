@@ -32,7 +32,15 @@ class Ability
     # ActiveAdmin authorizes its custom pages (Dashboard, Organogram) with
     # :read against the page config object rather than a model. Every admin
     # could reach those under the old `can :read, :all`, so keep that.
+    #
+    # Custom page_actions (dashboard.rb's live_state/monthly_overview) are
+    # authorized by CanCan using their own action name rather than :read, so
+    # they need to be granted explicitly too. Both self-restrict further
+    # inside their block (monthly_overview renders "Forbidden" for non
+    # super/qa admins), so it's safe to open the CanCan gate for everyone.
     can :read, ActiveAdmin::Page
+    can :live_state, ActiveAdmin::Page
+    can :monthly_overview, ActiveAdmin::Page
   end
 
   private
