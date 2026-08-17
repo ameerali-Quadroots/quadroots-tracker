@@ -30,7 +30,7 @@ class RoleSeeder
 
   MANAGER_PAGES = %w[
     feedback hosting organogram
-    team_status manager_status executive_timesheets department_stats
+    team_status manager_status executive_timesheets department_stats task_manager
     edit_requests.review leaves.review
   ].freeze
 

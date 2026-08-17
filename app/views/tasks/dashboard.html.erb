@@ -1,0 +1,338 @@
+<div class="dashboard-container">
+  <div class="dashboard-glass">
+
+<div class="dashboard-card task-page-card p-4 mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <h3 class="fw-bold mb-1">Task Manager</h3>
+      <p class="text-muted mb-0">Assign and track tasks for your executives</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-premium" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+      <i class="fa-solid fa-plus me-2"></i>New Task
+    </button>
+  </div>
+</div>
+
+<div class="task-stat-cards mb-4">
+  <div class="task-stat-card">
+    <div class="task-stat-icon task-stat-icon--primary"><i class="fa-solid fa-people-group"></i></div>
+    <div>
+      <span class="task-stat-label">Total Executives</span>
+      <span class="task-stat-value"><%= @executives.count %></span>
+    </div>
+  </div>
+  <div class="task-stat-card">
+    <div class="task-stat-icon task-stat-icon--info"><i class="fa-solid fa-list-check"></i></div>
+    <div>
+      <span class="task-stat-label">Total Tasks</span>
+      <span class="task-stat-value"><%= @stats.values.sum %></span>
+    </div>
+  </div>
+  <div class="task-stat-card">
+    <div class="task-stat-icon task-stat-icon--warning"><i class="fa-solid fa-hourglass-half"></i></div>
+    <div>
+      <span class="task-stat-label">In Progress</span>
+      <span class="task-stat-value"><%= @stats["in_progress"] || 0 %></span>
+    </div>
+  </div>
+  <div class="task-stat-card">
+    <div class="task-stat-icon task-stat-icon--success"><i class="fa-solid fa-circle-check"></i></div>
+    <div>
+      <span class="task-stat-label">Completed</span>
+      <span class="task-stat-value"><%= @stats["completed"] || 0 %></span>
+    </div>
+  </div>
+  <div class="task-stat-card">
+    <div class="task-stat-icon task-stat-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div>
+      <span class="task-stat-label">Over SLA</span>
+      <span class="task-stat-value"><%= @over_sla_count %></span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="dashboard-card task-page-card p-4">
+      <h6 class="fw-bold mb-3">Status Distribution</h6>
+      <div style="position: relative; height: 220px;">
+        <canvas id="taskStatusChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="dashboard-card task-page-card p-4">
+      <h6 class="fw-bold mb-3">Tasks per Executive</h6>
+      <div style="position: relative; height: 220px;">
+        <canvas id="taskExecutiveChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="task-panel-dark">
+  <div class="task-panel-dark__header">
+    <h3 class="task-panel-dark__title">Executive Tasks</h3>
+    <div class="task-panel-dark__controls">
+      <div class="task-filter-pills">
+        <%= link_to "All", dashboard_tasks_path(executive_id: params[:executive_id]),
+              class: "task-filter-pill #{'active' if params[:status].blank?}" %>
+        <% %w[pending in_progress paused completed].each do |s| %>
+          <%= link_to s.humanize, dashboard_tasks_path(status: s, executive_id: params[:executive_id]),
+                class: "task-filter-pill #{'active' if params[:status] == s}" %>
+        <% end %>
+      </div>
+      <%= form_with url: dashboard_tasks_path, method: :get, local: true do %>
+        <%= hidden_field_tag :status, params[:status] if params[:status].present? %>
+        <%= select_tag :executive_id,
+              options_for_select([["All executives", ""]] + @executives.map { |e| [e.name, e.id] }, params[:executive_id]),
+              class: "task-panel-dark__exec-select", onchange: "this.form.submit()" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="task-panel-dark__body">
+    <% if @tasks.empty? %>
+      <div class="task-empty-state">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <p><%= params[:status].present? || params[:executive_id].present? ? "No tasks match this filter." : "No tasks yet — assign your first one." %></p>
+        <% if params[:status].blank? && params[:executive_id].blank? %>
+          <button type="button" class="btn btn-primary btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+            <i class="fa-solid fa-plus me-2"></i>New Task
+          </button>
+        <% else %>
+          <%= link_to "Clear filters", dashboard_tasks_path, class: "btn btn-outline-premium btn-premium btn-sm" %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0 task-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Executive</th>
+              <th>Type / SLA</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Due Date</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @tasks.each do |task| %>
+              <tr>
+                <td>
+                  <div class="fw-semibold"><%= task.title %></div>
+                  <% if task.description.present? %>
+                    <div class="text-muted small"><%= truncate(task.description, length: 60) %></div>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="task-avatar"><%= task.assigned_to.initials %></span><%= task.assigned_to.name %>
+                </td>
+                <td>
+                  <div class="task-type-name"><%= task.task_type.name %></div>
+                  <div class="sla-chip"><i class="fa-solid fa-stopwatch me-1"></i>SLA <%= task.task_type.formatted_sla %></div>
+                </td>
+                <td>
+                  <span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span>
+                  <% if task.over_sla? %>
+                    <span class="pill pill--over-sla">Over SLA</span>
+                  <% end %>
+                </td>
+                <td><span class="type-tag"><%= task.priority.capitalize %></span></td>
+                <td><%= task.due_date&.strftime("%d %b %Y") || "-" %></td>
+                <td class="task-duration"><%= render "tasks/live_task_duration", task: task %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- New Task Modal -->
+<div class="modal fade" id="newTaskModal" tabindex="-1" aria-labelledby="newTaskModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dashboard-card">
+      <%= form_with(model: @task, url: tasks_path, local: true, html: { data: { turbo: false } }) do |f| %>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-list-check me-2 text-primary"></i>Assign New Task</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <%= f.label :assigned_to_id, "Assign to Executive", class: "form-label fw-semibold text-dark" %>
+            <%= f.collection_select :assigned_to_id, @executives, :id, :name, { include_blank: "Select executive..." }, class: "form-select", required: true %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :task_type_id, "Task Type", class: "form-label fw-semibold text-dark" %>
+            <% if @task_types.empty? %>
+              <select class="form-select" disabled>
+                <option>No task types configured</option>
+              </select>
+              <div class="form-text text-danger">
+                No task types configured for your department yet — ask an admin to add some under Settings &rarr; Task Types.
+              </div>
+            <% else %>
+              <select name="task[task_type_id]" id="task_task_type_id" class="form-select" required onchange="window.__updateSlaHint(this)">
+                <option value="">Select task type...</option>
+                <% @task_types.each do |tt| %>
+                  <option value="<%= tt.id %>" data-sla-minutes="<%= tt.sla_minutes %>"><%= tt.name %></option>
+                <% end %>
+              </select>
+              <div id="task-type-sla-hint"></div>
+            <% end %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :title, "Task Title", class: "form-label fw-semibold text-dark" %>
+            <%= f.text_field :title, class: "form-control", required: true, placeholder: "e.g. Update client homepage" %>
+          </div>
+          <div class="mb-3">
+            <%= f.label :description, class: "form-label fw-semibold text-dark" %>
+            <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Optional details or instructions..." %>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <%= f.label :priority, class: "form-label fw-semibold text-dark" %>
+              <%= f.select :priority, Task::PRIORITIES.map { |p| [p.capitalize, p] }, {}, class: "form-select" %>
+            </div>
+            <div class="col-6 mb-3">
+              <%= f.label :due_date, class: "form-label fw-semibold text-dark" %>
+              <%= f.date_field :due_date, class: "form-control" %>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Assign Task", class: "btn btn-primary btn-premium", disabled: @task_types.empty? %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    window.__updateSlaHint = function (select) {
+      var hint = document.getElementById('task-type-sla-hint');
+      if (!hint) return;
+      var opt = select.options[select.selectedIndex];
+      var minutes = parseInt(opt && opt.dataset.slaMinutes, 10);
+      if (!minutes && minutes !== 0) { hint.innerHTML = ""; return; }
+      var h = Math.floor(minutes / 60), m = minutes % 60;
+      hint.innerHTML = '<span class="task-sla-hint"><i class="fa-solid fa-stopwatch"></i>SLA target: ' + (h > 0 ? h + "h " : "") + m + "m</span>";
+    };
+
+    function initTaskDuration() {
+      document.querySelectorAll('[data-task-start]').forEach(function (el) {
+        var span = document.getElementById('task-duration-' + el.dataset.taskId);
+        if (!span) return;
+        var start = new Date(el.dataset.taskStart);
+        var pauseSeconds = parseInt(el.dataset.taskPauseSeconds, 10) || 0;
+
+        function tick() {
+          var elapsed = Math.max((new Date() - start) / 1000 - pauseSeconds, 0);
+          var h = Math.floor(elapsed / 3600);
+          var m = Math.floor((elapsed % 3600) / 60);
+          var s = Math.floor(elapsed % 60);
+          span.textContent = h + "h " + String(m).padStart(2, "0") + "m " + String(s).padStart(2, "0") + "s";
+        }
+        tick();
+        setInterval(tick, 1000);
+      });
+    }
+
+    // Draws the value at the end of each horizontal bar — Chart.js has no
+    // built-in data-label support, so this is a tiny local plugin rather
+    // than pulling in the chartjs-plugin-datalabels dependency for one use.
+    var directLabelPlugin = {
+      id: 'directLabels',
+      afterDatasetsDraw: function (chart) {
+        var ctx = chart.ctx;
+        chart.data.datasets.forEach(function (dataset, i) {
+          var meta = chart.getDatasetMeta(i);
+          if (meta.hidden) return;
+          meta.data.forEach(function (el, index) {
+            var value = dataset.data[index];
+            if (!value) return;
+            ctx.save();
+            ctx.fillStyle = '#44403c';
+            ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            var pos = el.tooltipPosition();
+            ctx.fillText(value, pos.x + 8, pos.y);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    function initCharts() {
+      // Fixed status roles — never reassigned by filter state, and always
+      // paired with the text label the axis already renders.
+      var statusColors = { "Pending": "#f59e0b", "In progress": "#2563eb", "Paused": "#ea580c", "Completed": "#16a34a" };
+      var statusLabels = <%= raw @stats.keys.map(&:humanize).to_json %>;
+      var statusCounts = <%= raw @stats.values.to_json %>;
+
+      new Chart(document.getElementById('taskStatusChart'), {
+        type: 'bar',
+        data: {
+          labels: statusLabels,
+          datasets: [{ data: statusCounts, backgroundColor: statusLabels.map(function (l) { return statusColors[l] || "#a8a29e"; }), borderRadius: 4, barThickness: 18 }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { right: 24 } },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: {
+            x: { display: false, beginAtZero: true, grace: '15%' },
+            y: { grid: { display: false }, ticks: { color: '#57534e', font: { size: 12, weight: '600' } }, border: { display: false } }
+          }
+        },
+        plugins: [directLabelPlugin]
+      });
+
+      var execLabels = <%= raw @tasks_per_executive.keys.to_json %>;
+      var execCounts = <%= raw @tasks_per_executive.values.to_json %>;
+
+      new Chart(document.getElementById('taskExecutiveChart'), {
+        type: 'bar',
+        data: {
+          labels: execLabels,
+          datasets: [{ label: 'Tasks assigned', data: execCounts, backgroundColor: "#836BCB", borderRadius: 4, maxBarThickness: 40 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1c1917', padding: 8, cornerRadius: 6 } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#57534e', font: { size: 12 } }, border: { display: false } },
+            y: { beginAtZero: true, ticks: { precision: 0, color: '#a8a29e' }, grid: { color: '#f0efed' }, border: { display: false } }
+          }
+        }
+      });
+    }
+
+    function boot() {
+      initTaskDuration();
+      initCharts();
+    }
+
+    if (window.Chart) {
+      boot();
+    } else {
+      var s = document.createElement('script');
+      s.src = "https://cdn.jsdelivr.net/npm/chart.js";
+      s.onload = boot;
+      document.head.appendChild(s);
+    }
+  })();
+</script>

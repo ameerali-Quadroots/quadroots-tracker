@@ -16,6 +16,7 @@ class BreaksController < ApplicationController
       end
 
     @time_clock.update!(current_state: new_state)
+    TaskBreakSync.pause_for_break(current_user)
 
     redirect_to root_path, notice: "Break started!"
   end
@@ -25,6 +26,7 @@ class BreaksController < ApplicationController
     break_record.update!(break_out: Time.current)
 
     @time_clock.update!(current_state: "working") # Always return to working
+    TaskBreakSync.resume_after_break(current_user)
     redirect_to root_path, notice: "Break ended!"
   end
 

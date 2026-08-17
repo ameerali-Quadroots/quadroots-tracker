@@ -36,6 +36,18 @@ resources :edit_requests, only: [:index, :create] do
   end
 end
 resources :users, only: [:edit, :update]
+resources :tasks, only: [:index, :new, :create] do
+  collection do
+    get :dashboard
+    get :my_tasks
+  end
+  member do
+    post :start
+    post :pause
+    post :resume
+    post :complete
+  end
+end
 resources :leaves do
   collection do
     get :my_leaves

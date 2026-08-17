@@ -29,6 +29,11 @@ class User < ApplicationRecord
   has_many :time_clocks, foreign_key: "user_id", dependent: :destroy
   has_many :edit_requests
 
+  # Task Manager: this user as the Manager who assigned a task, and as the
+  # Executive it was assigned to.
+  has_many :tasks_assigned, class_name: "Task", foreign_key: "assigned_by_id", dependent: :destroy
+  has_many :tasks, class_name: "Task", foreign_key: "assigned_to_id", dependent: :destroy
+
 
   scope :employed, -> { where(employeed: true) }
 

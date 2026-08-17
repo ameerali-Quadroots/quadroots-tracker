@@ -1,6 +1,7 @@
 class Department < ApplicationRecord
   has_many :users, dependent: :nullify
   has_many :admin_users, dependent: :nullify
+  has_many :task_types, dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
 
@@ -18,11 +19,11 @@ class Department < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name code position active created_at updated_at]
+    %w[id name code position active task_manager_enabled created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
-    %w[users admin_users]
+    %w[users admin_users task_types]
   end
 
   private

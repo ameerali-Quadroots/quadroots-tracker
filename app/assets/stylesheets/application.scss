@@ -3173,3 +3173,294 @@ body {
   color: #5B5870;
   font-weight: 700;
 }
+
+/* ===========================================
+   TASK MANAGER
+   Status roles are fixed and never reused for identity: amber = not started,
+   blue = active, orange = needs attention, green = good/done, red = breach.
+   Every pill pairs the color with a text label (and a dot), so meaning never
+   rides on hue alone. Values below are the same family Chart.js reads from
+   in dashboard.html.erb's inline <script> — keep the two in sync.
+   =========================================== */
+
+.task-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.task-stat-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e7e5e4;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.task-stat-card:hover {
+  border-color: #d6d3d1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.task-stat-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.task-stat-icon--primary { background: rgba(131, 107, 203, 0.12); color: #6B5B95; }
+.task-stat-icon--info    { background: rgba(37, 99, 235, 0.1);   color: #2563eb; }
+.task-stat-icon--warning { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+.task-stat-icon--success { background: rgba(22, 163, 74, 0.1);   color: #16a34a; }
+.task-stat-icon--danger  { background: rgba(220, 38, 38, 0.1);   color: #dc2626; }
+.task-stat-icon--orange  { background: rgba(234, 88, 12, 0.1);   color: #9a3412; }
+
+.task-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #78716c;
+  letter-spacing: 0.01em;
+}
+
+.task-stat-value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1c1917;
+  line-height: 1.2;
+}
+
+/* Status pills: pale tint background + saturated text + a solid dot, never
+   color alone. Reused by both tasks/dashboard.html.erb and my_tasks.html.erb. */
+.pill--pending      { background: #FEF3C7; color: #92400E; }
+.pill--in_progress  { background: #DBEAFE; color: #1E40AF; }
+.pill--paused       { background: #FFEDD5; color: #9A3412; }
+.pill--completed    { background: #DCFCE7; color: #166534; }
+.pill--over-sla     { background: #FEE2E2; color: #991B1B; }
+.pill--over-sla::before { background: #991B1B; }
+
+/* .dashboard-card defaults to height: 100% for equal-height cards inside a
+   Bootstrap row/col. Task Manager also uses it for standalone blocks that
+   aren't part of an equal-height row, where height: 100% stretches to fill
+   the whole page — this override brings those back to their content height. */
+.task-page-card {
+  height: auto;
+}
+
+/* Section panel (task list container) — a plain, light admin-table card:
+   header toolbar with a bottom hairline, body below. Shared by the manager
+   dashboard's "Executive Tasks" panel and My Tasks' "Your Tasks" panel. */
+.task-panel-dark {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.task-panel-dark__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #f0efed;
+}
+
+.task-panel-dark__title {
+  color: #1c1917;
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.task-panel-dark__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Segmented control (filter tabs) */
+.task-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: #f5f5f4;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.task-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #57534e;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.task-filter-pill:hover {
+  color: #1c1917;
+}
+
+.task-filter-pill.active {
+  background: #fff;
+  color: #1c1917;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.task-panel-dark__exec-select {
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e7e5e4;
+  background-color: #fff;
+  color: #44403c;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.task-panel-dark__body {
+  padding: 0;
+}
+
+.task-type-name {
+  font-weight: 600;
+  color: #292524;
+  font-size: 0.85rem;
+}
+
+.sla-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a8a29e;
+  margin-top: 0.15rem;
+}
+
+/* Data table — quiet header, tabular numerals for durations, row hover */
+.task-table thead th {
+  background: #fafaf9;
+  color: #78716c;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e7e5e4;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+}
+
+.task-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f5f5f4;
+  vertical-align: middle;
+  font-size: 0.85rem;
+  color: #292524;
+}
+
+.task-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.task-table tbody tr:hover {
+  background: #fafaf9;
+}
+
+.task-duration,
+.live-duration {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #292524;
+}
+
+.task-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #6B5B95;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.task-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  color: #78716c;
+}
+
+.task-empty-state i {
+  font-size: 1.8rem;
+  color: #d6d3d1;
+  margin-bottom: 0.75rem;
+}
+
+.task-empty-state p {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+}
+
+.task-sla-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  background: #f5f5f4;
+  color: #57534e;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* My Tasks — card-list rows inside .task-panel-dark__body (no <table>) */
+.task-row {
+  padding: 1.1rem 1.25rem;
+  transition: background 0.15s ease;
+}
+
+.task-row:hover {
+  background: #fafaf9;
+}
+
+.task-row + .task-row {
+  border-top: 1px solid #f0efed;
+}
+
+.task-reason-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: #FFEDD5;
+  color: #9A3412;
+  font-size: 0.76rem;
+  font-weight: 500;
+}

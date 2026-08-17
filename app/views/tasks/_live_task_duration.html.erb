@@ -1,0 +1,8 @@
+<% if task.in_progress? %>
+  <span id="task-duration-<%= task.id %>" class="live-duration">Loading...</span>
+  <div data-task-start="<%= task.started_at.iso8601 %>"
+       data-task-pause-seconds="<%= task.accumulated_pause_seconds %>"
+       data-task-id="<%= task.id %>" hidden></div>
+<% else %>
+  <%= task.formatted_duration %>
+<% end %>

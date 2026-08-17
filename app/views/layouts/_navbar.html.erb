@@ -47,6 +47,35 @@
                      <% end %>
                      <% end %>
                  </li>
+                 <%
+                   my_tasks_count = current_user.tasks.where(status: %w[pending in_progress paused]).count
+                   show_task_manager = can_view?("task_manager") && current_user.org_department&.task_manager_enabled?
+                 %>
+                 <li class="nav-item dropdown">
+                     <a class="nav-link dropdown-toggle <%= 'active' if current_page?(my_tasks_tasks_path) || current_page?(dashboard_tasks_path) %>" href="#" id="tasksDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                     <i class="fas fa-list-check"></i> Tasks
+                     <% if my_tasks_count > 0 %>
+                     <span class="nav-badge nav-badge-success"><%= my_tasks_count %></span>
+                     <% end %>
+                     </a>
+                     <ul class="dropdown-menu" aria-labelledby="tasksDropdown">
+                         <li>
+                             <%= link_to my_tasks_tasks_path, class: "dropdown-item" do %>
+                             <i class="fas fa-list-check me-2"></i> My Tasks
+                             <% if my_tasks_count > 0 %>
+                             <span class="nav-badge nav-badge-success ms-1"><%= my_tasks_count %></span>
+                             <% end %>
+                             <% end %>
+                         </li>
+                         <% if show_task_manager %>
+                         <li>
+                             <%= link_to dashboard_tasks_path, class: "dropdown-item" do %>
+                             <i class="fas fa-tasks me-2"></i> Task Manager
+                             <% end %>
+                         </li>
+                         <% end %>
+                     </ul>
+                 </li>
                  <%# Gated by the role's page permissions, not a hardcoded role name. %>
                  <% if can_view?("edit_requests.review") %>
                  <li class="nav-item">

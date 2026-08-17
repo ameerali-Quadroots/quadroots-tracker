@@ -1,10 +1,11 @@
 ActiveAdmin.register Department do
   menu parent: "Settings", label: "Departments", priority: 2
 
-  permit_params :name, :code, :position, :active
+  permit_params :name, :code, :position, :active, :task_manager_enabled
 
   filter :name
   filter :active
+  filter :task_manager_enabled
 
   index do
     selectable_column
@@ -14,6 +15,7 @@ ActiveAdmin.register Department do
     column("Admin users") { |d| d.admin_users.count }
     column("Order", :position)
     column :active
+    column("Task Manager", :task_manager_enabled)
     actions
   end
 
@@ -23,6 +25,7 @@ ActiveAdmin.register Department do
       row :code
       row :position
       row :active
+      row("Task Manager enabled", :task_manager_enabled)
       row("Employees") { |d| d.users.count }
       row("Admin users") { |d| d.admin_users.count }
     end
@@ -43,6 +46,7 @@ ActiveAdmin.register Department do
       f.input :code, hint: "Optional short code."
       f.input :position, label: "Order", hint: "Lower appears first in dropdowns."
       f.input :active, hint: "Inactive departments stay on existing records but are hidden from dropdowns."
+      f.input :task_manager_enabled, label: "Task Manager", hint: "Lets this department's Managers assign/track tasks for their Executives. Also configure Task Types (Settings → Task Types) for it to be usable."
     end
     f.actions
   end

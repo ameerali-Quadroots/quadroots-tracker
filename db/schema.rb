@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_15_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_17_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -150,6 +150,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_15_130000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "task_manager_enabled", default: false, null: false
     t.index ["name"], name: "index_departments_on_name", unique: true
   end
 
@@ -247,6 +248,43 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_15_130000) do
     t.index ["slug"], name: "index_roles_on_slug", unique: true
   end
 
+  create_table "task_types", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "department_id", null: false
+    t.integer "sla_minutes", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["department_id", "name"], name: "index_task_types_on_department_id_and_name", unique: true
+    t.index ["department_id"], name: "index_task_types_on_department_id"
+  end
+
+  create_table "tasks", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.string "priority", default: "normal", null: false
+    t.date "due_date"
+    t.bigint "assigned_to_id", null: false
+    t.bigint "assigned_by_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "started_at"
+    t.datetime "ended_at"
+    t.datetime "pause_time"
+    t.datetime "resume_time"
+    t.integer "accumulated_pause_seconds", default: 0, null: false
+    t.integer "total_duration"
+    t.string "reason"
+    t.boolean "auto_paused", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "task_type_id"
+    t.boolean "over_sla", default: false, null: false
+    t.index ["assigned_by_id"], name: "index_tasks_on_assigned_by_id"
+    t.index ["assigned_to_id", "status"], name: "index_tasks_on_assigned_to_id_and_status"
+    t.index ["assigned_to_id"], name: "index_tasks_on_assigned_to_id"
+    t.index ["status"], name: "index_tasks_on_status"
+    t.index ["task_type_id"], name: "index_tasks_on_task_type_id"
+  end
+
   create_table "time_clocks", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.datetime "clock_in"
@@ -315,6 +353,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_15_130000) do
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"
+  add_foreign_key "task_types", "departments"
+  add_foreign_key "tasks", "task_types"
+  add_foreign_key "tasks", "users", column: "assigned_by_id"
+  add_foreign_key "tasks", "users", column: "assigned_to_id"
   add_foreign_key "time_clocks", "users"
   add_foreign_key "user_managers", "users"
   add_foreign_key "user_managers", "users", column: "manager_id"

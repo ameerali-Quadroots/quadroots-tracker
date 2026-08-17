@@ -14,7 +14,8 @@ class Permission < ApplicationRecord
     "Role"         => "Roles",
     "Department"   => "Departments",
     "ApprovalFlow" => "Approval Flows",
-    "AppSetting"   => "Request Limits"
+    "AppSetting"   => "Request Limits",
+    "TaskType"     => "Task Types"
   }.freeze
 
   # Named screens in the employee-facing app. These replace the hardcoded
@@ -31,6 +32,7 @@ class Permission < ApplicationRecord
     "manager_status"       => ["Live team status widget", "Team"],
     "executive_timesheets" => ["Team member timesheets", "Team"],
     "department_stats"     => ["Monthly department stats", "Team"],
+    "task_manager"         => ["Task Manager (assign & track tasks)", "Team"],
     "edit_requests.review" => ["Review edit requests", "Approvals"],
     "leaves.review"        => ["Review leave requests", "Approvals"]
   }.freeze
