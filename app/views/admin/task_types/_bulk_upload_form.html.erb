@@ -1,0 +1,19 @@
+<div class="panel">
+  <h3>Bulk Upload Task Types</h3>
+  <div class="panel_contents">
+    <p>
+      Upload a CSV with columns <code>department, name, sla_minutes, description</code>
+      (description is optional). A row is matched to an existing Task Type by
+      <strong>department + name</strong> and updated; anything new is created.
+    </p>
+    <p>Example:</p>
+    <pre>department,name,sla_minutes,description
+WEB,Homepage Design,600,Design and build a new homepage layout
+WEB,Quick Fix,30,Small bug fixes and copy changes</pre>
+    <%= form_tag admin_bulk_upload_task_types_import_path, multipart: true do %>
+      <input type="file" name="file" accept=".csv" required>
+      <%= submit_tag "Upload", class: "button" %>
+    <% end %>
+    <p><%= link_to "Back to Task Types", admin_task_types_path %></p>
+  </div>
+</div>

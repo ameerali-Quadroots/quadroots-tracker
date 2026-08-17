@@ -105,9 +105,11 @@ class TasksController < ApplicationController
     @task = Task.find(params[:id])
   end
 
+  # SLA is a manager-side tracking figure, deliberately left out of what the
+  # executive sees — here and on their My Tasks page.
   def notify_executive_of_new_task(task)
     message = ":clipboard: New task assigned: *#{task.title}*\n" \
-              "Type: #{task.task_type.name} (SLA #{task.task_type.formatted_sla})\n" \
+              "Type: #{task.task_type.name}\n" \
               "Priority: #{task.priority.capitalize}" \
               "#{task.due_date.present? ? " · Due #{task.due_date.strftime('%d %b %Y')}" : ''}\n" \
               "Assigned by: #{task.assigned_by.name}"
@@ -124,6 +126,6 @@ class TasksController < ApplicationController
   end
 
   def task_params
-    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id, :task_type_id)
+    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id, :task_type_id, :custom_sla_minutes)
   end
 end

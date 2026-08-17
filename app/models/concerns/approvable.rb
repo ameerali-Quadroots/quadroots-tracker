@@ -29,13 +29,30 @@ module Approvable
     end
   end
 
+  # Self-heals requests that were created before a matching ApprovalFlow
+  # existed (or before it was activated) - build_approvals! only ever fires
+  # once, in after_create, so a record submitted in that gap gets zero
+  # Approval rows and is stuck forever: current_approval reads nil, the
+  # review screens render it as "Complete" (misreading "no step" as "chain
+  # finished"), and status/approved_by_manager never move because nothing
+  # ever calls advance!/finalize! on it. Safe to call on every read - a
+  # record already resolved (status != pending) is left untouched so this
+  # never reopens real history, and a flow with zero steps is a harmless
+  # no-op each time.
+  def ensure_approvals!
+    return unless respond_to?(:status) && status == "pending"
+
+    build_approvals! if approvals.none?
+  end
+
   def approval_flow
     ApprovalFlow.for(self.class.name, try(:request_type))
   end
 
   # The step currently waiting on someone.
   def current_approval
-    approvals.ordered.detect(&:pending?)
+    ensure_approvals!
+    approvals.reload.ordered.detect(&:pending?)
   end
 
   def current_step

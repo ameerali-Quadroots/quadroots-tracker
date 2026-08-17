@@ -62,7 +62,6 @@
             </div>
             <div class="text-muted small mb-1">
               <i class="fa-solid fa-tag me-1"></i><%= task.task_type.name %>
-              <span class="sla-chip ms-1"><i class="fa-solid fa-stopwatch me-1"></i>SLA <%= task.task_type.formatted_sla %></span>
             </div>
             <% if task.description.present? %>
               <p class="text-muted mb-2"><%= task.description %></p>

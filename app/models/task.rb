@@ -68,8 +68,21 @@ class Task < ApplicationRecord
     )
   end
 
+  # A manager can override the task type's default SLA per task at creation
+  # time (custom_sla_minutes) — the type's value is just the starting point,
+  # not a hard rule, similar to how a ClickUp task's time estimate can diverge
+  # from its template's default.
+  def sla_minutes
+    custom_sla_minutes || task_type&.sla_minutes.to_i
+  end
+
   def sla_seconds
-    task_type&.sla_minutes.to_i * 60
+    sla_minutes.to_i * 60
+  end
+
+  def formatted_sla
+    h, m = sla_minutes.to_i.divmod(60)
+    h.positive? ? "#{h}h #{m}m" : "#{m}m"
   end
 
   # Live for active tasks (recomputed from the current elapsed duration),

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_17_140000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_17_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -254,6 +254,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_17_140000) do
     t.integer "sla_minutes", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "description"
     t.index ["department_id", "name"], name: "index_task_types_on_department_id_and_name", unique: true
     t.index ["department_id"], name: "index_task_types_on_department_id"
   end
@@ -278,6 +279,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_17_140000) do
     t.datetime "updated_at", null: false
     t.bigint "task_type_id"
     t.boolean "over_sla", default: false, null: false
+    t.integer "custom_sla_minutes"
     t.index ["assigned_by_id"], name: "index_tasks_on_assigned_by_id"
     t.index ["assigned_to_id", "status"], name: "index_tasks_on_assigned_to_id_and_status"
     t.index ["assigned_to_id"], name: "index_tasks_on_assigned_to_id"

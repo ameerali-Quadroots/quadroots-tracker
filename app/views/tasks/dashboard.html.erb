@@ -132,7 +132,7 @@
                 </td>
                 <td>
                   <div class="task-type-name"><%= task.task_type.name %></div>
-                  <div class="sla-chip"><i class="fa-solid fa-stopwatch me-1"></i>SLA <%= task.task_type.formatted_sla %></div>
+                  <div class="sla-chip"><i class="fa-solid fa-stopwatch me-1"></i>SLA <%= task.formatted_sla %><%= " (custom)" if task.custom_sla_minutes.present? %></div>
                 </td>
                 <td>
                   <span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span>
@@ -180,15 +180,23 @@
                 No task types configured for your department yet — ask an admin to add some under Settings &rarr; Task Types.
               </div>
             <% else %>
-              <select name="task[task_type_id]" id="task_task_type_id" class="form-select" required onchange="window.__updateSlaHint(this)">
+              <select name="task[task_type_id]" id="task_task_type_id" class="form-select" required onchange="window.__onTaskTypeChange(this)">
                 <option value="">Select task type...</option>
                 <% @task_types.each do |tt| %>
-                  <option value="<%= tt.id %>" data-sla-minutes="<%= tt.sla_minutes %>"><%= tt.name %></option>
+                  <option value="<%= tt.id %>" data-sla-minutes="<%= tt.sla_minutes %>" data-description="<%= tt.description %>"><%= tt.name %></option>
                 <% end %>
               </select>
-              <div id="task-type-sla-hint"></div>
+              <div id="task-type-description" class="form-text"></div>
             <% end %>
           </div>
+
+          <% unless @task_types.empty? %>
+            <div class="mb-3">
+              <%= label_tag :task_custom_sla_minutes, "SLA (minutes)", class: "form-label fw-semibold text-dark" %>
+              <input type="number" name="task[custom_sla_minutes]" id="task_custom_sla_minutes" class="form-control" min="0" placeholder="Defaults to the task type's SLA">
+              <div id="task-type-sla-hint"></div>
+            </div>
+          <% end %>
 
           <div class="mb-3">
             <%= f.label :title, "Task Title", class: "form-label fw-semibold text-dark" %>
@@ -220,14 +228,28 @@
 
 <script>
   (function () {
-    window.__updateSlaHint = function (select) {
-      var hint = document.getElementById('task-type-sla-hint');
-      if (!hint) return;
+    window.__onTaskTypeChange = function (select) {
       var opt = select.options[select.selectedIndex];
       var minutes = parseInt(opt && opt.dataset.slaMinutes, 10);
-      if (!minutes && minutes !== 0) { hint.innerHTML = ""; return; }
-      var h = Math.floor(minutes / 60), m = minutes % 60;
-      hint.innerHTML = '<span class="task-sla-hint"><i class="fa-solid fa-stopwatch"></i>SLA target: ' + (h > 0 ? h + "h " : "") + m + "m</span>";
+
+      var slaInput = document.getElementById('task_custom_sla_minutes');
+      var hint = document.getElementById('task-type-sla-hint');
+      if (slaInput && hint) {
+        if (!minutes && minutes !== 0) {
+          hint.innerHTML = "";
+        } else {
+          // Only pre-fill if the manager hasn't already typed a custom value.
+          if (!slaInput.value) slaInput.value = minutes;
+          var h = Math.floor(minutes / 60), m = minutes % 60;
+          hint.innerHTML = '<span class="task-sla-hint"><i class="fa-solid fa-stopwatch"></i>Type default: ' + (h > 0 ? h + "h " : "") + m + "m</span>";
+        }
+      }
+
+      var descBox = document.getElementById('task-type-description');
+      if (descBox) {
+        var description = opt && opt.dataset.description;
+        descBox.textContent = description || "";
+      }
     };
 
     function initTaskDuration() {
