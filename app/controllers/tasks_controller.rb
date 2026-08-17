@@ -35,6 +35,7 @@ class TasksController < ApplicationController
     @task = Task.new(task_params.merge(assigned_by: current_user))
 
     if @task.save
+      notify_executive_of_new_task(@task)
       redirect_to dashboard_tasks_path, notice: "Task assigned."
     else
       redirect_to dashboard_tasks_path, alert: @task.errors.full_messages.to_sentence
@@ -102,6 +103,16 @@ class TasksController < ApplicationController
 
   def set_task
     @task = Task.find(params[:id])
+  end
+
+  def notify_executive_of_new_task(task)
+    message = ":clipboard: New task assigned: *#{task.title}*\n" \
+              "Type: #{task.task_type.name} (SLA #{task.task_type.formatted_sla})\n" \
+              "Priority: #{task.priority.capitalize}" \
+              "#{task.due_date.present? ? " · Due #{task.due_date.strftime('%d %b %Y')}" : ''}\n" \
+              "Assigned by: #{task.assigned_by.name}"
+
+    SlackNotifier.notify(message, email: task.assigned_to.email)
   end
 
   def owns?(task)
