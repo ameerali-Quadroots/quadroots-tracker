@@ -30,17 +30,24 @@ class RoleSeeder
 
   MANAGER_PAGES = %w[
     feedback hosting organogram
-    team_status manager_status executive_timesheets department_stats task_manager
+    team_status manager_status executive_timesheets department_stats
     edit_requests.review leaves.review
   ].freeze
 
   STAFF_PAGES = %w[feedback hosting organogram].freeze
 
+  # task_manager is Manager-only by default, not the whole manager tier —
+  # Executives report to a Manager, not directly to a CEO/Director/HOD, so
+  # there's nothing for those roles to do with it out of the box. Like every
+  # other page permission, an admin can still grant it to any role per-role
+  # from Settings -> Roles & Permissions; this is only the seeded default.
+  MANAGER_ONLY_PAGES = (MANAGER_PAGES + %w[task_manager]).freeze
+
   EMPLOYEE_ROLES = {
     "CEO"       => { rank: 5,  pages: MANAGER_PAGES, description: "Company head. Sees the whole organisation." },
     "Director"  => { rank: 20, pages: MANAGER_PAGES, description: "Board / director level." },
     "HOD"       => { rank: 30, pages: MANAGER_PAGES, description: "Head of department. Oversees managers." },
-    "Manager"   => { rank: 40, pages: MANAGER_PAGES, description: "Manages a department's executives." },
+    "Manager"   => { rank: 40, pages: MANAGER_ONLY_PAGES, description: "Manages a department's executives." },
     "Executive" => { rank: 60, pages: STAFF_PAGES,   description: "Individual contributor." },
     "Intern"    => { rank: 70, pages: STAFF_PAGES,   description: "Intern." }
   }.freeze
