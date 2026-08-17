@@ -66,7 +66,15 @@ end
       r.resolved_at ? r.resolved_at.strftime("%b %d, %Y %I:%M %p") : "-"
     end
 
-    actions defaults: true do |r|
+    actions defaults: false do |r|
+      span do
+        link_to "View", admin_edit_request_path(r), class: "member_link view_link"
+      end
+      span do
+        link_to "Delete", admin_edit_request_path(r), method: :delete,
+          class: "member_link delete_link", data: { confirm: "Are you sure you want to delete this?" }
+      end
+
       step = r.current_step
       if step.nil?
         span "—", class: "text-muted"

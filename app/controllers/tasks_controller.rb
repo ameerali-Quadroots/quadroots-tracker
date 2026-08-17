@@ -32,7 +32,23 @@ class TasksController < ApplicationController
   end
 
   def create
-    @task = Task.new(task_params.merge(assigned_by: current_user))
+    attrs = task_params.to_h
+    new_type_name = attrs.delete("new_task_type_name").to_s.strip
+
+    if attrs["task_type_id"] == "__new__" || (attrs["task_type_id"].blank? && new_type_name.present?)
+      if new_type_name.blank?
+        redirect_to dashboard_tasks_path, alert: "Please enter a name for the new task type." and return
+      end
+
+      # Reused if a type with this name already exists in the department
+      # (matches the tasks_type unique index on department_id + name).
+      task_type = TaskType.find_or_initialize_by(department: current_user.org_department, name: new_type_name)
+      task_type.sla_minutes = attrs["custom_sla_minutes"].presence || 0 if task_type.new_record?
+      task_type.save!
+      attrs["task_type_id"] = task_type.id
+    end
+
+    @task = Task.new(attrs.merge(assigned_by: current_user))
 
     if @task.save
       notify_executive_of_new_task(@task)
@@ -126,6 +142,6 @@ class TasksController < ApplicationController
   end
 
   def task_params
-    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id, :task_type_id, :custom_sla_minutes)
+    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id, :task_type_id, :custom_sla_minutes, :new_task_type_name)
   end
 end
