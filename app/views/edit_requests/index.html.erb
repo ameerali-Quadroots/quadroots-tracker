@@ -136,7 +136,7 @@
                     <% end %>
                     <div class="text-muted small mt-1">
                       <% request.approvals.ordered.each_with_index do |approval, i| %>
-                        <span title="<%= approval.approver&.name %>">
+                        <span title="<%= approval.approver_name %>">
                           <%= i.positive? ? "› " : "" %><%= approval.role_name %><%
                             %><%= { "approved" => " ✓", "rejected" => " ✗", "skipped" => " –" }[approval.status] %>
                         </span>

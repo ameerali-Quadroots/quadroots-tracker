@@ -146,7 +146,7 @@ end
             css = { "approved" => "ok", "rejected" => "error", "pending" => "warning" }[a.status] || "default"
             status_tag a.status.capitalize, class: css
           end
-          column("Approver") { |a| a.approver.try(:name) || a.approver.try(:email) || "—" }
+          column("Approver") { |a| a.approver_name || "—" }
           column("When") { |a| a.acted_at&.strftime("%b %d, %Y %I:%M %p") || "—" }
           column("Note") { |a| a.note }
         end
