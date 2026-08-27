@@ -3,12 +3,34 @@ ActiveAdmin.register EditRequest do
   menu label: "Edit Requests", priority: 4
 
   # ✅ Allowed fields for form updates
-  permit_params :name, :email, :requested_clock_in, :reason, :status, :resolved_at, :time_clock_id
+  # Every real column is editable from the admin form - a super admin (or any
+  # role granted Update on EditRequest) can correct anything on a request,
+  # including who it belongs to and which shift it points at.
+  permit_params :user_id, :time_clock_id, :request_type, :break_reason,
+                :requested_clock_in, :reason, :department, :status,
+                :manager_note, :approved_by_manager, :approved_by_admin,
+                :resolved_at
 
-
-
-    filter :user_name, as: :string, label: 'Employee Name'
-
+  # ✅ Filters - one per editable/reportable attribute
+  filter :id, as: :numeric, label: "Request ID"
+  filter :user, collection: -> { User.order(:name).pluck(:name, :id) }, label: "Employee"
+  filter :user_name, as: :string, label: "Employee Name"
+  filter :user_email, as: :string, label: "Employee Email"
+  filter :department, as: :select,
+                      collection: -> { Department.order(:name).pluck(:name) },
+                      label: "Department"
+  filter :request_type, as: :select, collection: -> { EditRequest::REQUEST_TYPES }
+  filter :break_reason, as: :select, collection: -> { Break::VALID_BREAK_TYPES }
+  filter :status, as: :select, collection: -> { EditRequest.statuses.keys }
+  filter :approved_by_manager, as: :select, collection: -> { [["Yes", true], ["No", false]] }
+  filter :approved_by_admin, as: :select, collection: -> { [["Yes", true], ["No", false]] }
+  filter :reason, as: :string
+  filter :manager_note, as: :string
+  filter :time_clock_id, as: :numeric, label: "Time Clock ID"
+  filter :requested_clock_in
+  filter :created_at
+  filter :resolved_at
+  filter :updated_at
 
 
   # ✅ Scope filters (optional tabs)
@@ -69,6 +91,15 @@ end
     actions defaults: false do |r|
       span do
         link_to "View", admin_edit_request_path(r), class: "member_link view_link"
+      end
+      # Shown to anyone CanCan grants Update on EditRequest (super admins
+      # always; other roles when the permission matrix says so). `actions
+      # defaults: false` above drops ActiveAdmin's built-in Edit link, so it
+      # has to be rendered here.
+      if authorized?(:update, r)
+        span do
+          link_to "Edit", edit_admin_edit_request_path(r), class: "member_link edit_link"
+        end
       end
       span do
         link_to "Delete", admin_edit_request_path(r), method: :delete,
@@ -170,16 +201,47 @@ end
   end
 
   # ✅ Form (create/edit)
+  # Everything on the record is editable here. The model's week/monthly-limit
+  # validations only run `on: :create`, so an admin correcting an old request
+  # is not blocked by them.
   form do |f|
     f.semantic_errors
+
+    # The full TimeClock list is far too large for a dropdown, so scope it to
+    # the requester's own shifts once the request has an owner. The currently
+    # linked shift is always kept in the list so an edit can never silently
+    # re-point the request at a different day.
+    clocks = f.object.user ? f.object.user.time_clocks.order(clock_in: :desc) : TimeClock.order(clock_in: :desc).limit(200)
+    clock_options = (clocks.to_a + [f.object.time_clock]).compact.uniq.map do |tc|
+      ["##{tc.id} - #{tc.clock_in&.strftime('%b %d, %Y %I:%M %p') || 'no clock-in'}", tc.id]
+    end
+
+    f.inputs "Employee" do
+      f.input :user, collection: User.order(:name).map { |u| ["#{u.name} (#{u.email})", u.id] }, include_blank: false
+      f.input :department, as: :select,
+                           collection: Department.order(:name).pluck(:name),
+                           include_blank: "-- none --"
+    end
+
     f.inputs "Edit Request Details" do
-      f.input :time_clock
-      f.input :break_reason
-     f.input :requested_clock_in, as: :datetime_picker
+      f.input :time_clock, collection: clock_options, include_blank: false
+      f.input :request_type, as: :select, collection: EditRequest::REQUEST_TYPES, include_blank: false
+      f.input :break_reason, as: :select, collection: Break::VALID_BREAK_TYPES,
+                             include_blank: "-- not a break edit --",
+                             hint: "Only used by the 'Forgot to add/end break' types."
+      f.input :requested_clock_in, as: :datetime_picker
       f.input :reason
-      f.input :status, as: :select, collection: %w[pending approved rejected]
+    end
+
+    f.inputs "Approval" do
+      f.input :status, as: :select, collection: EditRequest.statuses.keys, include_blank: false,
+                       hint: "Setting this by hand only changes the record - it does not run the approval chain or update the time clock. Use the Approve / Reject buttons for that."
+      f.input :approved_by_manager
+      f.input :approved_by_admin
+      f.input :manager_note
       f.input :resolved_at, as: :datetime_picker
     end
+
     f.actions
   end
 

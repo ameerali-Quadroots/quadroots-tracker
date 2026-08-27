@@ -4,6 +4,15 @@ class EditRequest < ApplicationRecord
   # Managers may only approve/reject a request within this window of its creation.
   MANAGER_ACTION_WINDOW = 1.week
 
+  # The edit types the employee-facing modal offers
+  # (app/views/shared/_edit_request_modal.html.erb). Shared with the admin
+  # panel so its filter and form stay in step with what can be submitted.
+  REQUEST_TYPES = [
+    "Forgot to end break",
+    "Forgot to add break",
+    "Clock tower not working"
+  ].freeze
+
   belongs_to :user
   belongs_to :time_clock
 
