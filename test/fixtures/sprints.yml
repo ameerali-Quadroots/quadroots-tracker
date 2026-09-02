@@ -1,0 +1,7 @@
+crm_week_one:
+  project: crm
+  name: Week 1
+  goal: Auth and contacts
+  start_date: 2026-09-01
+  end_date: 2026-09-07
+  status: active

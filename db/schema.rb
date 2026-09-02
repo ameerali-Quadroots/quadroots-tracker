@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_02_223323) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_02_223810) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -143,6 +143,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223323) do
     t.index ["time_clock_id"], name: "index_breaks_on_time_clock_id"
   end
 
+  create_table "clients", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "department_id", null: false
+    t.boolean "active", default: true, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["department_id", "name"], name: "index_clients_on_department_id_and_name", unique: true
+    t.index ["department_id"], name: "index_clients_on_department_id"
+  end
+
   create_table "departments", force: :cascade do |t|
     t.string "name", null: false
     t.string "code"
@@ -212,6 +223,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223323) do
     t.index ["kind", "subject"], name: "index_permissions_on_kind_and_subject"
   end
 
+  create_table "projects", force: :cascade do |t|
+    t.bigint "client_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "status", default: "planned", null: false
+    t.date "start_date"
+    t.date "target_end_date"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id", "name"], name: "index_projects_on_client_id_and_name", unique: true
+    t.index ["client_id"], name: "index_projects_on_client_id"
+  end
+
   create_table "push_subscriptions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.text "endpoint", null: false
@@ -246,6 +270,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223323) do
     t.index ["name"], name: "index_roles_on_name", unique: true
     t.index ["scope"], name: "index_roles_on_scope"
     t.index ["slug"], name: "index_roles_on_slug", unique: true
+  end
+
+  create_table "sprints", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "name", null: false
+    t.text "goal"
+    t.date "start_date", null: false
+    t.date "end_date", null: false
+    t.string "status", default: "planned", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id", "name"], name: "index_sprints_on_project_id_and_name", unique: true
+    t.index ["project_id", "start_date"], name: "index_sprints_on_project_id_and_start_date"
+    t.index ["project_id"], name: "index_sprints_on_project_id"
   end
 
   create_table "task_types", force: :cascade do |t|
@@ -364,13 +402,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223323) do
   add_foreign_key "approval_steps", "roles"
   add_foreign_key "approvals", "approval_steps"
   add_foreign_key "breaks", "time_clocks"
+  add_foreign_key "clients", "departments"
   add_foreign_key "edit_requests", "time_clocks"
   add_foreign_key "edit_requests", "users"
   add_foreign_key "leaves", "users"
   add_foreign_key "notifications", "users"
+  add_foreign_key "projects", "clients"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"
+  add_foreign_key "sprints", "projects"
   add_foreign_key "task_types", "departments"
   add_foreign_key "task_work_sessions", "tasks"
   add_foreign_key "task_work_sessions", "users"

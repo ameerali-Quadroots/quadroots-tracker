@@ -2,6 +2,7 @@ class Department < ApplicationRecord
   has_many :users, dependent: :nullify
   has_many :admin_users, dependent: :nullify
   has_many :task_types, dependent: :restrict_with_error
+  has_many :clients, dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
 
