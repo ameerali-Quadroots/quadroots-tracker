@@ -1,0 +1,5 @@
+task_manager:
+  kind: page
+  key: task_manager
+  label: Task Manager
+  group: Tasks

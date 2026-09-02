@@ -11,15 +11,23 @@ class TasksController < ApplicationController
   end
 
   def dashboard
-    @tasks = Task.for_manager(current_user).includes(:assigned_to, :task_type).order(created_at: :desc)
+    @period = params[:period] == "month" ? "month" : "week"
+    @week_start = parse_week_start
+
+    @tasks = department_tasks.top_level
+                             .includes(:assigned_to, :task_type, subtasks: %i[assigned_to task_type])
+                             .order(created_at: :desc)
     @tasks = @tasks.where(status: params[:status]) if params[:status].present?
     @tasks = @tasks.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?
+    @tasks = @tasks.where(assigned_by_id: current_user.id) if params[:mine] == "1"
 
-    @executives = current_user.direct_reports.joins(:access_role).where(roles: { name: "Executive" }).order(:name)
+    @executives = department_executives
     @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
-    @stats = Task.for_manager(current_user).group(:status).count
-    @over_sla_count = Task.for_manager(current_user).includes(:task_type).count(&:over_sla?)
-    @tasks_per_executive = Task.for_manager(current_user).joins(:assigned_to).group("users.name").count
+    @stats = department_tasks.group(:status).count
+    @over_sla_count = department_tasks.includes(:task_type).count(&:over_sla?)
+    @tasks_per_executive = department_tasks.joins(:assigned_to).group("users.name").count
+
+    @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
     @task = Task.new
   end
 
@@ -105,6 +113,30 @@ class TasksController < ApplicationController
   end
 
   private
+
+  # Department is the visibility boundary, not "tasks I assigned" — a manager
+  # needs to see what every executive in the department is carrying.
+  def department_tasks
+    Task.joins(:assigned_to).where(users: { department_id: current_user.department_id })
+  end
+
+  def department_executives
+    User.employed.joins(:access_role)
+        .where(department_id: current_user.department_id, roles: { name: "Executive" })
+        .order(:name)
+  end
+
+  def parse_week_start
+    (Date.parse(params[:week_start]) rescue Date.current).beginning_of_week
+  end
+
+  def hours_range
+    if @period == "month"
+      @week_start.beginning_of_month.beginning_of_day..@week_start.end_of_month.end_of_day
+    else
+      @week_start.beginning_of_day..(@week_start + 6.days).end_of_day
+    end
+  end
 
   # Task Manager is a role capability (Manager) gated additionally by whether
   # the manager's own department has it turned on (Settings -> Departments in

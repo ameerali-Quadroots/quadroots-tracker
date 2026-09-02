@@ -1,0 +1,64 @@
+<div class="task-panel-dark">
+  <div class="task-panel-dark__header">
+    <h3 class="task-panel-dark__title">Executive Tasks</h3>
+    <div class="task-panel-dark__controls">
+      <div class="task-filter-pills">
+        <%= link_to "All", dashboard_tasks_path(executive_id: params[:executive_id]),
+              class: "task-filter-pill #{'active' if params[:status].blank?}" %>
+        <% %w[pending in_progress paused completed].each do |s| %>
+          <%= link_to s.humanize, dashboard_tasks_path(status: s, executive_id: params[:executive_id]),
+                class: "task-filter-pill #{'active' if params[:status] == s}" %>
+        <% end %>
+        <%= link_to "Assigned by me",
+              dashboard_tasks_path(status: params[:status], executive_id: params[:executive_id], mine: "1"),
+              class: "task-filter-pill #{'active' if params[:mine] == '1'}" %>
+      </div>
+      <%= form_with url: dashboard_tasks_path, method: :get, local: true do %>
+        <%= hidden_field_tag :status, params[:status] if params[:status].present? %>
+        <%= select_tag :executive_id,
+              options_for_select([["All executives", ""]] + @executives.map { |e| [e.name, e.id] }, params[:executive_id]),
+              class: "task-panel-dark__exec-select", onchange: "this.form.submit()" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="task-panel-dark__body">
+    <% if @tasks.empty? %>
+      <div class="task-empty-state">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <p><%= params[:status].present? || params[:executive_id].present? ? "No tasks match this filter." : "No tasks yet — assign your first one." %></p>
+        <% if params[:status].blank? && params[:executive_id].blank? %>
+          <button type="button" class="btn btn-primary btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+            <i class="fa-solid fa-plus me-2"></i>New Task
+          </button>
+        <% else %>
+          <%= link_to "Clear filters", dashboard_tasks_path, class: "btn btn-outline-premium btn-premium btn-sm" %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0 task-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Executive</th>
+              <th>Type / SLA</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Due Date</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @tasks.each do |task| %>
+              <%= render "tasks/task_row", task: task %>
+              <% task.subtasks.each do |subtask| %>
+                <%= render "tasks/task_row", task: subtask %>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

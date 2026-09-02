@@ -1,0 +1,4 @@
+# The Manager role can reach the Task Manager page; Executive deliberately cannot.
+manager_task_manager:
+  role: manager
+  permission: task_manager

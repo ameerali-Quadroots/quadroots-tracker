@@ -1,0 +1,67 @@
+<div class="task-panel-dark">
+  <div class="task-panel-dark__header">
+    <h3 class="task-panel-dark__title">Team Hours</h3>
+    <div class="task-panel-dark__controls">
+      <div class="task-filter-pills">
+        <%= link_to "Week", dashboard_tasks_path(tab: "team_hours", period: "week", week_start: @week_start),
+              class: "task-filter-pill #{'active' if @period == 'week'}" %>
+        <%= link_to "Month", dashboard_tasks_path(tab: "team_hours", period: "month", week_start: @week_start),
+              class: "task-filter-pill #{'active' if @period == 'month'}" %>
+      </div>
+      <%= link_to dashboard_tasks_path(tab: "team_hours", period: @period, week_start: @week_start - 7.days),
+            class: "btn btn-outline-premium btn-premium btn-sm" do %>
+        <i class="fa-solid fa-chevron-left"></i>
+      <% end %>
+      <span class="text-muted small mx-2">
+        <%= @hours_report.dates.first.strftime("%d %b") %> – <%= @hours_report.dates.last.strftime("%d %b %Y") %>
+      </span>
+      <%= link_to dashboard_tasks_path(tab: "team_hours", period: @period, week_start: @week_start + 7.days),
+            class: "btn btn-outline-premium btn-premium btn-sm" do %>
+        <i class="fa-solid fa-chevron-right"></i>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="task-panel-dark__body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 task-table">
+        <thead>
+          <tr>
+            <th>Executive</th>
+            <% @hours_report.columns(@period).each do |label, days| %>
+              <th class="text-center">
+                <%= label %>
+                <div class="text-muted small"><%= days.one? ? days.first.strftime("%a") : "#{days.size} days" %></div>
+              </th>
+            <% end %>
+            <th class="text-center">Total</th>
+            <th class="text-center">Untracked</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @hours_report.executives.each do |executive| %>
+            <tr>
+              <td class="fw-semibold"><%= executive.name %></td>
+              <% @hours_report.columns(@period).each do |_label, days| %>
+                <% cell = @hours_report.bucket(executive.id, days) %>
+                <td class="text-center">
+                  <div class="fw-semibold"><%= hours_label(cell[:task_seconds]) %></div>
+                  <div class="text-muted small"><%= hours_label(cell[:attendance_seconds]) %></div>
+                </td>
+              <% end %>
+              <% totals = @hours_report.totals_for(executive.id) %>
+              <td class="text-center fw-bold">
+                <div><%= hours_label(totals[:task_seconds]) %></div>
+                <div class="text-muted small"><%= hours_label(totals[:attendance_seconds]) %></div>
+              </td>
+              <td class="text-center"><%= hours_label(totals[:gap_seconds]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted small mt-3 mb-0">
+      Top figure is time logged on tasks. Grey figure below it is attendance from the time clock. Untracked is the difference.
+    </p>
+  </div>
+</div>
