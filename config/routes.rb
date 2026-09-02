@@ -48,6 +48,13 @@ resources :tasks, only: [:index, :new, :create] do
     post :complete
   end
 end
+resources :clients, only: [:create]
+resources :projects, only: [:create]
+resources :sprints, only: [:create, :update] do
+  member do
+    post :carry_over
+  end
+end
 resources :leaves do
   collection do
     get :my_leaves
