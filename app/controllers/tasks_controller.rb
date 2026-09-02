@@ -1,7 +1,9 @@
 class TasksController < ApplicationController
   before_action :authenticate_user!
+  # The whole module is off unless the user's department has it enabled, so this
+  # guards every action — not just the manager-side ones.
+  before_action :require_department_task_manager
   before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create]
-  before_action :require_department_task_manager, only: %i[dashboard new create]
   before_action :set_task, only: %i[start pause resume complete]
 
   def index
