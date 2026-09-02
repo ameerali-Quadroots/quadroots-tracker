@@ -76,17 +76,23 @@
 </div>
 
 <ul class="nav nav-tabs task-tabs mb-3" role="tablist">
-  <li class="nav-item">
+  <li class="nav-item" role="presentation">
     <button class="nav-link <%= 'active' if params[:tab].blank? || params[:tab] == 'tasks' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-tasks" type="button">Tasks</button>
+            data-bs-toggle="tab" data-bs-target="#tab-tasks" type="button" role="tab">
+      Tasks <span class="task-tab-count"><%= @tasks.size %></span>
+    </button>
   </li>
-  <li class="nav-item">
+  <li class="nav-item" role="presentation">
     <button class="nav-link <%= 'active' if params[:tab] == 'team_hours' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-team-hours" type="button">Team Hours</button>
+            data-bs-toggle="tab" data-bs-target="#tab-team-hours" type="button" role="tab">
+      Team Hours <span class="task-tab-count"><%= @hours_report.executives.size %></span>
+    </button>
   </li>
-  <li class="nav-item">
+  <li class="nav-item" role="presentation">
     <button class="nav-link <%= 'active' if params[:tab] == 'sprints' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-sprints" type="button">Sprints</button>
+            data-bs-toggle="tab" data-bs-target="#tab-sprints" type="button" role="tab">
+      Sprints <span class="task-tab-count"><%= @sprints.size %></span>
+    </button>
   </li>
 </ul>
 

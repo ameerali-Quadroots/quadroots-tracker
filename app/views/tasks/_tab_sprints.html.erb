@@ -1,13 +1,22 @@
 <div class="task-panel-dark">
   <div class="task-panel-dark__header">
-    <h3 class="task-panel-dark__title">Sprints</h3>
+    <div>
+      <h3 class="task-panel-dark__title">Sprints</h3>
+      <p class="text-muted small mb-0">Client work, broken into weekly cycles</p>
+    </div>
     <div class="task-panel-dark__controls">
       <button type="button" class="btn btn-outline-premium btn-premium btn-sm"
-              data-bs-toggle="modal" data-bs-target="#newClientModal">New Client</button>
+              data-bs-toggle="modal" data-bs-target="#newClientModal">
+        <i class="fa-solid fa-building me-2"></i>New client
+      </button>
       <button type="button" class="btn btn-outline-premium btn-premium btn-sm"
-              data-bs-toggle="modal" data-bs-target="#newProjectModal">New Project</button>
+              data-bs-toggle="modal" data-bs-target="#newProjectModal">
+        <i class="fa-solid fa-diagram-project me-2"></i>New project
+      </button>
       <button type="button" class="btn btn-primary btn-premium btn-sm"
-              data-bs-toggle="modal" data-bs-target="#newSprintModal">New Sprint</button>
+              data-bs-toggle="modal" data-bs-target="#newSprintModal">
+        <i class="fa-solid fa-plus me-2"></i>New sprint
+      </button>
     </div>
   </div>
 
@@ -15,37 +24,50 @@
     <% if @sprints.empty? %>
       <div class="task-empty-state">
         <i class="fa-solid fa-flag-checkered"></i>
-        <p>No sprints yet — create a client, then a project, then its first weekly sprint.</p>
+        <p class="mb-1 fw-semibold">No sprints yet</p>
+        <p>Add a client, give it a project, then open its first weekly sprint.</p>
+        <button type="button" class="btn btn-primary btn-premium btn-sm"
+                data-bs-toggle="modal" data-bs-target="#newClientModal">
+          <i class="fa-solid fa-building me-2"></i>Add your first client
+        </button>
       </div>
     <% else %>
       <% @sprints.group_by { |s| s.project.client }.each do |client, client_sprints| %>
-        <h6 class="fw-bold mt-3 mb-2"><%= client.name %></h6>
         <% client_sprints.group_by(&:project).each do |project, project_sprints| %>
-          <div class="text-muted small mb-2"><%= project.name %></div>
-          <div class="table-responsive mb-3">
-            <table class="table align-middle mb-0 task-table">
-              <thead>
-                <tr>
-                  <th>Sprint</th><th>Dates</th><th>Status</th><th>Progress</th><th>Hours logged</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <% project_sprints.each do |sprint| %>
-                  <% done, total = sprint.progress %>
-                  <tr>
-                    <td class="fw-semibold"><%= sprint.name %><div class="text-muted small"><%= sprint.goal %></div></td>
-                    <td><%= sprint.start_date.strftime("%d %b") %> – <%= sprint.end_date.strftime("%d %b %Y") %></td>
-                    <td><span class="status-tag status-tag--<%= sprint.status %>"><%= sprint.status.humanize %></span></td>
-                    <td><%= done %>/<%= total %></td>
-                    <td><%= hours_label(sprint.logged_seconds) %></td>
-                    <td class="text-end">
-                      <%= link_to "View tasks", dashboard_tasks_path(sprint_id: sprint.id),
-                            class: "btn btn-outline-premium btn-premium btn-sm" %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+          <div class="sprint-group">
+            <h6 class="sprint-group__client"><%= client.name %></h6>
+            <p class="sprint-group__project"><%= project.name %></p>
+
+            <% project_sprints.each do |sprint| %>
+              <% done, total = sprint.progress %>
+              <% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
+              <div class="sprint-row">
+                <div class="sprint-row__main">
+                  <div class="sprint-row__name"><%= sprint.name %></div>
+                  <% if sprint.goal.present? %>
+                    <div class="sprint-row__goal"><%= sprint.goal %></div>
+                  <% end %>
+                </div>
+
+                <div class="sprint-row__meta">
+                  <span><%= sprint.start_date.strftime("%d %b") %> – <%= sprint.end_date.strftime("%d %b") %></span>
+                  <span class="pill pill--<%= sprint.status %>"><%= sprint.status.humanize %></span>
+                  <span><%= hours_label(sprint.logged_seconds) %> logged</span>
+                </div>
+
+                <div class="sprint-progress">
+                  <div class="sprint-progress__track"
+                       role="progressbar" aria-valuenow="<%= pct %>" aria-valuemin="0" aria-valuemax="100"
+                       aria-label="<%= sprint.name %> progress">
+                    <div class="sprint-progress__fill" style="width: <%= pct %>%"></div>
+                  </div>
+                  <div class="sprint-progress__label"><%= done %> of <%= total %> done</div>
+                </div>
+
+                <%= link_to "View tasks", dashboard_tasks_path(sprint_id: sprint.id),
+                      class: "btn btn-outline-premium btn-premium btn-sm" %>
+              </div>
+            <% end %>
           </div>
         <% end %>
       <% end %>

@@ -26,7 +26,7 @@
   </td>
   <td><%= task.assigned_to&.name %></td>
   <td><%= task.task_type&.name %> · <%= task.formatted_sla %></td>
-  <td><span class="status-tag status-tag--<%= task.status %>"><%= task.status.humanize %></span></td>
+  <td><span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span></td>
   <td><%= task.priority.capitalize %></td>
   <td><%= task.due_date&.strftime("%d %b %Y") || "—" %></td>
   <td><%= task.formatted_duration(task.parent_id.blank? ? task.rolled_up_duration_seconds : task.live_duration_seconds) %></td>

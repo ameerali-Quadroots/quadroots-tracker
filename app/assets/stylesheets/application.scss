@@ -3464,3 +3464,269 @@ body {
   font-size: 0.76rem;
   font-weight: 500;
 }
+/* ===========================================
+   TASK MANAGER — TABS, TEAM HOURS, SPRINTS
+   Extends the existing task panel language above: white surfaces, #e7e5e4
+   borders, the warm-stone ink ramp, and the .pill status tints. No new palette.
+   =========================================== */
+
+/* Sprint lifecycle reuses the shared .pill dot-and-tint treatment. `completed`
+   is already defined above and is shared with task status. */
+.pill--planned { background: #EDE9FE; color: #5B21B6; }
+.pill--active  { background: #DCFCE7; color: #166534; }
+
+/* --- Segmented tab control -------------------------------------------------
+   Bootstrap's default .nav-tabs renders as grey underlined browser chrome on
+   this white glass card and doesn't read as clickable. This reuses the
+   .task-filter-pill vocabulary already on the page: a recessed track with a
+   raised white chip marking the current view. */
+.task-tabs.nav-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #f5f5f4;
+}
+
+.task-tabs.nav-tabs .nav-item { margin: 0; }
+
+.task-tabs.nav-tabs .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.95rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #57534e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.task-tabs.nav-tabs .nav-link:hover { color: #1c1917; background: rgba(255, 255, 255, 0.65); }
+
+.task-tabs.nav-tabs .nav-link.active {
+  background: #fff;
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.task-tabs.nav-tabs .nav-link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Count badge: tells you a tab has content before you open it. */
+.task-tab-count {
+  min-width: 1.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #e7e5e4;
+  color: #57534e;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.task-tabs.nav-tabs .nav-link.active .task-tab-count {
+  background: rgba(131, 107, 203, 0.14);
+  color: var(--primary-color);
+}
+
+/* --- Team Hours matrix -----------------------------------------------------
+   The one dense view in the module. Each cell stacks two numbers: hours logged
+   on tasks (primary) over attendance from the time clock (secondary). Zeros
+   recede so real activity is what your eye lands on. */
+.hours-table {
+  min-width: 46rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hours-table thead th {
+  padding: 0.7rem 0.5rem;
+  border-bottom: 1px solid #f0efed;
+  color: #57534e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hours-table thead th span {
+  display: block;
+  margin-top: 0.15rem;
+  color: #a8a29e;
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.hours-table tbody td {
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid #f7f6f5;
+  vertical-align: middle;
+}
+
+.hours-table tbody tr:last-child td { border-bottom: 0; }
+.hours-table tbody tr:hover { background: #fafaf9; }
+
+/* The person's name stays put while the week scrolls sideways. */
+.hours-table th.hours-name,
+.hours-table td.hours-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  color: #1c1917;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.hours-table tbody tr:hover td.hours-name { background: #fafaf9; }
+
+.hours-cell__task {
+  color: #1c1917;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.hours-cell__clock {
+  color: #a8a29e;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+/* A day with nothing logged shouldn't compete with a day that has hours. */
+.hours-cell--empty .hours-cell__task,
+.hours-cell--empty .hours-cell__clock { color: #d6d3d1; font-weight: 500; }
+
+.hours-table td.hours-total,
+.hours-table th.hours-total { border-left: 1px solid #f0efed; }
+
+.hours-table td.hours-total .hours-cell__task { color: var(--primary-color); }
+
+/* Untracked = clocked in but not logged against any task. Tinted only when
+   there is actually something to explain. */
+.hours-gap {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #a8a29e;
+}
+
+.hours-gap--flag { background: #FEF3C7; color: #92400E; }
+
+.hours-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  padding: 0.9rem 1.25rem 0;
+  color: #78716c;
+  font-size: 0.74rem;
+}
+
+.hours-legend__key {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.4rem;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+/* --- Sprints ---------------------------------------------------------------
+   Grouped client -> project -> sprint. Progress is the number a manager scans
+   for, so it gets a bar rather than only a fraction. */
+.sprint-group { padding: 1.1rem 1.25rem; border-bottom: 1px solid #f0efed; }
+.sprint-group:last-child { border-bottom: 0; }
+
+.sprint-group__client {
+  margin: 0 0 0.15rem;
+  color: #1c1917;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.sprint-group__project {
+  margin: 0 0 0.75rem;
+  color: #78716c;
+  font-size: 0.78rem;
+}
+
+.sprint-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sprint-row + .sprint-row { margin-top: 0.55rem; }
+.sprint-row:hover { border-color: #d6d3d1; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06); }
+
+.sprint-row__main { flex: 1 1 14rem; min-width: 0; }
+
+.sprint-row__name {
+  color: #1c1917;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sprint-row__goal {
+  margin-top: 0.1rem;
+  color: #78716c;
+  font-size: 0.76rem;
+}
+
+.sprint-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  color: #57534e;
+  font-size: 0.76rem;
+}
+
+.sprint-progress { flex: 0 1 11rem; min-width: 8rem; }
+
+.sprint-progress__track {
+  height: 6px;
+  border-radius: 999px;
+  background: #f0efed;
+  overflow: hidden;
+}
+
+.sprint-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary-gradient);
+}
+
+.sprint-progress__label {
+  margin-top: 0.3rem;
+  color: #78716c;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .task-tabs.nav-tabs { display: flex; width: 100%; }
+  .task-tabs.nav-tabs .nav-link { flex: 1; justify-content: center; padding: 0.45rem 0.5rem; }
+  .sprint-row { align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-tabs.nav-tabs .nav-link,
+  .sprint-row { transition: none; }
+}
