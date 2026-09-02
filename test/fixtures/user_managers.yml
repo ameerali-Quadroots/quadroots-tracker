@@ -1,0 +1,5 @@
+# exec_web_a reports to the manager; exec_web_b deliberately does not, so tests
+# can prove department-scoped assignment works for a non-report.
+a_reports_to_manager:
+  user: exec_web_a
+  manager: manager_web

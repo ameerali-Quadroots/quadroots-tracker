@@ -1,0 +1,15 @@
+manager:
+  name: Manager
+  slug: manager
+  scope: employee
+  rank: 20
+  system: true
+  active: true
+
+executive:
+  name: Executive
+  slug: executive
+  scope: employee
+  rank: 40
+  system: true
+  active: true

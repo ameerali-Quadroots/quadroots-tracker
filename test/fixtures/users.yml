@@ -1,11 +1,53 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+# `one` and `two` are the original Rails stubs. time_clocks, leaves and
+# edit_requests fixtures reference `user: one`, so they must stay.
+one:
+  email: legacy.one@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Legacy One
+  employeed: true
 
-# This model initially had no columns defined. If you add columns to the
-# model remove the "{}" from the fixture names and add the columns immediately
-# below each fixture, per the syntax in the comments below
-#
-one: {}
-# column: value
-#
-two: {}
-# column: value
+two:
+  email: legacy.two@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Legacy Two
+  employeed: true
+
+manager_web:
+  email: manager.web@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Web Manager
+  role: Manager
+  department: Web
+  role_id: <%= ActiveRecord::FixtureSet.identify(:manager) %>
+  department_id: <%= ActiveRecord::FixtureSet.identify(:web) %>
+  employeed: true
+
+exec_web_a:
+  email: exec.web.a@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Web Exec A
+  role: Executive
+  department: Web
+  role_id: <%= ActiveRecord::FixtureSet.identify(:executive) %>
+  department_id: <%= ActiveRecord::FixtureSet.identify(:web) %>
+  employeed: true
+
+exec_web_b:
+  email: exec.web.b@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Web Exec B
+  role: Executive
+  department: Web
+  role_id: <%= ActiveRecord::FixtureSet.identify(:executive) %>
+  department_id: <%= ActiveRecord::FixtureSet.identify(:web) %>
+  employeed: true
+
+exec_design:
+  email: exec.design@example.com
+  encrypted_password: "$2a$12$K8h/6yGZ2mS0uJ2m0iVnJeUj4H3Xb0hqfQ0h1bBrWk1cRUdE9GHiC"
+  name: Design Exec
+  role: Executive
+  department: Design
+  role_id: <%= ActiveRecord::FixtureSet.identify(:executive) %>
+  department_id: <%= ActiveRecord::FixtureSet.identify(:design) %>
+  employeed: true

@@ -1,0 +1,17 @@
+web:
+  name: Web
+  code: WEB
+  active: true
+  task_manager_enabled: true
+
+design:
+  name: Design
+  code: DSG
+  active: true
+  task_manager_enabled: true
+
+sales:
+  name: Sales
+  code: SLS
+  active: true
+  task_manager_enabled: false

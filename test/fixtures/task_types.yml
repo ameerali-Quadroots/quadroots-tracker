@@ -1,0 +1,9 @@
+web_build:
+  name: Build
+  department: web
+  sla_minutes: 120
+
+web_fix:
+  name: Fix
+  department: web
+  sla_minutes: 30

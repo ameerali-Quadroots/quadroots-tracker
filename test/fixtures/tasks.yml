@@ -1,0 +1,10 @@
+pending_a:
+  title: Existing pending task
+  priority: normal
+  status: pending
+  assigned_to: exec_web_a
+  assigned_by: manager_web
+  task_type: web_build
+  accumulated_pause_seconds: 0
+  auto_paused: false
+  over_sla: false

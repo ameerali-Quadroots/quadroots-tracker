@@ -7,7 +7,7 @@ one:
   end_date: 2025-10-18
   reason: MyText
   status: MyString
-  approved_by: 1
+  approved_by_manager: false
 
 two:
   user: two
@@ -16,4 +16,4 @@ two:
   end_date: 2025-10-18
   reason: MyText
   status: MyString
-  approved_by: 1
+  approved_by_manager: false
