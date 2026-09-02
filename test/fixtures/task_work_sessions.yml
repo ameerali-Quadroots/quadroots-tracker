@@ -1,0 +1,1 @@
+# Sessions are created by the timer in tests, never loaded as fixtures.

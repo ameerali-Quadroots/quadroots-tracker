@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_17_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_02_222743) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -259,6 +259,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_17_150000) do
     t.index ["department_id"], name: "index_task_types_on_department_id"
   end
 
+  create_table "task_work_sessions", force: :cascade do |t|
+    t.bigint "task_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "started_at", null: false
+    t.datetime "ended_at"
+    t.integer "duration_seconds", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["task_id"], name: "index_task_work_sessions_on_task_id"
+    t.index ["user_id", "started_at"], name: "index_task_work_sessions_on_user_id_and_started_at"
+    t.index ["user_id"], name: "index_task_work_sessions_on_user_id"
+  end
+
   create_table "tasks", force: :cascade do |t|
     t.string "title", null: false
     t.text "description"
@@ -356,6 +369,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_17_150000) do
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"
   add_foreign_key "task_types", "departments"
+  add_foreign_key "task_work_sessions", "tasks"
+  add_foreign_key "task_work_sessions", "users"
   add_foreign_key "tasks", "task_types"
   add_foreign_key "tasks", "users", column: "assigned_by_id"
   add_foreign_key "tasks", "users", column: "assigned_to_id"
