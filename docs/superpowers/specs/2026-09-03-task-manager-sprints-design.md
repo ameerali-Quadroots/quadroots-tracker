@@ -152,7 +152,11 @@ role. Built from exactly two grouped aggregates, regardless of how many executiv
 days are in range:
 
 1. `TaskWorkSession.where(user_id: ids, started_at: range).group(:user_id, "DATE(started_at)").sum(:duration_seconds)`
-2. `TimeClock.where(user_id: ids, clock_in: range).group(:user_id, "DATE(clock_in)").sum("COALESCE(total_duration,0) - COALESCE(break_duration,0)")`
+2. `TimeClock.where(user_id: ids, clock_in: range).group(:user_id, "DATE(clock_in)").sum("COALESCE(total_duration,0)")`
+
+`TimeClock#total_duration` is already net of breaks — `calculate_total_duration`
+subtracts `total_break_seconds` before writing it (`app/models/time_clock.rb`).
+Subtracting `break_duration` again would double-count breaks.
 
 `gap_seconds` is `attendance_seconds - task_seconds`, floored at zero.
 
