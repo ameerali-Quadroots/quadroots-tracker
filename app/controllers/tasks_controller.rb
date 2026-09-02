@@ -3,7 +3,7 @@ class TasksController < ApplicationController
   # The whole module is off unless the user's department has it enabled, so this
   # guards every action — not just the manager-side ones.
   before_action :require_department_task_manager
-  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import]
+  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import export]
   before_action :set_task, only: %i[start pause resume complete]
 
   def index
@@ -33,6 +33,31 @@ class TasksController < ApplicationController
 
     @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
     @task = Task.new
+  end
+
+  REPORTS = %w[weekly_timing monthly_stats task_list].freeze
+
+  def export
+    report_name = params[:report].to_s
+    return redirect_to(dashboard_tasks_path, alert: "Unknown report.") unless REPORTS.include?(report_name)
+
+    @period = params[:period] == "month" ? "month" : "week"
+    @week_start = parse_week_start
+
+    exporter = TaskReportExporter.new(
+      department: current_user.org_department,
+      range: hours_range,
+      tasks: department_tasks
+    )
+    data = exporter.public_send(report_name)
+    stamp = Date.current.strftime("%Y%m%d")
+
+    if params[:format].to_s == "xlsx"
+      send_data exporter.to_xlsx(data), filename: "#{report_name}_#{stamp}.xlsx",
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else
+      send_data exporter.to_csv(data), filename: "#{report_name}_#{stamp}.csv", type: "text/csv"
+    end
   end
 
   def import_preview
