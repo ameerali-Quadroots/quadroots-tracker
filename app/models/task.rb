@@ -7,6 +7,7 @@ class Task < ApplicationRecord
   belongs_to :assigned_to, class_name: "User" # Executive
   belongs_to :assigned_by, class_name: "User" # Manager
   belongs_to :task_type
+  has_many :work_sessions, class_name: "TaskWorkSession", dependent: :destroy
 
   enum status: { pending: "pending", in_progress: "in_progress", paused: "paused", completed: "completed" },
        _default: "pending"
@@ -30,27 +31,39 @@ class Task < ApplicationRecord
   def start!
     return false unless may_start?
 
-    update!(status: :in_progress, started_at: Time.current)
+    transaction do
+      update!(status: :in_progress, started_at: Time.current)
+      TaskWorkSession.open_for(self)
+    end
+    true
   end
 
   def pause!(reason: nil, auto: false)
     return false unless may_pause?
 
-    update!(status: :paused, pause_time: Time.current, reason: reason, auto_paused: auto)
+    transaction do
+      TaskWorkSession.close_for(self)
+      update!(status: :paused, pause_time: Time.current, reason: reason, auto_paused: auto)
+    end
+    true
   end
 
   def resume!
     return false unless may_resume?
 
     elapsed = pause_time.present? ? (Time.current - pause_time).to_i : 0
-    update!(
-      status: :in_progress,
-      resume_time: Time.current,
-      accumulated_pause_seconds: accumulated_pause_seconds + elapsed,
-      pause_time: nil,
-      auto_paused: false,
-      reason: nil
-    )
+    transaction do
+      update!(
+        status: :in_progress,
+        resume_time: Time.current,
+        accumulated_pause_seconds: accumulated_pause_seconds + elapsed,
+        pause_time: nil,
+        auto_paused: false,
+        reason: nil
+      )
+      TaskWorkSession.open_for(self)
+    end
+    true
   end
 
   def complete!
@@ -58,14 +71,27 @@ class Task < ApplicationRecord
 
     now = Time.current
     extra_pause = paused? && pause_time.present? ? (now - pause_time).to_i : 0
-    final_duration = (now - started_at).to_i - (accumulated_pause_seconds + extra_pause)
-    update!(
-      status: :completed,
-      ended_at: now,
-      accumulated_pause_seconds: accumulated_pause_seconds + extra_pause,
-      total_duration: final_duration,
-      over_sla: sla_seconds.positive? && final_duration > sla_seconds
-    )
+
+    transaction do
+      TaskWorkSession.close_for(self, at: now)
+      session_total = work_sessions.reload.sum(:duration_seconds)
+      # A task that was already in progress when this table shipped has no
+      # sessions to sum, so fall back to the original elapsed-minus-pauses
+      # arithmetic rather than recording it as zero hours.
+      final_duration = if session_total.positive?
+                         session_total
+                       else
+                         (now - started_at).to_i - (accumulated_pause_seconds + extra_pause)
+                       end
+      update!(
+        status: :completed,
+        ended_at: now,
+        accumulated_pause_seconds: accumulated_pause_seconds + extra_pause,
+        total_duration: final_duration,
+        over_sla: sla_seconds.positive? && final_duration > sla_seconds
+      )
+    end
+    true
   end
 
   # A manager can override the task type's default SLA per task at creation
