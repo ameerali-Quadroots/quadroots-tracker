@@ -1,0 +1,4 @@
+Key,Title,Description,Parent,Assignee Email,Task Type,Priority,Due Date,SLA Minutes
+T1,Build login,Auth screens,,exec.web.a@example.com,Build,urgent,2026-09-05,180
+T2,Password reset,,T1,exec.web.b@example.com,Build,normal,2026-09-06,60
+T3,Contacts list,,,exec.web.a@example.com,Fix,normal,,30
