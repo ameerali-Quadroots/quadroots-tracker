@@ -29,6 +29,30 @@ class TaskWorkSession < ApplicationRecord
     segments
   end
 
+  # Gives tasks completed before this table existed a session each, so historic
+  # weeks are not blank on the hours report. The interval is reconstructed
+  # backwards from ended_at, which is the only timestamp we can trust — a task
+  # paused for two days has a started_at that does not reflect worked time.
+  def self.backfill_completed_tasks!
+    scope = Task.where(status: "completed")
+                .where.not(ended_at: nil)
+                .where(total_duration: 1..)
+                .where.missing(:work_sessions)
+
+    count = 0
+    scope.find_each do |task|
+      ends_at = task.ended_at.in_time_zone
+      starts_at = ends_at - task.total_duration.seconds
+
+      segments(starts_at, ends_at).each do |from, to|
+        create!(task_id: task.id, user_id: task.assigned_to_id, started_at: from,
+                ended_at: to, duration_seconds: (to - from).round)
+      end
+      count += 1
+    end
+    count
+  end
+
   def self.open_for(task, at: Time.current)
     create!(task_id: task.id, user_id: task.assigned_to_id, started_at: at)
   end
