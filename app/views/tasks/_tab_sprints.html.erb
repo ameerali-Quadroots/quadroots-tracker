@@ -43,7 +43,7 @@
               <% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
               <div class="sprint-row">
                 <div class="sprint-row__main">
-                  <div class="sprint-row__name"><%= sprint.name %></div>
+                  <div class="sprint-row__name"><%= link_to sprint.name, sprint_path(sprint), class: "sprint-row__link" %></div>
                   <% if sprint.goal.present? %>
                     <div class="sprint-row__goal"><%= sprint.goal %></div>
                   <% end %>
@@ -64,8 +64,9 @@
                   <div class="sprint-progress__label"><%= done %> of <%= total %> done</div>
                 </div>
 
-                <%= link_to "View tasks", dashboard_tasks_path(sprint_id: sprint.id),
-                      class: "btn btn-outline-premium btn-premium btn-sm" %>
+                <%= link_to sprint_path(sprint), class: "btn btn-outline-premium btn-premium btn-sm" do %>
+                  Open sprint <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
+                <% end %>
               </div>
             <% end %>
           </div>

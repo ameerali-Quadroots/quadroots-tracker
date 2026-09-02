@@ -1,0 +1,22 @@
+<article class="task-card" data-task-open="<%= task.id %>" role="button" tabindex="0">
+  <div class="task-card__title"><%= task.title %></div>
+  <div class="task-card__meta">
+    <span class="task-card__who"><%= task.assigned_to&.name %></span>
+    <span class="task-card__time"><%= hours_label(task.rolled_up_duration_seconds) %></span>
+  </div>
+  <div class="task-card__foot">
+    <% if task.priority == "urgent" %>
+      <span class="task-card__flag task-card__flag--urgent">Urgent</span>
+    <% end %>
+    <% if task.over_sla? %>
+      <span class="task-card__flag task-card__flag--over">Over SLA</span>
+    <% end %>
+    <% done, total = task.subtask_progress %>
+    <% if total.positive? %>
+      <span class="task-card__flag"><i class="fa-solid fa-list-ul" aria-hidden="true"></i> <%= done %>/<%= total %></span>
+    <% end %>
+    <% if task.due_date.present? %>
+      <span class="task-card__due"><%= task.due_date.strftime("%d %b") %></span>
+    <% end %>
+  </div>
+</article>

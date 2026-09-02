@@ -6,6 +6,29 @@ class SprintsController < ApplicationController
   before_action :require_department_task_manager
   before_action -> { authorize_page!("task_manager") }
 
+  def show
+    @sprint = department_sprints.includes(project: :client).find_by(id: params[:id])
+    return redirect_to(root_path, alert: "You are not authorized to do that.") if @sprint.nil?
+
+    @tasks = @sprint.tasks.top_level
+                    .includes(:assigned_to, :task_type, subtasks: %i[assigned_to task_type])
+                    .order(:position, created_at: :asc)
+    @by_status = Task.statuses.keys.index_with { |s| @tasks.select { |t| t.status == s } }
+
+    # Hours in this sprint, by whoever actually did the work — subtasks
+    # included, since a subtask can belong to a different executive.
+    task_ids = @sprint.tasks.pluck(:id)
+    @hours_by_user = TaskWorkSession.where(task_id: task_ids)
+                                    .group(:user_id).sum(:duration_seconds)
+    @people = User.where(id: @hours_by_user.keys).index_by(&:id)
+    @sprints = department_sprints.includes(project: :client).ordered
+    @executives = User.employed.joins(:access_role)
+                      .where(department_id: current_user.department_id, roles: { name: "Executive" })
+                      .order(:name)
+    @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
+    @clients = Client.where(department_id: current_user.department_id).includes(projects: :sprints).ordered
+  end
+
   def create
     project = department_projects.find_by(id: params.dig(:sprint, :project_id))
     return back_with(alert: "Unknown project.") if project.nil?

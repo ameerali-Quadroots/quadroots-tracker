@@ -36,7 +36,7 @@ resources :edit_requests, only: [:index, :create] do
   end
 end
 resources :users, only: [:edit, :update]
-resources :tasks, only: [:index, :new, :create] do
+resources :tasks, only: [:index, :new, :create, :show, :update, :destroy] do
   collection do
     get :dashboard
     get :my_tasks
@@ -53,7 +53,7 @@ resources :tasks, only: [:index, :new, :create] do
 end
 resources :clients, only: [:create]
 resources :projects, only: [:create]
-resources :sprints, only: [:create, :update] do
+resources :sprints, only: [:create, :update, :show] do
   member do
     post :carry_over
   end

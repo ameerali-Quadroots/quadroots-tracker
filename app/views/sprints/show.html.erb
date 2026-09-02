@@ -1,0 +1,150 @@
+<% done, total = @sprint.progress %>
+<% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
+<% logged = @sprint.logged_seconds %>
+<% over_sla = @sprint.tasks.select(&:over_sla?).size %>
+
+<div class="dashboard-container">
+  <div class="dashboard-glass">
+
+    <div class="dashboard-card task-page-card p-4 mb-4">
+      <nav class="sprint-head__crumb" aria-label="Breadcrumb">
+        <%= link_to "Task Manager", dashboard_tasks_path %>
+        <span aria-hidden="true">/</span>
+        <%= link_to "Sprints", dashboard_tasks_path(tab: "sprints") %>
+        <span aria-hidden="true">/</span>
+        <%= @sprint.project.client.name %> · <%= @sprint.project.name %>
+      </nav>
+
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2">
+        <div>
+          <h3 class="fw-bold mb-1">
+            <%= @sprint.name %>
+            <span class="pill pill--<%= @sprint.status %> ms-2"><%= @sprint.status.humanize %></span>
+          </h3>
+          <p class="text-muted mb-0">
+            <%= @sprint.goal.presence || "No goal set for this sprint." %>
+          </p>
+          <p class="text-muted small mb-0 mt-1">
+            <%= @sprint.start_date.strftime("%d %b") %> – <%= @sprint.end_date.strftime("%d %b %Y") %>
+          </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <%= link_to "View in task list", dashboard_tasks_path(sprint_id: @sprint.id),
+                class: "btn btn-outline-premium btn-premium btn-sm" %>
+          <button type="button" class="btn btn-outline-premium btn-premium btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#carryOverModal">Carry over unfinished</button>
+          <button type="button" class="btn btn-primary btn-premium btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#newTaskModal">
+            <i class="fa-solid fa-plus me-2"></i>New task
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-stat-cards mb-4">
+      <div class="task-stat-card">
+        <div class="task-stat-icon task-stat-icon--primary"><i class="fa-solid fa-list-check"></i></div>
+        <div><span class="task-stat-label">Tasks</span><span class="task-stat-value"><%= total %></span></div>
+      </div>
+      <div class="task-stat-card">
+        <div class="task-stat-icon task-stat-icon--success"><i class="fa-solid fa-circle-check"></i></div>
+        <div><span class="task-stat-label">Completed</span><span class="task-stat-value"><%= done %></span></div>
+      </div>
+      <div class="task-stat-card">
+        <div class="task-stat-icon task-stat-icon--info"><i class="fa-solid fa-clock"></i></div>
+        <div><span class="task-stat-label">Hours logged</span><span class="task-stat-value"><%= hours_label(logged) %></span></div>
+      </div>
+      <div class="task-stat-card">
+        <div class="task-stat-icon task-stat-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div><span class="task-stat-label">Over SLA</span><span class="task-stat-value"><%= over_sla %></span></div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-8">
+        <div class="dashboard-card task-page-card p-4">
+          <h6 class="fw-bold mb-3">Progress</h6>
+          <div class="sprint-progress__track" role="progressbar" aria-valuenow="<%= pct %>"
+               aria-valuemin="0" aria-valuemax="100" aria-label="Sprint progress">
+            <div class="sprint-progress__fill" style="width: <%= pct %>%"></div>
+          </div>
+          <p class="sprint-progress__label mb-0"><%= done %> of <%= total %> tasks done · <%= pct %>%</p>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="dashboard-card task-page-card p-4">
+          <h6 class="fw-bold mb-3">Who worked on it</h6>
+          <% if @hours_by_user.empty? %>
+            <p class="text-muted small mb-0">No time logged in this sprint yet.</p>
+          <% else %>
+            <ul class="sprint-people">
+              <% @hours_by_user.sort_by { |_id, secs| -secs }.each do |user_id, seconds| %>
+                <li>
+                  <span><%= @people[user_id]&.name || "Unknown" %></span>
+                  <span class="sprint-people__hours"><%= hours_label(seconds) %></span>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="sprint-board">
+      <% { "pending" => "To do", "in_progress" => "In progress",
+           "paused" => "Paused", "completed" => "Done" }.each do |status, label| %>
+        <section class="sprint-column" data-status="<%= status %>">
+          <header class="sprint-column__head">
+            <span class="sprint-column__dot sprint-column__dot--<%= status %>"></span>
+            <h6 class="sprint-column__title"><%= label %></h6>
+            <span class="sprint-column__count"><%= @by_status[status].size %></span>
+          </header>
+          <div class="sprint-column__body">
+            <% if @by_status[status].empty? %>
+              <p class="sprint-column__empty">Nothing here</p>
+            <% else %>
+              <% @by_status[status].each do |task| %>
+                <%= render "tasks/task_card", task: task %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal fade" id="carryOverModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dashboard-card">
+      <%= form_with url: carry_over_sprint_path(@sprint), method: :post, local: true,
+                    html: { data: { turbo: false } } do %>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Carry over unfinished work</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Every task in <strong><%= @sprint.name %></strong> that isn't completed moves to the sprint you pick.
+            Completed tasks stay where they are.
+          </p>
+          <label class="form-label fw-semibold text-dark" for="target_sprint_id">Move them to</label>
+          <select name="target_sprint_id" id="target_sprint_id" class="form-select" required>
+            <% @sprints.reject { |s| s.id == @sprint.id }.each do |s| %>
+              <option value="<%= s.id %>"><%= s.project.client.name %> · <%= s.project.name %> · <%= s.name %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
+          <%= submit_tag "Move tasks", class: "btn btn-primary btn-premium" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%= render "tasks/new_task_modal" %>
+<%= render "tasks/task_modals" %>
+<%= render "tasks/task_modals_js" %>

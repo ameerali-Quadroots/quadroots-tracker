@@ -1,0 +1,110 @@
+<script>
+// Task Manager popups. No Turbo in this app, so the detail modal fetches its
+// own HTML and the edit form is populated from data-* attributes carried on
+// each row's action button.
+(function () {
+  "use strict";
+
+  var tasks = <%= raw({}.merge(@tasks.flat_map { |t| [t] + t.subtasks.to_a }.index_by(&:id).transform_values { |t|
+        { title: t.title, description: t.description, assigned_to_id: t.assigned_to_id,
+          task_type_id: t.task_type_id, sprint_id: t.sprint_id, priority: t.priority,
+          due_date: t.due_date&.to_s, custom_sla_minutes: t.custom_sla_minutes,
+          parent_id: t.parent_id }
+      }).to_json) %>;
+
+  function el(id) { return document.getElementById(id); }
+
+  function showDetail(id) {
+    var content = el("taskDetailContent");
+    content.innerHTML = '<div class="modal-body text-center py-5 text-muted">Loading task…</div>';
+    bootstrap.Modal.getOrCreateInstance(el("taskDetailModal")).show();
+
+    fetch("/tasks/" + id, { headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" })
+      .then(function (r) {
+        if (!r.ok) { throw new Error("This task could not be opened."); }
+        return r.text();
+      })
+      .then(function (html) { content.innerHTML = html; })
+      .catch(function (e) {
+        content.innerHTML = '<div class="modal-body text-center py-5 text-muted">' + e.message + "</div>";
+      });
+  }
+
+  function openEdit(id) {
+    var t = tasks[id];
+    if (!t) { return; }
+    var form = el("taskEditForm");
+    form.action = "/tasks/" + id;
+    el("taskEditMethod").value = "patch";
+    el("taskEditTitle").textContent = "Edit task";
+    el("taskEditSubmit").textContent = "Save changes";
+    el("taskEditContext").classList.add("d-none");
+    el("taskEditParent").value = t.parent_id || "";
+    el("taskEditSprintWrap").style.display = t.parent_id ? "none" : "";
+
+    el("taskEditTitleField").value = t.title || "";
+    el("taskEditDescription").value = t.description || "";
+    el("taskEditAssignee").value = t.assigned_to_id || "";
+    el("taskEditType").value = t.task_type_id || "";
+    el("taskEditSprint").value = t.sprint_id || "";
+    el("taskEditPriority").value = t.priority || "normal";
+    el("taskEditDue").value = t.due_date || "";
+    el("taskEditSla").value = t.custom_sla_minutes || "";
+
+    bootstrap.Modal.getOrCreateInstance(el("taskEditModal")).show();
+  }
+
+  function openAddSubtask(parentId, parentTitle) {
+    var parent = tasks[parentId] || {};
+    var form = el("taskEditForm");
+    form.action = "/tasks";
+    el("taskEditMethod").value = "post";
+    el("taskEditTitle").textContent = "Add subtask";
+    el("taskEditSubmit").textContent = "Create subtask";
+    var ctx = el("taskEditContext");
+    ctx.textContent = "Under " + parentTitle;
+    ctx.classList.remove("d-none");
+    el("taskEditParent").value = parentId;
+    el("taskEditSprintWrap").style.display = "none";
+
+    el("taskEditTitleField").value = "";
+    el("taskEditDescription").value = "";
+    el("taskEditAssignee").value = parent.assigned_to_id || "";
+    el("taskEditType").value = parent.task_type_id || "";
+    el("taskEditSprint").value = parent.sprint_id || "";
+    el("taskEditPriority").value = "normal";
+    el("taskEditDue").value = "";
+    el("taskEditSla").value = "";
+
+    bootstrap.Modal.getOrCreateInstance(el("taskEditModal")).show();
+  }
+
+  // One delegated listener: rows, dropdown items and sprint-page cards all use
+  // the same data attributes, so nothing needs rebinding when markup changes.
+  document.addEventListener("click", function (event) {
+    var open = event.target.closest("[data-task-open]");
+    if (open) { event.preventDefault(); showDetail(open.dataset.taskOpen); return; }
+
+    var edit = event.target.closest("[data-task-edit]");
+    if (edit) {
+      event.preventDefault();
+      bootstrap.Modal.getInstance(el("taskDetailModal"))?.hide();
+      openEdit(edit.dataset.taskEdit);
+      return;
+    }
+
+    var sub = event.target.closest("[data-task-add-subtask]");
+    if (sub) {
+      event.preventDefault();
+      openAddSubtask(sub.dataset.taskAddSubtask, sub.dataset.taskTitle);
+    }
+  });
+
+  // button_to renders a form; Rails' UJS confirm isn't loaded here, so do it.
+  document.addEventListener("submit", function (event) {
+    var btn = event.target.querySelector("[data-confirm]");
+    var message = btn && btn.dataset.confirm;
+    if (message && !window.confirm(message)) { event.preventDefault(); }
+  });
+}());
+</script>

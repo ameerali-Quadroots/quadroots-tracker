@@ -1,14 +1,18 @@
 <tr class="<%= task.parent_id.present? ? 'task-row--sub' : 'task-row--top' %>">
   <td>
-    <div class="fw-semibold">
+    <div class="task-cell">
       <% if task.parent_id.present? %>
-        <i class="fa-solid fa-turn-up fa-rotate-90 text-muted me-2 small"></i>
+        <i class="fa-solid fa-turn-up fa-rotate-90 text-muted me-2 small" aria-hidden="true"></i>
       <% end %>
-      <%= task.title %>
+      <button type="button" class="task-open" data-task-open="<%= task.id %>">
+        <%= task.title %>
+      </button>
       <% if task.parent_id.blank? %>
         <% done, total = task.subtask_progress %>
         <% if total.positive? %>
-          <span class="badge bg-secondary ms-2"><%= done %>/<%= total %></span>
+          <span class="task-subcount" title="<%= done %> of <%= total %> subtasks done">
+            <i class="fa-solid fa-list-ul" aria-hidden="true"></i><%= done %>/<%= total %>
+          </span>
         <% end %>
       <% end %>
     </div>
@@ -30,4 +34,61 @@
   <td><%= task.priority.capitalize %></td>
   <td><%= task.due_date&.strftime("%d %b %Y") || "—" %></td>
   <td><%= task.formatted_duration(task.parent_id.blank? ? task.rolled_up_duration_seconds : task.live_duration_seconds) %></td>
+  <td class="text-end">
+    <div class="dropdown task-actions">
+      <button class="btn btn-sm task-actions__toggle" type="button" data-bs-toggle="dropdown"
+              data-bs-boundary="viewport" aria-expanded="false"
+              aria-label="Actions for <%= task.title %>">
+        <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end task-actions__menu">
+        <li>
+          <button type="button" class="dropdown-item" data-task-open="<%= task.id %>">
+            <i class="fa-regular fa-eye" aria-hidden="true"></i>Open details
+          </button>
+        </li>
+        <li>
+          <button type="button" class="dropdown-item" data-task-edit="<%= task.id %>">
+            <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>Edit
+          </button>
+        </li>
+        <% if task.parent_id.blank? %>
+          <li>
+            <button type="button" class="dropdown-item" data-task-add-subtask="<%= task.id %>"
+                    data-task-title="<%= task.title %>">
+              <i class="fa-solid fa-list-ul" aria-hidden="true"></i>Add subtask
+            </button>
+          </li>
+        <% end %>
+        <% if @sprints.present? && task.parent_id.blank? %>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header">Move to sprint</li>
+          <% if task.sprint_id.present? %>
+            <li>
+              <%= button_to task_path(task), method: :patch, class: "dropdown-item",
+                    form: { data: { turbo: false } }, params: { task: { sprint_id: "" } } do %>
+                Remove from sprint
+              <% end %>
+            </li>
+          <% end %>
+          <% @sprints.reject { |s| s.id == task.sprint_id }.first(6).each do |sprint| %>
+            <li>
+              <%= button_to task_path(task), method: :patch, class: "dropdown-item",
+                    form: { data: { turbo: false } }, params: { task: { sprint_id: sprint.id } } do %>
+                <%= sprint.project.client.name %> · <%= sprint.name %>
+              <% end %>
+            </li>
+          <% end %>
+        <% end %>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <%= button_to task_path(task), method: :delete, class: "dropdown-item dropdown-item--danger",
+                form: { data: { turbo: false } },
+                data: { confirm: "Delete \"#{task.title}\"? This cannot be undone." } do %>
+            <i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete
+          <% end %>
+        </li>
+      </ul>
+    </div>
+  </td>
 </tr>

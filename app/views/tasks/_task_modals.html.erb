@@ -1,0 +1,93 @@
+<%# Shell the task detail HTML is fetched into. Content comes from GET /tasks/:id. %>
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" id="taskDetailContent">
+      <div class="modal-body text-center py-5 text-muted">Loading task…</div>
+    </div>
+  </div>
+</div>
+
+<%# Edit / add-subtask form. The same form serves both: creating a subtask
+    posts to /tasks with a parent_id, editing patches /tasks/:id. %>
+<div class="modal fade" id="taskEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dashboard-card">
+      <form id="taskEditForm" method="post" data-turbo="false">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        <input type="hidden" name="_method" value="patch" id="taskEditMethod">
+        <input type="hidden" name="task[parent_id]" id="taskEditParent">
+
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="taskEditTitle">Edit task</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <p class="text-muted small d-none" id="taskEditContext"></p>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="taskEditTitleField">Title</label>
+            <input type="text" name="task[title]" id="taskEditTitleField" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="taskEditDescription">Description</label>
+            <textarea name="task[description]" id="taskEditDescription" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="taskEditAssignee">Assignee</label>
+            <select name="task[assigned_to_id]" id="taskEditAssignee" class="form-select" required>
+              <% @executives.each do |e| %>
+                <option value="<%= e.id %>"><%= e.name %></option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="taskEditType">Task type</label>
+            <select name="task[task_type_id]" id="taskEditType" class="form-select" required>
+              <% @task_types.each do |t| %>
+                <option value="<%= t.id %>"><%= t.name %> · <%= t.formatted_sla %></option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="mb-3" id="taskEditSprintWrap">
+            <label class="form-label fw-semibold text-dark" for="taskEditSprint">Client / Project / Sprint</label>
+            <select name="task[sprint_id]" id="taskEditSprint" class="form-select">
+              <option value="">No sprint — standalone task</option>
+              <%= grouped_options_for_select(sprint_options_grouped_by_project) %>
+            </select>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-6 mb-3">
+              <label class="form-label fw-semibold text-dark" for="taskEditPriority">Priority</label>
+              <select name="task[priority]" id="taskEditPriority" class="form-select">
+                <% Task::PRIORITIES.each do |p| %>
+                  <option value="<%= p %>"><%= p.capitalize %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label fw-semibold text-dark" for="taskEditDue">Due date</label>
+              <input type="date" name="task[due_date]" id="taskEditDue" class="form-control">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="taskEditSla">SLA override (minutes)</label>
+            <input type="number" min="0" name="task[custom_sla_minutes]" id="taskEditSla" class="form-control"
+                   placeholder="Leave blank to use the task type's SLA">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-premium" id="taskEditSubmit">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

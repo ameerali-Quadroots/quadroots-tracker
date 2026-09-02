@@ -24,6 +24,12 @@ class TasksSprintsTabTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Hidden Sprint"
   end
 
+  test "each sprint links through to its own page" do
+    get dashboard_tasks_path(tab: "sprints")
+
+    assert_select "a[href=?]", sprint_path(sprints(:crm_week_one))
+  end
+
   test "sprint_id filters the tasks tab" do
     in_sprint = Task.create!(title: "Sprint work", priority: "normal", sprint: sprints(:crm_week_one),
                              assigned_to: users(:exec_web_a), assigned_by: users(:manager_web),

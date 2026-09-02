@@ -3,7 +3,7 @@ class TasksController < ApplicationController
   # The whole module is off unless the user's department has it enabled, so this
   # guards every action — not just the manager-side ones.
   before_action :require_department_task_manager
-  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import export]
+  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import export update destroy]
   before_action :set_task, only: %i[start pause resume complete]
 
   def index
@@ -59,6 +59,44 @@ class TasksController < ApplicationController
     else
       send_data exporter.to_csv(data), filename: "#{report_name}_#{stamp}.csv", type: "text/csv"
     end
+  end
+
+  # The task detail popup. Readable by a manager anywhere in their department
+  # and by the executive the task belongs to; rendered as a bare partial
+  # because it is fetched into a modal, not visited as a page.
+  def show
+    task = department_tasks.includes(:assigned_to, :assigned_by, :task_type, :parent,
+                                     { sprint: { project: :client } },
+                                     { subtasks: %i[assigned_to task_type] },
+                                     :work_sessions)
+                           .find_by(id: params[:id])
+    return forbid! if task.nil?
+    return forbid! unless can_view?("task_manager") || task.assigned_to_id == current_user.id
+
+    render partial: "tasks/task_detail", locals: { task: task }, layout: false
+  end
+
+  def update
+    task = department_tasks.find_by(id: params[:id])
+    return forbid! if task.nil?
+
+    if task.update(task_params.except(:new_task_type_name))
+      redirect_back fallback_location: dashboard_tasks_path, notice: "Task updated."
+    else
+      redirect_back fallback_location: dashboard_tasks_path,
+                    alert: task.errors.full_messages.to_sentence
+    end
+  end
+
+  def destroy
+    task = department_tasks.find_by(id: params[:id])
+    return forbid! if task.nil?
+
+    title = task.title
+    count = task.subtasks.count
+    task.destroy
+    suffix = count.positive? ? " and #{count} subtask(s)" : ""
+    redirect_to dashboard_tasks_path, notice: "Deleted #{title}#{suffix}."
   end
 
   def import_preview
