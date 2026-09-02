@@ -32,7 +32,14 @@ class TasksController < ApplicationController
   end
 
   def my_tasks
-    @tasks = Task.for_executive(current_user).includes(:task_type).order(created_at: :desc)
+    mine = Task.for_executive(current_user)
+    # A subtask is nested under its parent only when the parent is also mine;
+    # otherwise it would silently vanish from the executive's list.
+    nested_ids = mine.subtasks_only.where(parent_id: mine.select(:id)).pluck(:id)
+
+    @tasks = mine.where.not(id: nested_ids)
+                 .includes(:task_type, subtasks: :task_type)
+                 .order(created_at: :desc)
   end
 
   def new

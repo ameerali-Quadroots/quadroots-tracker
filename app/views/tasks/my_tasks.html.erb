@@ -50,56 +50,12 @@
       </div>
     <% else %>
       <% @tasks.each do |task| %>
-        <div class="task-row d-flex flex-wrap justify-content-between align-items-start gap-3">
-          <div>
-            <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-              <h5 class="fw-bold mb-0"><%= task.title %></h5>
-              <span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span>
-              <% if task.over_sla? %>
-                <span class="pill pill--over-sla">Over SLA</span>
-              <% end %>
-              <span class="type-tag"><%= task.priority.capitalize %></span>
-            </div>
-            <div class="text-muted small mb-1">
-              <i class="fa-solid fa-tag me-1"></i><%= task.task_type.name %>
-            </div>
-            <% if task.description.present? %>
-              <p class="text-muted mb-2"><%= task.description %></p>
-            <% end %>
-            <div class="text-muted small d-flex align-items-center">
-              <span class="task-avatar"><%= task.assigned_by.initials %></span>
-              Assigned by <span class="fw-semibold text-dark ms-1"><%= task.assigned_by.name %></span>
-              <% if task.due_date.present? %>&nbsp;&middot; Due <%= task.due_date.strftime("%d %b %Y") %><% end %>
-            </div>
-            <% if task.paused? && task.reason.present? %>
-              <div class="task-reason-note"><i class="fa-solid fa-circle-info"></i><%= task.reason %></div>
-            <% end %>
+        <%= render "tasks/my_task_entry", task: task %>
+        <% task.subtasks.each do |subtask| %>
+          <div class="subtask-nest ms-4 border-start ps-3">
+            <%= render "tasks/my_task_entry", task: subtask %>
           </div>
-
-          <div class="text-end">
-            <div class="task-duration mb-2"><%= render "tasks/live_task_duration", task: task %></div>
-
-            <% if task.pending? %>
-              <%= button_to start_task_path(task), method: :post, class: "btn btn-primary btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-play me-1"></i>Start
-              <% end %>
-            <% elsif task.in_progress? %>
-              <button type="button" class="btn btn-warning btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#pauseModal-<%= task.id %>">
-                <i class="fa-solid fa-pause me-1"></i>Pause
-              </button>
-              <%= button_to complete_task_path(task), method: :post, class: "btn btn-success btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-circle-check me-1"></i>Complete
-              <% end %>
-            <% elsif task.paused? %>
-              <%= button_to resume_task_path(task), method: :post, class: "btn btn-primary btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-play me-1"></i>Resume
-              <% end %>
-              <%= button_to complete_task_path(task), method: :post, class: "btn btn-success btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-circle-check me-1"></i>Complete
-              <% end %>
-            <% end %>
-          </div>
-        </div>
+        <% end %>
       <% end %>
     <% end %>
   </div>
