@@ -57,6 +57,19 @@ class TasksDashboardTest < ActionDispatch::IntegrationTest
     assert_equal 1, css_select("tbody tr.task-row--top").size
   end
 
+  # .dashboard-glass sets backdrop-filter, which makes it a containing block for
+  # position:fixed descendants — a modal nested inside it sizes against the
+  # wrapper instead of the viewport and renders as a stuck dark overlay.
+  test "modals render outside the backdrop-filtered wrapper" do
+    get dashboard_tasks_path
+
+    %w[importTasksModal newSprintModal newClientModal newProjectModal newTaskModal].each do |modal_id|
+      assert_select "##{modal_id}", 1, "#{modal_id} should exist"
+      assert_select ".dashboard-glass ##{modal_id}", false,
+                    "#{modal_id} must not be nested inside .dashboard-glass"
+    end
+  end
+
   test "week param moves the hours window" do
     get dashboard_tasks_path(week_start: "2026-09-07")
 

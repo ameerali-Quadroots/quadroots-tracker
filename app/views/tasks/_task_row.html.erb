@@ -16,6 +16,14 @@
       <div class="text-muted small"><%= truncate(task.description, length: 60) %></div>
     <% end %>
   </td>
+  <td class="task-client">
+    <% if task.sprint.present? %>
+      <div class="fw-semibold"><%= task.sprint.project.client.name %></div>
+      <div class="text-muted small"><%= task.sprint.project.name %> · <%= task.sprint.name %></div>
+    <% else %>
+      —
+    <% end %>
+  </td>
   <td><%= task.assigned_to&.name %></td>
   <td><%= task.task_type&.name %> · <%= task.formatted_sla %></td>
   <td><span class="status-tag status-tag--<%= task.status %>"><%= task.status.humanize %></span></td>

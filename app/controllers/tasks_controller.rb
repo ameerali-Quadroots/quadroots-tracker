@@ -15,7 +15,8 @@ class TasksController < ApplicationController
     @week_start = parse_week_start
 
     @tasks = department_tasks.top_level
-                             .includes(:assigned_to, :task_type, subtasks: %i[assigned_to task_type])
+                             .includes(:assigned_to, :task_type, { sprint: { project: :client } },
+                                       subtasks: [:assigned_to, :task_type, { sprint: { project: :client } }])
                              .order(created_at: :desc)
     @tasks = @tasks.where(status: params[:status]) if params[:status].present?
     @tasks = @tasks.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?

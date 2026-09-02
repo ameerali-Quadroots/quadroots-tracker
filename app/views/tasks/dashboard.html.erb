@@ -102,11 +102,15 @@
   </div>
 </div>
 
-<%= render "tasks/sprint_modal" %>
-<%= render "tasks/import_modal" %>
-
   </div>
 </div>
+
+<%# Modals must live OUTSIDE .dashboard-glass: that wrapper sets
+    backdrop-filter, which makes it a containing block for position:fixed
+    descendants, so a modal nested inside it sizes against the wrapper
+    instead of the viewport. %>
+<%= render "tasks/sprint_modal" %>
+<%= render "tasks/import_modal" %>
 
 <!-- New Task Modal -->
 <div class="modal fade" id="newTaskModal" tabindex="-1" aria-labelledby="newTaskModalLabel" aria-hidden="true">
@@ -118,6 +122,15 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+          <div class="mb-3">
+            <%= f.label :sprint_id, "Client / Project / Sprint", class: "form-label fw-semibold text-dark" %>
+            <%= f.select :sprint_id,
+                  grouped_options_for_select(sprint_options_grouped_by_project, params[:sprint_id]),
+                  { include_blank: "No sprint — standalone task" },
+                  class: "form-select" %>
+            <div class="form-text">Leave blank for internal work that isn't tied to a client.</div>
+          </div>
+
           <div class="mb-3">
             <%= f.label :assigned_to_id, "Assign to Executive", class: "form-label fw-semibold text-dark" %>
             <%= f.collection_select :assigned_to_id, @executives, :id, :name, { include_blank: "Select executive..." }, class: "form-select", required: true %>
