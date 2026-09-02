@@ -8,6 +8,8 @@ class Task < ApplicationRecord
   belongs_to :assigned_by, class_name: "User" # Manager
   belongs_to :task_type
   has_many :work_sessions, class_name: "TaskWorkSession", dependent: :destroy
+  belongs_to :parent, class_name: "Task", optional: true
+  has_many :subtasks, class_name: "Task", foreign_key: :parent_id, dependent: :destroy, inverse_of: :parent
 
   enum status: { pending: "pending", in_progress: "in_progress", paused: "paused", completed: "completed" },
        _default: "pending"
@@ -17,11 +19,28 @@ class Task < ApplicationRecord
   validates :title, presence: true
   validates :priority, inclusion: { in: PRIORITIES }
   validate :assigned_to_is_a_direct_report_executive
+  validate :parent_is_not_a_subtask
   validate :task_type_belongs_to_managers_department
 
   scope :active, -> { where(status: %w[in_progress paused]) }
   scope :for_manager, ->(user) { where(assigned_by: user) }
   scope :for_executive, ->(user) { where(assigned_to: user) }
+  scope :top_level, -> { where(parent_id: nil) }
+  scope :subtasks_only, -> { where.not(parent_id: nil) }
+
+  def subtask? = parent_id.present?
+  def parent_task? = subtasks.any?
+
+  # A parent's real cost is its own logged time plus everything its children
+  # logged — including children assigned to a different executive.
+  def rolled_up_duration_seconds
+    live_duration_seconds + subtasks.sum(&:live_duration_seconds)
+  end
+
+  def subtask_progress
+    children = subtasks.to_a
+    [children.count(&:completed?), children.size]
+  end
 
   def may_start? = pending?
   def may_pause? = in_progress?
@@ -139,6 +158,18 @@ class Task < ApplicationRecord
   end
 
   private
+
+  # Jira and ClickUp both stop at one level of nesting, and so do we: deeper
+  # trees make the rollup recursive and the CSV parent column ambiguous.
+  def parent_is_not_a_subtask
+    return if parent_id.blank?
+
+    if parent_id == id
+      errors.add(:parent, "cannot be the task itself")
+    elsif parent&.parent_id.present?
+      errors.add(:parent, "cannot be a subtask itself")
+    end
+  end
 
   def assigned_to_is_a_direct_report_executive
     return if assigned_by.blank? || assigned_to.blank?
