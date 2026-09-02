@@ -40,6 +40,9 @@ resources :tasks, only: [:index, :new, :create] do
   collection do
     get :dashboard
     get :my_tasks
+    get :export
+    post :import_preview
+    post :import
   end
   member do
     post :start

@@ -3,7 +3,7 @@ class TasksController < ApplicationController
   # The whole module is off unless the user's department has it enabled, so this
   # guards every action — not just the manager-side ones.
   before_action :require_department_task_manager
-  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create]
+  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import]
   before_action :set_task, only: %i[start pause resume complete]
 
   def index
@@ -33,6 +33,26 @@ class TasksController < ApplicationController
 
     @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
     @task = Task.new
+  end
+
+  def import_preview
+    importer, error = build_importer
+    return redirect_to(dashboard_tasks_path(tab: "tasks"), alert: error) if importer.nil?
+
+    render partial: "tasks/import_preview", locals: { importer: importer }
+  end
+
+  def import
+    importer, error = build_importer
+    return redirect_to(dashboard_tasks_path(tab: "tasks"), alert: error) if importer.nil?
+
+    if importer.valid?
+      created = importer.commit!
+      redirect_to dashboard_tasks_path(tab: "tasks"), notice: "Imported #{created} task(s)."
+    else
+      redirect_to dashboard_tasks_path(tab: "tasks"),
+                  alert: "Nothing was imported — #{importer.error_count} row(s) have errors."
+    end
   end
 
   def my_tasks
@@ -124,6 +144,27 @@ class TasksController < ApplicationController
   end
 
   private
+
+  # Returns [importer, nil] or [nil, error_message]. A sprint id from another
+  # department must never reach the importer, and the manager needs to be told
+  # which of the two things went wrong.
+  def build_importer
+    return [nil, "Choose a CSV file to import."] if params[:file].blank?
+
+    sprint = nil
+    if params[:sprint_id].present?
+      sprint = Sprint.for_department(current_user.department_id).find_by(id: params[:sprint_id])
+      return [nil, "That sprint doesn't belong to your department."] if sprint.nil?
+    end
+
+    importer = TaskCsvImporter.new(
+      csv_text: params[:file].read,
+      manager: current_user,
+      sprint: sprint,
+      create_missing_types: params[:create_missing_types] == "1"
+    )
+    [importer, nil]
+  end
 
   # Department is the visibility boundary, not "tasks I assigned" — a manager
   # needs to see what every executive in the department is carrying.

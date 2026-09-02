@@ -31,7 +31,54 @@ class TaskCsvImporter
 
   def error_count = rows.count { |r| r.errors.any? }
 
+  # All or nothing: a file with any invalid row writes no tasks at all, so a
+  # half-imported sprint can never happen.
+  def commit!
+    return 0 unless valid?
+
+    created = 0
+    ActiveRecord::Base.transaction do
+      by_key = {}
+
+      # Parents first so a child can always find its parent's id, regardless of
+      # the order the rows appeared in the file.
+      ordered_rows.each do |row|
+        task = Task.create!(
+          title: row.title,
+          description: row.description.presence,
+          priority: row.priority,
+          due_date: row.due_date,
+          assigned_to_id: row.assignee.id,
+          assigned_by_id: @manager.id,
+          task_type_id: task_type_for(row).id,
+          custom_sla_minutes: row.sla_minutes.presence&.to_i,
+          sprint_id: @sprint&.id,
+          parent_id: row.parent_key.present? ? by_key.fetch(row.parent_key).id : nil
+        )
+        by_key[row.key] = task if row.key.present?
+        created += 1
+      end
+    end
+    created
+  end
+
   private
+
+  def ordered_rows
+    parents, children = rows.partition { |r| r.parent_key.blank? }
+    parents + children
+  end
+
+  def task_type_for(row)
+    return row.task_type if row.task_type
+
+    @created_types ||= {}
+    @created_types[row.type_name.downcase] ||= TaskType.create!(
+      name: row.type_name,
+      department_id: @manager.department_id,
+      sla_minutes: row.sla_minutes.presence&.to_i || 0
+    )
+  end
 
   def parse
     table = begin

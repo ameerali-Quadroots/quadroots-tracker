@@ -1,0 +1,47 @@
+<div class="modal fade" id="importTasksModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <%= form_with url: import_tasks_path, method: :post, multipart: true, local: true,
+                    id: "importTasksForm", html: { data: { turbo: false } } do %>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-csv me-2 text-primary"></i>Import Tasks from CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Columns: <code>Key, Title, Description, Parent, Assignee Email, Task Type, Priority, Due Date, SLA Minutes</code>.
+            Set a subtask's <code>Parent</code> to its parent row's <code>Key</code>. Maximum 1000 rows.
+          </p>
+
+          <div class="mb-3">
+            <%= label_tag :file, "CSV file", class: "form-label" %>
+            <%= file_field_tag :file, accept: ".csv", class: "form-control", required: true %>
+          </div>
+
+          <div class="mb-3">
+            <%= label_tag :sprint_id, "Add to sprint (optional)", class: "form-label" %>
+            <%= select_tag :sprint_id,
+                  options_for_select([["No sprint", ""]] + @sprints.map { |sp|
+                    ["#{sp.project.client.name} · #{sp.project.name} · #{sp.name}", sp.id]
+                  }, params[:sprint_id]),
+                  class: "form-select" %>
+          </div>
+
+          <div class="form-check mb-3">
+            <%= check_box_tag :create_missing_types, "1", false, class: "form-check-input" %>
+            <%= label_tag :create_missing_types, "Create task types that don't exist yet",
+                  class: "form-check-label" %>
+          </div>
+
+          <div id="importPreviewTarget"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-outline-premium btn-premium"
+                  formaction="<%= import_preview_tasks_path %>" formmethod="post">Preview</button>
+          <%= submit_tag "Import", class: "btn btn-primary btn-premium" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

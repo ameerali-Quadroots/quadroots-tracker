@@ -7,9 +7,14 @@
       <h3 class="fw-bold mb-1">Task Manager</h3>
       <p class="text-muted mb-0">Assign and track tasks for your executives</p>
     </div>
-    <button type="button" class="btn btn-primary btn-premium" data-bs-toggle="modal" data-bs-target="#newTaskModal">
-      <i class="fa-solid fa-plus me-2"></i>New Task
-    </button>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-premium btn-premium" data-bs-toggle="modal" data-bs-target="#importTasksModal">
+        <i class="fa-solid fa-file-csv me-2"></i>Import CSV
+      </button>
+      <button type="button" class="btn btn-primary btn-premium" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+        <i class="fa-solid fa-plus me-2"></i>New Task
+      </button>
+    </div>
   </div>
 </div>
 
@@ -98,6 +103,7 @@
 </div>
 
 <%= render "tasks/sprint_modal" %>
+<%= render "tasks/import_modal" %>
 
   </div>
 </div>

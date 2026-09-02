@@ -1,0 +1,19 @@
+<div class="table-responsive">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Line</th><th>Title</th><th>Assignee</th><th>Parent</th><th>Status</th></tr></thead>
+    <tbody>
+      <% importer.rows.each do |row| %>
+        <tr class="<%= 'table-danger' if row.errors.any? %>">
+          <td><%= row.line %></td>
+          <td><%= row.title %></td>
+          <td><%= row.assignee_email %></td>
+          <td><%= row.parent_key.presence || "—" %></td>
+          <td><%= row.errors.any? ? row.errors.join("; ") : "OK" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<p class="mt-3 mb-0 fw-semibold">
+  <%= importer.valid? ? "All #{importer.rows.size} row(s) are valid — press Import to commit." : "#{importer.error_count} row(s) have errors. Nothing will be imported until they are fixed." %>
+</p>
