@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_02_223810) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_02_223908) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -333,10 +333,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223810) do
     t.integer "custom_sla_minutes"
     t.bigint "parent_id"
     t.integer "position", default: 0, null: false
+    t.bigint "sprint_id"
     t.index ["assigned_by_id"], name: "index_tasks_on_assigned_by_id"
     t.index ["assigned_to_id", "status"], name: "index_tasks_on_assigned_to_id_and_status"
     t.index ["assigned_to_id"], name: "index_tasks_on_assigned_to_id"
     t.index ["parent_id"], name: "index_tasks_on_parent_id"
+    t.index ["sprint_id"], name: "index_tasks_on_sprint_id"
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["task_type_id"], name: "index_tasks_on_task_type_id"
   end
@@ -415,6 +417,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223810) do
   add_foreign_key "task_types", "departments"
   add_foreign_key "task_work_sessions", "tasks"
   add_foreign_key "task_work_sessions", "users"
+  add_foreign_key "tasks", "sprints"
   add_foreign_key "tasks", "task_types"
   add_foreign_key "tasks", "tasks", column: "parent_id"
   add_foreign_key "tasks", "users", column: "assigned_by_id"

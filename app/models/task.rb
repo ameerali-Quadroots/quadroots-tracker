@@ -9,6 +9,7 @@ class Task < ApplicationRecord
   belongs_to :task_type
   has_many :work_sessions, class_name: "TaskWorkSession", dependent: :destroy
   belongs_to :parent, class_name: "Task", optional: true
+  belongs_to :sprint, optional: true
   has_many :subtasks, class_name: "Task", foreign_key: :parent_id, dependent: :destroy, inverse_of: :parent
 
   enum status: { pending: "pending", in_progress: "in_progress", paused: "paused", completed: "completed" },
@@ -19,7 +20,9 @@ class Task < ApplicationRecord
   validates :title, presence: true
   validates :priority, inclusion: { in: PRIORITIES }
   validate :assigned_to_is_a_department_executive
+  before_validation :inherit_sprint_from_parent
   validate :parent_is_not_a_subtask
+  validate :sprint_belongs_to_same_department
   validate :task_type_belongs_to_managers_department
 
   scope :active, -> { where(status: %w[in_progress paused]) }
@@ -27,6 +30,7 @@ class Task < ApplicationRecord
   scope :for_executive, ->(user) { where(assigned_to: user) }
   scope :top_level, -> { where(parent_id: nil) }
   scope :subtasks_only, -> { where.not(parent_id: nil) }
+  scope :in_sprint, ->(sprint_id) { where(sprint_id: sprint_id) }
 
   def subtask? = parent_id.present?
   def parent_task? = subtasks.any?
@@ -158,6 +162,20 @@ class Task < ApplicationRecord
   end
 
   private
+
+  # A subtask always sits in the same sprint as its parent — allowing a split
+  # would make sprint hour totals depend on which half of a pair you looked at.
+  def inherit_sprint_from_parent
+    self.sprint_id = parent.sprint_id if parent.present?
+  end
+
+  def sprint_belongs_to_same_department
+    return if sprint.blank? || assigned_by.blank?
+
+    unless sprint.department_id == assigned_by.department_id
+      errors.add(:sprint, "must belong to your department")
+    end
+  end
 
   # Jira and ClickUp both stop at one level of nesting, and so do we: deeper
   # trees make the rollup recursive and the CSV parent column ambiguous.
