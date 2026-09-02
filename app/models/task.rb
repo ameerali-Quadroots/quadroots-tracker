@@ -18,7 +18,7 @@ class Task < ApplicationRecord
 
   validates :title, presence: true
   validates :priority, inclusion: { in: PRIORITIES }
-  validate :assigned_to_is_a_direct_report_executive
+  validate :assigned_to_is_a_department_executive
   validate :parent_is_not_a_subtask
   validate :task_type_belongs_to_managers_department
 
@@ -171,11 +171,14 @@ class Task < ApplicationRecord
     end
   end
 
-  def assigned_to_is_a_direct_report_executive
+  # Department, not direct reports, is the assignment boundary: sprint work gets
+  # handed to whoever in the department is free, including executives who report
+  # to another manager.
+  def assigned_to_is_a_department_executive
     return if assigned_by.blank? || assigned_to.blank?
 
-    unless assigned_by.direct_reports.include?(assigned_to)
-      errors.add(:assigned_to, "must be one of your direct-report executives")
+    if assigned_to.department_id.blank? || assigned_to.department_id != assigned_by.department_id
+      errors.add(:assigned_to, "must be an Executive in your department")
     end
 
     unless assigned_to.access_role&.name == "Executive"
