@@ -1,0 +1,54 @@
+<div class="task-panel-dark">
+  <div class="task-panel-dark__header">
+    <h3 class="task-panel-dark__title">Sprints</h3>
+    <div class="task-panel-dark__controls">
+      <button type="button" class="btn btn-outline-premium btn-premium btn-sm"
+              data-bs-toggle="modal" data-bs-target="#newClientModal">New Client</button>
+      <button type="button" class="btn btn-outline-premium btn-premium btn-sm"
+              data-bs-toggle="modal" data-bs-target="#newProjectModal">New Project</button>
+      <button type="button" class="btn btn-primary btn-premium btn-sm"
+              data-bs-toggle="modal" data-bs-target="#newSprintModal">New Sprint</button>
+    </div>
+  </div>
+
+  <div class="task-panel-dark__body">
+    <% if @sprints.empty? %>
+      <div class="task-empty-state">
+        <i class="fa-solid fa-flag-checkered"></i>
+        <p>No sprints yet — create a client, then a project, then its first weekly sprint.</p>
+      </div>
+    <% else %>
+      <% @sprints.group_by { |s| s.project.client }.each do |client, client_sprints| %>
+        <h6 class="fw-bold mt-3 mb-2"><%= client.name %></h6>
+        <% client_sprints.group_by(&:project).each do |project, project_sprints| %>
+          <div class="text-muted small mb-2"><%= project.name %></div>
+          <div class="table-responsive mb-3">
+            <table class="table align-middle mb-0 task-table">
+              <thead>
+                <tr>
+                  <th>Sprint</th><th>Dates</th><th>Status</th><th>Progress</th><th>Hours logged</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% project_sprints.each do |sprint| %>
+                  <% done, total = sprint.progress %>
+                  <tr>
+                    <td class="fw-semibold"><%= sprint.name %><div class="text-muted small"><%= sprint.goal %></div></td>
+                    <td><%= sprint.start_date.strftime("%d %b") %> – <%= sprint.end_date.strftime("%d %b %Y") %></td>
+                    <td><span class="status-tag status-tag--<%= sprint.status %>"><%= sprint.status.humanize %></span></td>
+                    <td><%= done %>/<%= total %></td>
+                    <td><%= hours_label(sprint.logged_seconds) %></td>
+                    <td class="text-end">
+                      <%= link_to "View tasks", dashboard_tasks_path(sprint_id: sprint.id),
+                            class: "btn btn-outline-premium btn-premium btn-sm" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -79,6 +79,10 @@
     <button class="nav-link <%= 'active' if params[:tab] == 'team_hours' %>"
             data-bs-toggle="tab" data-bs-target="#tab-team-hours" type="button">Team Hours</button>
   </li>
+  <li class="nav-item">
+    <button class="nav-link <%= 'active' if params[:tab] == 'sprints' %>"
+            data-bs-toggle="tab" data-bs-target="#tab-sprints" type="button">Sprints</button>
+  </li>
 </ul>
 
 <div class="tab-content">
@@ -88,7 +92,12 @@
   <div class="tab-pane fade <%= 'show active' if params[:tab] == 'team_hours' %>" id="tab-team-hours">
     <%= render "tasks/tab_team_hours" %>
   </div>
+  <div class="tab-pane fade <%= 'show active' if params[:tab] == 'sprints' %>" id="tab-sprints">
+    <%= render "tasks/tab_sprints" %>
+  </div>
 </div>
+
+<%= render "tasks/sprint_modal" %>
 
   </div>
 </div>

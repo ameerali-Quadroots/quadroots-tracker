@@ -19,10 +19,14 @@ class TasksController < ApplicationController
                              .order(created_at: :desc)
     @tasks = @tasks.where(status: params[:status]) if params[:status].present?
     @tasks = @tasks.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?
+    @tasks = @tasks.in_sprint(params[:sprint_id]) if params[:sprint_id].present?
     @tasks = @tasks.where(assigned_by_id: current_user.id) if params[:mine] == "1"
 
     @executives = department_executives
     @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
+    @clients = Client.where(department_id: current_user.department_id).includes(projects: :sprints).ordered
+    @sprints = Sprint.for_department(current_user.department_id).includes(project: :client).ordered
+    @selected_sprint = @sprints.detect { |s| s.id.to_s == params[:sprint_id].to_s }
     @stats = department_tasks.group(:status).count
     @over_sla_count = department_tasks.includes(:task_type).count(&:over_sla?)
     @tasks_per_executive = department_tasks.joins(:assigned_to).group("users.name").count
@@ -183,6 +187,8 @@ class TasksController < ApplicationController
   end
 
   def task_params
-    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id, :task_type_id, :custom_sla_minutes, :new_task_type_name)
+    params.require(:task).permit(:title, :description, :priority, :due_date, :assigned_to_id,
+                                 :task_type_id, :custom_sla_minutes, :new_task_type_name,
+                                 :parent_id, :sprint_id)
   end
 end

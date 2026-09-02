@@ -18,6 +18,9 @@
         <%= select_tag :executive_id,
               options_for_select([["All executives", ""]] + @executives.map { |e| [e.name, e.id] }, params[:executive_id]),
               class: "task-panel-dark__exec-select", onchange: "this.form.submit()" %>
+        <%= select_tag :sprint_id,
+              options_for_select([["All sprints", ""]] + @sprints.map { |s| ["#{s.project.client.name} · #{s.project.name} · #{s.name}", s.id] }, params[:sprint_id]),
+              class: "task-panel-dark__exec-select", onchange: "this.form.submit()" %>
       <% end %>
     </div>
   </div>
