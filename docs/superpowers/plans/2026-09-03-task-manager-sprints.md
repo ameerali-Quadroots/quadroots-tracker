@@ -1121,7 +1121,12 @@ git commit -m "feat: allow assigning tasks to any executive in the department"
   - `#bucket(user_id, dates) -> Hash` with the three keys summed over those dates
   - `#columns(period) -> Array<[String, Array<Date>]>` — one entry per day for
     `"week"`, one per week-of-month for `"month"`
-- Autoload note: `app/queries` is picked up by Zeitwerk automatically because `config.autoload_lib` is not what governs `app/*` — every directory under `app/` is an autoload root in Rails 7.1. No config change needed.
+- **Correction (applied after this plan was written):** the query object lives at
+  `app/services/reports/executive_hours.rb`, NOT `app/queries/`. Every directory
+  under `app/` is an autoload root, but that list is computed once at boot — a
+  new top-level `app/` directory raises `NameError: uninitialized constant Reports`
+  in any already-running process, which bit both development and production.
+  Adding a subdirectory inside the pre-existing `app/services` root avoids it.
 
 - [ ] **Step 1: Write the failing test**
 

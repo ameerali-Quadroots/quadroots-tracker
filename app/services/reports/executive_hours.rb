@@ -1,3 +1,9 @@
+# Lives under app/services rather than a dedicated app/queries directory on
+# purpose. Rails fixes its autoload ROOT directories at boot by globbing app/*,
+# and never adds a root that appears later — so a brand-new top-level app/
+# directory raises NameError in every app-server process that started before it
+# existed, until that process is fully restarted. app/services already exists,
+# and new subdirectories inside an existing root resolve fine.
 module Reports
   # Daily task-time and attendance-time per executive for one department.
   #
