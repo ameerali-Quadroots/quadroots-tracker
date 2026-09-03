@@ -231,4 +231,38 @@ class TasksAjaxTest < ActionDispatch::IntegrationTest
     get my_tasks_tasks_path(scope: "completed", regions: "tasks"), headers: ajax_headers
     assert_includes envelope["regions"]["#tm-region-tasks"], "Already finished"
   end
+
+  # A mutation used to re-render every region, including the two heavy tabs
+  # that are not even on screen — which is what made the charts tear down and
+  # re-animate on every click.
+  test "a mutation only re-renders the regions its change touches" do
+    sign_in @manager
+
+    patch task_path(@task), headers: ajax_headers, params: { task: { priority: "urgent" } }
+
+    assert_response :success
+    assert_equal %w[#tm-region-summary #tm-region-charts #tm-region-tasks].sort,
+                 envelope["regions"].keys.sort
+    assert_not_includes envelope["regions"].keys, "#tm-region-team-hours"
+  end
+
+  test "a mutation refreshes a heavy tab when the caller says it is showing" do
+    sign_in @manager
+
+    patch task_path(@task), headers: ajax_headers,
+          params: { task: { priority: "urgent" }, regions: "summary,charts,tasks,team_hours" }
+
+    assert_response :success
+    assert_includes envelope["regions"].keys, "#tm-region-team-hours"
+  end
+
+  test "an executive mutation returns only their own regions" do
+    sign_in @executive
+
+    post start_task_path(@task), headers: ajax_headers
+
+    assert_response :success
+    assert_equal %w[#tm-region-focus #tm-region-summary #tm-region-tasks].sort,
+                 envelope["regions"].keys.sort
+  end
 end

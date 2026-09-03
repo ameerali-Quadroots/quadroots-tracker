@@ -335,6 +335,14 @@ class TasksController < ApplicationController
     "people" => "sprints/people"
   }.freeze
 
+  # What a mutation sends back by default. Deliberately narrower than the full
+  # map: re-rendering every region meant a single "start task" click rebuilt
+  # the team-hours matrix and the sprint list too — work nobody asked for, on
+  # panels that are not even on screen. The heavy tabs refresh when the person
+  # actually opens them.
+  MUTATION_REGIONS = %w[summary charts tasks].freeze
+  MY_TASKS_MUTATION_REGIONS = %w[focus summary tasks].freeze
+
   def dashboard_regions(requested = nil)
     build_regions(DASHBOARD_REGIONS, requested)
   end
@@ -369,11 +377,14 @@ class TasksController < ApplicationController
     render json: { ok: false, error: message }, status: status
   end
 
+  # A mutation answers with the regions its own change touches. The caller can
+  # ask for a different set with ?regions=, which is how the tabs fetch the
+  # panels they own.
   def regions_for(view)
     case view
     when :my_tasks
       load_my_tasks
-      my_tasks_regions
+      my_tasks_regions(params[:regions].presence || MY_TASKS_MUTATION_REGIONS.join(","))
     when :sprint
       sprint = department_sprints.includes(project: :client).find_by(id: params[:sprint_id])
       return {} if sprint.nil?
@@ -382,7 +393,7 @@ class TasksController < ApplicationController
       build_regions(SPRINT_REGIONS, nil)
     else
       load_dashboard
-      dashboard_regions
+      dashboard_regions(params[:regions].presence || MUTATION_REGIONS.join(","))
     end
   end
 

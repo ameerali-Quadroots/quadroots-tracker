@@ -174,23 +174,34 @@
     return value ? value.trim() : fallback;
   }
 
+  // Only (re)builds a chart whose data has actually changed. Each canvas
+  // remembers the spec it was drawn from; a region swap brings in a brand new
+  // canvas element, so its chart is built once, while a chart nobody touched
+  // is left alone. Without this every tab click, drawer open and filter tore
+  // down all four charts and re-animated them.
   function drawCharts() {
-    var canvases = $$("canvas[data-tm-chart]");
-    if (!canvases.length) { return; }
+    var pending = $$("canvas[data-tm-chart]").filter(function (canvas) {
+      return canvas.__tmSpec !== canvas.getAttribute("data-tm-chart");
+    });
+    if (!pending.length) { return; }
 
     withChartJs().then(function (Chart) {
       Chart.defaults.font.family = chartFont();
       Chart.defaults.font.size = 11;
       Chart.defaults.color = ink("--tm-ink-3", "#858e9b");
 
-      canvases.forEach(function (canvas) {
+      pending.forEach(function (canvas) {
+        var raw = canvas.getAttribute("data-tm-chart");
         var existing = Chart.getChart(canvas);
         if (existing) { existing.destroy(); }
 
         var spec;
-        try { spec = JSON.parse(canvas.getAttribute("data-tm-chart")); } catch (e) { return; }
+        try { spec = JSON.parse(raw); } catch (e) { return; }
         var builder = charts[spec.kind];
-        if (builder) { new Chart(canvas, builder(spec, Chart)); }
+        if (!builder) { return; }
+
+        new Chart(canvas, builder(spec, Chart));
+        canvas.__tmSpec = raw;
       });
     }).catch(function () {
       // The table twin under every chart already carries the numbers, so a
@@ -789,6 +800,19 @@
 
   /* --- forms & actions --------------------------------------------------- */
 
+  // A mutation re-renders the regions its change touches, plus whichever heavy
+  // tab is actually on screen — so the team-hours matrix is refreshed when you
+  // are looking at it and skipped when you are not.
+  function withRegions(url) {
+    var visible = $$("[data-tm-panel]").filter(function (p) { return !p.hidden; })[0];
+    var tab = visible && visible.getAttribute("data-tm-panel");
+    if (!tab || tab === "tasks") { return url; }
+
+    var target = new URL(url, window.location.origin);
+    target.searchParams.set("regions", "summary,charts,tasks," + tab);
+    return target.href;
+  }
+
   function submitAjaxForm(form) {
     var submit = form.querySelector('[type="submit"]:not([disabled])') ||
                  $("[data-tm-default-submit]", form);
@@ -796,7 +820,7 @@
     if (alertBox) { alertBox.classList.remove("is-shown"); }
     busy(submit, true);
 
-    var action = form.getAttribute("data-tm-url") || form.action;
+    var action = withRegions(form.getAttribute("data-tm-url") || form.action);
     return request(action, { method: (form.getAttribute("data-tm-method") || form.method || "POST").toUpperCase(), body: new FormData(form) })
       .then(function (payload) {
         applyRegions(payload);
@@ -834,7 +858,7 @@
     var payloadAttr = trigger.getAttribute("data-tm-params");
     if (payloadAttr) { body = payloadAttr; }
 
-    request(trigger.getAttribute("data-tm-action"), {
+    request(withRegions(trigger.getAttribute("data-tm-action")), {
       method: (trigger.getAttribute("data-tm-method") || "POST").toUpperCase(),
       json: !!payloadAttr,
       body: body
