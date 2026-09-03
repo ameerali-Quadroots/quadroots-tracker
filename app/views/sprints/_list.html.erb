@@ -1,0 +1,61 @@
+<%# One sprint list, shared by the project page and the all-sprints index.
+    Both need the same row, and the counts arrive pre-grouped so neither page
+    queries per sprint. %>
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div>
+      <h2 class="tm-panel__title"><%= title %></h2>
+      <p class="tm-panel__sub"><%= subtitle %></p>
+    </div>
+  </div>
+
+  <% if sprints.empty? %>
+    <div class="tm-empty">
+      <span class="tm-empty__icon"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i></span>
+      <p class="tm-empty__title">No sprints yet</p>
+      <p class="tm-empty__body">A sprint is one delivery cycle — normally a week of a project's work.</p>
+      <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+              data-bs-toggle="modal" data-bs-target="#tm-sprint-modal">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>Open the first sprint
+      </button>
+    </div>
+  <% else %>
+    <div class="tm-panel__body">
+      <% sprints.each do |sprint| %>
+        <% counts = task_counts.select { |(id, _), _| id == sprint.id } %>
+        <% total = counts.values.sum %>
+        <% done = counts.select { |(_, status), _| status == "completed" }.values.sum %>
+        <% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
+        <div class="tm-sprint">
+          <div class="tm-sprint__main">
+            <%= link_to sprint.name, sprint_path(sprint), class: "tm-sprint__name" %>
+            <% if local_assigns[:show_project] %>
+              <div class="tm-sprint__goal">
+                <%= sprint.project.client.name %> / <%= sprint.project.name %>
+              </div>
+            <% elsif sprint.goal.present? %>
+              <div class="tm-sprint__goal"><%= sprint.goal %></div>
+            <% end %>
+          </div>
+
+          <div class="tm-sprint__meta">
+            <span><%= sprint.start_date.strftime("%d %b") %> to <%= sprint.end_date.strftime("%d %b") %></span>
+            <span class="tm-badge tm-badge--<%= sprint.status %>"><%= sprint.status.humanize %></span>
+            <span><%= hours_label(logged[sprint.id]) %> logged</span>
+          </div>
+
+          <div class="tm-sprint__progress">
+            <span class="tm-meter" role="img"
+                  aria-label="<%= sprint.name %>: <%= done %> of <%= total %> tasks done">
+              <span class="tm-meter__fill <%= 'tm-meter__fill--done' if pct == 100 && total.positive? %>"
+                    style="width: <%= pct %>%"></span>
+            </span>
+            <span class="tm-sub"><%= total.zero? ? "No tasks yet" : "#{done} of #{total} done" %></span>
+          </div>
+
+          <%= link_to "Open board", sprint_path(sprint), class: "tm-btn tm-btn--sm" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>

@@ -63,14 +63,22 @@
   --tm-r-chip: 999px;
 
   --tm-lift: 0 12px 32px rgba(20, 22, 26, 0.14);
+  --tm-lift-sm: 0 2px 6px rgba(20, 22, 26, 0.10);
+
+  /* Inter is drawn for user interfaces at small sizes and ships true tabular
+     figures, which is what a screen of durations and time budgets needs. The
+     stack degrades to the platform UI face rather than to a serif. */
+  --tm-font: "Inter", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .tm {
   position: relative;
   z-index: 0;
+  font-feature-settings: "cv05" 1, "cv08" 1, "ss03" 1;
+  font-variant-ligatures: contextual;
   padding: 1.75rem 0 4rem;
   color: var(--tm-ink);
-  font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--tm-font);
   font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -330,14 +338,23 @@
   flex-direction: column;
 }
 
+.tm-grid--halves { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.tm-grid--thirds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
 .tm-grid__stack {
   display: grid;
   gap: 1.25rem;
   align-content: start;
 }
 
+@media (max-width: 1200px) {
+  .tm-grid--thirds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 991px) {
-  .tm-grid { grid-template-columns: minmax(0, 1fr); }
+  .tm-grid,
+  .tm-grid--halves,
+  .tm-grid--thirds { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* --- Buttons -------------------------------------------------------------- */
@@ -672,6 +689,7 @@
 
 .tm-table tbody tr:last-child td { border-bottom: 0; }
 .tm-table tbody tr:hover td { background: #fbfcfd; }
+.tm-table tbody tr[data-tm-open] { cursor: pointer; }
 .tm-table .tm-num { text-align: right; }
 .tm-table .tm-shrink { width: 1%; white-space: nowrap; }
 
@@ -837,6 +855,13 @@
   margin: auto 0;
 }
 
+.tm-chart--mid {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 13rem;
+  margin: auto 0;
+}
+
 .tm-legend {
   display: flex;
   flex-wrap: wrap;
@@ -978,6 +1003,7 @@
 
 .tm-item:last-child { border-bottom: 0; }
 .tm-item:hover { background: #fbfcfd; }
+.tm-item[data-tm-open] { cursor: pointer; }
 .tm-item--sub { padding-left: 2.6rem; background: #fcfdfe; position: relative; }
 
 .tm-item--sub::before {
@@ -1275,7 +1301,7 @@
   border-left: 1px solid var(--tm-line);
   box-shadow: var(--tm-lift);
   animation: tm-slide 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--tm-font);
   font-size: 0.875rem;
   color: var(--tm-ink);
 }
@@ -1444,7 +1470,7 @@
   border: 1px solid var(--tm-line);
   border-radius: var(--tm-r-panel);
   box-shadow: var(--tm-lift);
-  font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--tm-font);
   font-size: 0.875rem;
   color: var(--tm-ink);
 }
@@ -1488,3 +1514,108 @@
   .tm-drawer__panel { width: 100%; }
   .tm-field__row { grid-template-columns: 1fr; }
 }
+
+/* --- Drag and drop on the sprint board -----------------------------------
+   The board is a view onto the same timer state machine the executive drives,
+   so the affordances have to say which moves are real: a column that cannot
+   accept the card being dragged is dimmed rather than left to reject the drop
+   after the fact. */
+
+.tm-card {
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.tm-card:active { cursor: grabbing; }
+
+.tm-card.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.tm-col.is-target .tm-col__body {
+  background: var(--tm-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--tm-accent);
+  border-radius: 0 0 var(--tm-r-panel) var(--tm-r-panel);
+}
+
+.tm-col.is-blocked { opacity: 0.45; }
+
+.tm-col__body { min-height: 4.5rem; }
+
+/* Where the card will land, shown in the flow so the column's other cards
+   move aside rather than the card appearing from nowhere on drop. */
+.tm-drop {
+  height: 2.5rem;
+  border: 1px dashed var(--tm-accent);
+  border-radius: 10px;
+  background: var(--tm-accent-soft);
+}
+
+/* Keyboard equivalent: a card is focusable and Ctrl+Arrow moves it, so the
+   board is not mouse-only. */
+.tm-card:focus-visible {
+  outline: 2px solid var(--tm-accent);
+  outline-offset: 2px;
+}
+
+.tm-board__hint {
+  margin: 0;
+  color: var(--tm-ink-3);
+  font-size: 0.75rem;
+}
+
+/* --- Client / project index pages ---------------------------------------- */
+
+.tm-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 1rem;
+}
+
+.tm-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.1rem 1.15rem;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-line);
+  border-radius: var(--tm-r-panel);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tm-tile:hover {
+  border-color: var(--tm-line-strong);
+  box-shadow: var(--tm-lift-sm);
+  color: inherit;
+}
+
+.tm-tile__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tm-tile__sub { margin: 0; color: var(--tm-ink-3); font-size: 0.8125rem; }
+
+.tm-tile__figures {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--tm-line);
+}
+
+.tm-tile__figure { display: flex; flex-direction: column; }
+
+.tm-tile__value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.tm-tile__label { color: var(--tm-ink-3); font-size: 0.75rem; }

@@ -1,0 +1,24 @@
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div>
+      <h2 class="tm-panel__title">Who worked on it</h2>
+      <p class="tm-panel__sub">Hours logged in this cycle, subtasks included</p>
+    </div>
+  </div>
+  <div class="tm-panel__body">
+    <% if @hours_by_user.empty? %>
+      <p class="tm-muted">No time logged in this sprint yet.</p>
+    <% else %>
+      <ul class="tm-people tm-people--spread">
+        <% @hours_by_user.sort_by { |_id, secs| -secs }.each do |user_id, seconds| %>
+          <li>
+            <span class="tm-who">
+              <%= task_avatar(@people[user_id]) %><%= @people[user_id]&.name || "Unknown" %>
+            </span>
+            <span class="tm-people__hours"><%= hours_label(seconds) %></span>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</section>

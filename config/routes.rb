@@ -53,11 +53,14 @@ resources :tasks, only: [:index, :new, :create, :show, :update, :destroy] do
     post :pause
     post :resume
     post :complete
+    patch :move
   end
 end
-resources :clients, only: [:create]
-resources :projects, only: [:create]
-resources :sprints, only: [:create, :update, :show] do
+# The client -> project -> sprint hierarchy is browsable: every step of a
+# sprint's breadcrumb is a real page rather than a dead label.
+resources :clients, only: [:index, :show, :create]
+resources :projects, only: [:show, :create]
+resources :sprints, only: [:index, :create, :update, :show] do
   member do
     post :carry_over
   end

@@ -36,7 +36,7 @@
       <span class="tm-timer" data-tm-timer="<%= running.started_at.iso8601 %>"
             data-tm-paused="<%= running.accumulated_pause_seconds %>"
             data-tm-budget="<%= running.sla_seconds %>"
-            data-tm-seconds="1"
+            data-tm-style="clock"
             aria-live="off"><%= hours_label(logged, blank: "0m") %></span>
 
       <% if running.sla_seconds.positive? %>

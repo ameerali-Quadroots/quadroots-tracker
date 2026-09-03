@@ -92,6 +92,46 @@ module Reports
       @logged_seconds ||= seconds_in(@range)
     end
 
+    # Team hours per day across the selected range, zero-filled so a quiet day
+    # reads as a gap in the work rather than a gap in the chart.
+    def hours_per_day
+      @hours_per_day ||= begin
+        days = @range.begin.to_date..@range.end.to_date
+        logged = if executive_ids.empty?
+                   {}
+                 else
+                   TaskWorkSession.where(user_id: executive_ids, started_at: @range)
+                                  .group(Arel.sql("DATE(started_at)")).sum(:duration_seconds)
+                                  .transform_keys { |k| k.is_a?(String) ? Date.parse(k) : k }
+                 end
+        days.map { |day| [day, logged[day].to_i] }
+      end
+    end
+
+    # Hours by client for the range. Past the top few the tail is noise, so the
+    # remainder is folded into a single "Other clients" row rather than drawn
+    # as a queue of hairline bars — and internal work, which belongs to no
+    # client, is named instead of silently dropped.
+    CLIENT_ROWS = 6
+
+    def hours_by_client
+      @hours_by_client ||= begin
+        rows = TaskWorkSession.joins(task: { sprint: { project: :client } })
+                              .where(user_id: executive_ids, started_at: @range)
+                              .group("clients.name").sum(:duration_seconds)
+
+        internal = seconds_in(@range) - rows.values.sum
+        rows["Internal work"] = internal if internal.positive?
+
+        ranked = rows.sort_by { |_name, seconds| -seconds }
+        return ranked if ranked.size <= CLIENT_ROWS
+
+        head = ranked.first(CLIENT_ROWS - 1)
+        tail = ranked.drop(CLIENT_ROWS - 1)
+        head + [["#{tail.size} other clients", tail.sum(&:last)]]
+      end
+    end
+
     def previous_logged_seconds
       @previous_logged_seconds ||= @previous_range ? seconds_in(@previous_range) : 0
     end

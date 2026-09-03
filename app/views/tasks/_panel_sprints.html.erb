@@ -5,12 +5,8 @@
       <p class="tm-panel__sub">Client work, broken into delivery cycles</p>
     </div>
     <div class="tm-panel__tools">
-      <button type="button" class="tm-btn tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-client-modal">
-        <i class="fa-solid fa-building" aria-hidden="true"></i>New client
-      </button>
-      <button type="button" class="tm-btn tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-project-modal">
-        <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>New project
-      </button>
+      <%= link_to "Clients", clients_path, class: "tm-btn tm-btn--sm" %>
+      <%= link_to "All sprints", sprints_path, class: "tm-btn tm-btn--sm" %>
       <button type="button" class="tm-btn tm-btn--primary tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-sprint-modal">
         <i class="fa-solid fa-plus" aria-hidden="true"></i>New sprint
       </button>
@@ -35,8 +31,12 @@
       <% client_sprints.group_by(&:project).each do |project, project_sprints| %>
         <div class="tm-sprintgroup">
           <div class="tm-sprintgroup__head">
-            <h3 class="tm-sprintgroup__client"><%= client.name %></h3>
-            <p class="tm-sprintgroup__project"><%= project.name %></p>
+            <h3 class="tm-sprintgroup__client">
+              <%= link_to client.name, client_path(client), class: "tm-sprint__name" %>
+            </h3>
+            <p class="tm-sprintgroup__project">
+              <%= link_to project.name, project_path(project), class: "tm-muted" %>
+            </p>
           </div>
 
           <% project_sprints.each do |sprint| %>

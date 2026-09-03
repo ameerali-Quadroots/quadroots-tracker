@@ -6,21 +6,25 @@ class SprintsController < ApplicationController
 
   before_action -> { authorize_page!("task_manager") }
 
+  # Every sprint in the department, grouped by client — the page the
+  # breadcrumb's "Sprints" step points at.
+  def index
+    @sprints = department_sprints.includes(project: :client).ordered
+    @clients = department_clients
+    @executives = department_executives
+    @task_types = department_task_types
+
+    ids = @sprints.map(&:id)
+    @task_counts = Task.where(sprint_id: ids).group(:sprint_id, :status).count
+    @logged = TaskWorkSession.joins(:task).where(tasks: { sprint_id: ids })
+                             .group("tasks.sprint_id").sum(:duration_seconds)
+  end
+
   def show
     @sprint = department_sprints.includes(project: :client).find_by(id: params[:id])
     return redirect_to(root_path, alert: "You are not authorized to do that.") if @sprint.nil?
 
-    @tasks = @sprint.tasks.top_level
-                    .includes(:assigned_to, :task_type, subtasks: %i[assigned_to task_type])
-                    .order(:position, created_at: :asc)
-    @by_status = Task.statuses.keys.index_with { |s| @tasks.select { |t| t.status == s } }
-
-    # Hours in this sprint, by whoever actually did the work — subtasks
-    # included, since a subtask can belong to a different executive.
-    task_ids = @sprint.tasks.pluck(:id)
-    @hours_by_user = TaskWorkSession.where(task_id: task_ids)
-                                    .group(:user_id).sum(:duration_seconds)
-    @people = User.where(id: @hours_by_user.keys).index_by(&:id)
+    load_sprint_board(@sprint)
     @sprints = department_sprints.includes(project: :client).ordered
     @executives = department_executives
     @task_types = department_task_types

@@ -86,4 +86,24 @@ class TasksDashboardTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "07 Sep"
   end
+
+  test "every task row is clickable and opens the task" do
+    get dashboard_tasks_path
+
+    rows = css_select("tbody tr.tm-row")
+    assert rows.any?, "expected task rows"
+    assert rows.all? { |row| row["data-tm-open"].present? },
+           "every row should open its task, not just the title"
+  end
+
+  test "a running task carries what the live clock needs to tick" do
+    tasks(:pending_a).start!
+
+    get dashboard_tasks_path
+
+    cell = css_select("[data-tm-timer]").first
+    assert cell.present?, "a running task should render a live figure"
+    assert cell["data-tm-paused"].present?
+    assert_equal "compact", cell["data-tm-style"]
+  end
 end

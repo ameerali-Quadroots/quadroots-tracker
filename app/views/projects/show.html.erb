@@ -1,0 +1,71 @@
+<%= render "tasks/head" %>
+
+<div class="tm" data-tm-view="project">
+  <div class="tm__inner">
+
+    <header class="tm-head">
+      <div>
+        <nav class="tm-crumb" aria-label="Breadcrumb">
+          <%= link_to "Task Manager", dashboard_tasks_path %>
+          <span aria-hidden="true">/</span>
+          <%= link_to "Clients", clients_path %>
+          <span aria-hidden="true">/</span>
+          <%= link_to @client.name, client_path(@client) %>
+        </nav>
+        <h1 class="tm-head__title">
+          <%= @project.name %>
+          <span class="tm-badge tm-badge--<%= @project.status == 'planned' ? 'planned' : 'active' %>">
+            <%= @project.status.humanize %>
+          </span>
+        </h1>
+        <p class="tm-head__sub">
+          <%= @project.description.presence || "#{pluralize(@sprints.size, 'delivery cycle')} for #{@client.name}" %>
+        </p>
+      </div>
+      <div class="tm-head__actions">
+        <button type="button" class="tm-btn tm-btn--primary" data-bs-toggle="modal" data-bs-target="#tm-sprint-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New sprint
+        </button>
+      </div>
+    </header>
+
+    <section class="tm-hero" aria-label="Project summary">
+      <div class="tm-hero__lead">
+        <p class="tm-hero__label">Logged on <%= @project.name %></p>
+        <strong class="tm-hero__figure" data-numeric>
+          <% h, rem = @logged_total.divmod(3600) %>
+          <%= number_with_delimiter(h) %><small>h</small> <%= rem / 60 %><small>m</small>
+        </strong>
+      </div>
+      <div class="tm-ledger">
+        <div class="tm-ledger__item">
+          <span class="tm-ledger__label">Sprints</span>
+          <span class="tm-ledger__value" data-numeric><%= @sprints.size %></span>
+          <span class="tm-ledger__note">delivery cycles</span>
+        </div>
+        <div class="tm-ledger__item">
+          <span class="tm-ledger__label">Tasks</span>
+          <span class="tm-ledger__value" data-numeric><%= @task_counts.values.sum %></span>
+          <span class="tm-ledger__note">
+            <%= @task_counts.select { |(_, s), _| s == "completed" }.values.sum %> done
+          </span>
+        </div>
+        <% if @project.target_end_date.present? %>
+          <div class="tm-ledger__item">
+            <span class="tm-ledger__label">Target</span>
+            <span class="tm-ledger__value"><%= @project.target_end_date.strftime("%d %b") %></span>
+            <span class="tm-ledger__note"><%= @project.target_end_date.strftime("%Y") %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <%= render "sprints/list", sprints: @sprints, task_counts: @task_counts,
+               logged: @logged, title: "Sprints",
+               subtitle: "Newest first — open one to work its board" %>
+
+  </div>
+</div>
+
+<%= render "tasks/drawer_shell" %>
+<%= render "tasks/sprint_modal" %>

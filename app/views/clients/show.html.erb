@@ -1,0 +1,94 @@
+<%= render "tasks/head" %>
+
+<div class="tm" data-tm-view="client">
+  <div class="tm__inner">
+
+    <header class="tm-head">
+      <div>
+        <nav class="tm-crumb" aria-label="Breadcrumb">
+          <%= link_to "Task Manager", dashboard_tasks_path %>
+          <span aria-hidden="true">/</span>
+          <%= link_to "Clients", clients_path %>
+        </nav>
+        <h1 class="tm-head__title"><%= @client.name %></h1>
+        <p class="tm-head__sub">
+          <%= @client.notes.presence || "#{pluralize(@projects.size, 'project')} with this client" %>
+        </p>
+      </div>
+      <div class="tm-head__actions">
+        <button type="button" class="tm-btn tm-btn--primary" data-bs-toggle="modal" data-bs-target="#tm-project-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New project
+        </button>
+      </div>
+    </header>
+
+    <section class="tm-hero" aria-label="Client summary">
+      <div class="tm-hero__lead">
+        <p class="tm-hero__label">Logged for <%= @client.name %></p>
+        <strong class="tm-hero__figure" data-numeric>
+          <% h, rem = @logged_total.divmod(3600) %>
+          <%= number_with_delimiter(h) %><small>h</small> <%= rem / 60 %><small>m</small>
+        </strong>
+      </div>
+      <div class="tm-ledger">
+        <div class="tm-ledger__item">
+          <span class="tm-ledger__label">Projects</span>
+          <span class="tm-ledger__value" data-numeric><%= @projects.size %></span>
+          <span class="tm-ledger__note">for this client</span>
+        </div>
+        <div class="tm-ledger__item">
+          <span class="tm-ledger__label">Sprints</span>
+          <span class="tm-ledger__value" data-numeric><%= @projects.sum { |p| p.sprints.size } %></span>
+          <span class="tm-ledger__note">delivery cycles so far</span>
+        </div>
+      </div>
+    </section>
+
+    <% if @projects.empty? %>
+      <section class="tm-panel">
+        <div class="tm-empty">
+          <span class="tm-empty__icon"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></span>
+          <p class="tm-empty__title">No projects for <%= @client.name %> yet</p>
+          <p class="tm-empty__body">A project is one body of work, delivered as a series of sprints.</p>
+          <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+                  data-bs-toggle="modal" data-bs-target="#tm-project-modal">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>Add the first project
+          </button>
+        </div>
+      </section>
+    <% else %>
+      <div class="tm-cards">
+        <% @projects.each do |project| %>
+          <% counts = @counts_by_project.select { |(id, _), _| id == project.id } %>
+          <% total = counts.values.sum %>
+          <% done = counts.select { |(_, status), _| status == "completed" }.values.sum %>
+          <%= link_to project_path(project), class: "tm-tile" do %>
+            <div>
+              <h2 class="tm-tile__name"><%= project.name %></h2>
+              <p class="tm-tile__sub">
+                <span class="tm-badge tm-badge--<%= project.status == 'planned' ? 'planned' : 'active' %>">
+                  <%= project.status.humanize %>
+                </span>
+                <%= pluralize(project.sprints.size, "sprint") %>
+              </p>
+            </div>
+            <div class="tm-tile__figures">
+              <div class="tm-tile__figure">
+                <span class="tm-tile__value"><%= hours_label(@logged_by_project[project.id], blank: "—") %></span>
+                <span class="tm-tile__label">Logged</span>
+              </div>
+              <div class="tm-tile__figure">
+                <span class="tm-tile__value"><%= total.zero? ? "—" : "#{done}/#{total}" %></span>
+                <span class="tm-tile__label">Tasks done</span>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+  </div>
+</div>
+
+<%= render "tasks/drawer_shell" %>
+<%= render "tasks/sprint_modal" %>

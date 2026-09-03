@@ -1,10 +1,5 @@
 <%= render "tasks/head" %>
 
-<% done, total = @sprint.progress %>
-<% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
-<% logged = @sprint.logged_seconds %>
-<% over_sla = @sprint.tasks.select(&:over_sla?).size %>
-
 <div class="tm" data-tm-view="sprint">
   <div class="tm__inner">
 
@@ -13,11 +8,11 @@
         <nav class="tm-crumb" aria-label="Breadcrumb">
           <%= link_to "Task Manager", dashboard_tasks_path %>
           <span aria-hidden="true">/</span>
-          <%= link_to "Sprints", dashboard_tasks_path(tab: "sprints") %>
+          <%= link_to "Clients", clients_path %>
           <span aria-hidden="true">/</span>
-          <%= @sprint.project.client.name %>
+          <%= link_to @sprint.project.client.name, client_path(@sprint.project.client) %>
           <span aria-hidden="true">/</span>
-          <%= @sprint.project.name %>
+          <%= link_to @sprint.project.name, project_path(@sprint.project) %>
         </nav>
         <h1 class="tm-head__title">
           <%= @sprint.name %>
@@ -41,96 +36,9 @@
       </div>
     </header>
 
-    <section class="tm-hero" aria-label="Sprint summary">
-      <div class="tm-hero__lead">
-        <p class="tm-hero__label">Logged in this sprint</p>
-        <strong class="tm-hero__figure" data-numeric>
-          <% h, rem = logged.divmod(3600) %>
-          <%= h %><small>h</small> <%= rem / 60 %><small>m</small>
-        </strong>
-      </div>
-
-      <div class="tm-ledger">
-        <div class="tm-ledger__item">
-          <span class="tm-ledger__label">Progress</span>
-          <span class="tm-ledger__value" data-numeric><%= pct %>%</span>
-          <span class="tm-ledger__note"><%= done %> of <%= total %> tasks done</span>
-        </div>
-        <div class="tm-ledger__item">
-          <span class="tm-ledger__label">Still open</span>
-          <span class="tm-ledger__value" data-numeric><%= total - done %></span>
-          <span class="tm-ledger__note">in this cycle</span>
-        </div>
-        <div class="tm-ledger__item">
-          <span class="tm-ledger__label">
-            <% if over_sla.positive? %>
-              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="color: var(--tm-critical)"></i>
-            <% end %>
-            Over budget
-          </span>
-          <span class="tm-ledger__value <%= over_sla.positive? ? 'tm-ledger__value--alert' : 'tm-ledger__value--muted' %>" data-numeric>
-            <%= over_sla %>
-          </span>
-          <span class="tm-ledger__note">tasks past their SLA</span>
-        </div>
-      </div>
-    </section>
-
-    <%# The board takes the full width: four columns sharing the row with a side
-        panel squeezed them under their minimum and cut the last one off. %>
-    <section class="tm-panel">
-      <div class="tm-panel__head">
-        <h2 class="tm-panel__title">Board</h2>
-        <p class="tm-panel__sub">Open a card to read the task and its comments</p>
-      </div>
-      <div class="tm-panel__body">
-        <div class="tm-board">
-          <% TasksHelper::STATUS_ROLES.each do |status, role| %>
-            <section class="tm-col" data-status="<%= status %>">
-              <header class="tm-col__head">
-                <span class="tm-key tm-key--<%= status %>"></span>
-                <h3 class="tm-col__title"><%= role[:label] %></h3>
-                <span class="tm-seg__count"><%= @by_status[status].size %></span>
-              </header>
-              <div class="tm-col__body">
-                <% if @by_status[status].empty? %>
-                  <p class="tm-sub" style="text-align: center; padding: 0.75rem 0">Nothing here</p>
-                <% else %>
-                  <% @by_status[status].each do |task| %>
-                    <%= render "tasks/task_card", task: task %>
-                  <% end %>
-                <% end %>
-              </div>
-            </section>
-          <% end %>
-        </div>
-      </div>
-    </section>
-
-    <section class="tm-panel" style="margin-top: 1.25rem">
-      <div class="tm-panel__head">
-        <div>
-          <h2 class="tm-panel__title">Who worked on it</h2>
-          <p class="tm-panel__sub">Hours logged in this cycle, subtasks included</p>
-        </div>
-      </div>
-      <div class="tm-panel__body">
-        <% if @hours_by_user.empty? %>
-          <p class="tm-muted">No time logged in this sprint yet.</p>
-        <% else %>
-          <ul class="tm-people tm-people--spread">
-            <% @hours_by_user.sort_by { |_id, secs| -secs }.each do |user_id, seconds| %>
-              <li>
-                <span class="tm-who">
-                  <%= task_avatar(@people[user_id]) %><%= @people[user_id]&.name || "Unknown" %>
-                </span>
-                <span class="tm-people__hours"><%= hours_label(seconds) %></span>
-              </li>
-            <% end %>
-          </ul>
-        <% end %>
-      </div>
-    </section>
+    <div id="tm-region-summary"><%= render "sprints/summary" %></div>
+    <div id="tm-region-board"><%= render "sprints/board" %></div>
+    <div id="tm-region-people" style="margin-top: 1.25rem"><%= render "sprints/people" %></div>
 
   </div>
 </div>
@@ -169,7 +77,8 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="tm-btn tm-btn--primary" <%= "disabled" if @sprints.reject { |s| s.id == @sprint.id }.empty? %>>
+          <button type="submit" class="tm-btn tm-btn--primary"
+                  <%= "disabled" if @sprints.reject { |s| s.id == @sprint.id }.empty? %>>
             Move the tasks
           </button>
         </div>

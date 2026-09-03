@@ -1,0 +1,39 @@
+<% done, total = @sprint.progress %>
+<% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
+<% logged = @sprint.logged_seconds %>
+<% over_sla = @sprint.tasks.select(&:over_sla?).size %>
+
+<section class="tm-hero" aria-label="Sprint summary">
+  <div class="tm-hero__lead">
+    <p class="tm-hero__label">Logged in this sprint</p>
+    <strong class="tm-hero__figure" data-numeric>
+      <% h, rem = logged.divmod(3600) %>
+      <%= number_with_delimiter(h) %><small>h</small> <%= rem / 60 %><small>m</small>
+    </strong>
+  </div>
+
+  <div class="tm-ledger">
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label">Progress</span>
+      <span class="tm-ledger__value" data-numeric><%= pct %>%</span>
+      <span class="tm-ledger__note"><%= done %> of <%= total %> tasks done</span>
+    </div>
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label">Still open</span>
+      <span class="tm-ledger__value" data-numeric><%= total - done %></span>
+      <span class="tm-ledger__note">in this cycle</span>
+    </div>
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label">
+        <% if over_sla.positive? %>
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="color: var(--tm-critical)"></i>
+        <% end %>
+        Over budget
+      </span>
+      <span class="tm-ledger__value <%= over_sla.positive? ? 'tm-ledger__value--alert' : 'tm-ledger__value--muted' %>" data-numeric>
+        <%= over_sla %>
+      </span>
+      <span class="tm-ledger__note">tasks past their SLA</span>
+    </div>
+  </div>
+</section>

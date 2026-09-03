@@ -1,28 +1,144 @@
-<%# Two charts and one meter, each answering a question the manager actually
-    has. The old status-distribution chart is gone on purpose: the workload
-    chart already carries the status split, per executive, which is the useful
-    version of the same information.
+<%# Five panels, each answering a question a manager actually asks: where the
+    hours went by day, which clients they went to, whether finished work landed
+    inside its budget, how the work is spread, and what is coming out the end.
 
-    Every chart ships a legend, direct labels and a table twin — the module's
-    green sits just under 3:1 on white, so the numbers are never reachable by
-    colour alone. %>
+    Laid out three-then-two so each panel's box matches the natural height of
+    what is inside it — a short chart stretched to fill a tall card reads as a
+    mistake, not as a chart.
+
+    Every chart ships a legend or direct labels and a table twin: the module's
+    green sits just under 3:1 on white, so no number is reachable by colour
+    alone. %>
 <% workload = @report.workload_by_executive %>
+<% per_day = @report.hours_per_day %>
+<% by_client = @report.hours_by_client %>
 <% throughput = @report.throughput %>
 
-<div class="tm-grid">
+<div class="tm-grid tm-grid--thirds">
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Hours logged per day</h2>
+        <p class="tm-panel__sub">
+          <%= @period == "month" ? "This month" : "This week" %> ·
+          <%= hours_label(@report.logged_seconds, blank: "nothing yet") %> in total
+        </p>
+      </div>
+    </div>
+    <div class="tm-panel__body">
+      <% if @report.logged_seconds.zero? %>
+        <div class="tm-empty" style="padding: 2rem 1rem">
+          <p class="tm-empty__title">No hours logged in this period</p>
+          <p class="tm-empty__body">Time appears here as soon as an executive starts a task's timer.</p>
+        </div>
+      <% else %>
+        <div class="tm-chart tm-chart--mid">
+          <canvas data-tm-chart="<%= chart_spec(team_hours_chart_spec(per_day)) %>"
+                  role="img"
+                  aria-label="<%= per_day.map { |d, s| "#{d.strftime('%-d %b')}: #{hours_label(s, blank: 'nothing')}" }.join(', ') %>"></canvas>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Where the hours went</h2>
+        <p class="tm-panel__sub">By client, same period</p>
+      </div>
+      <% if by_client.any? %>
+        <button type="button" class="tm-reveal" data-tm-reveal="#tm-client-table"
+                aria-expanded="false" aria-controls="tm-client-table">
+          <i class="fa-solid fa-table-list" aria-hidden="true"></i>
+          <span class="tm-reveal__label">Show the numbers</span>
+        </button>
+      <% end %>
+    </div>
+    <div class="tm-panel__body">
+      <% if by_client.empty? %>
+        <div class="tm-empty" style="padding: 2rem 1rem">
+          <p class="tm-empty__title">Nothing to split yet</p>
+          <p class="tm-empty__body">Once time is logged against client sprints, the split appears here.</p>
+        </div>
+      <% else %>
+        <div class="tm-chart tm-chart--mid" style="height: <%= [by_client.size * 36 + 20, 120].max %>px">
+          <canvas data-tm-chart="<%= chart_spec(hours_by_client_chart_spec(by_client)) %>"
+                  role="img"
+                  aria-label="<%= by_client.map { |n, s| "#{n}: #{hours_label(s)}" }.join(', ') %>"></canvas>
+        </div>
+
+        <div class="tm-datatable tm-tablewrap" id="tm-client-table" hidden>
+          <table class="tm-table">
+            <caption class="tm-sub">Hours by client</caption>
+            <thead><tr><th scope="col">Client</th><th scope="col" class="tm-num">Hours</th></tr></thead>
+            <tbody>
+              <% by_client.each do |name, seconds| %>
+                <tr><th scope="row"><%= name %></th><td class="tm-num"><%= hours_label(seconds) %></td></tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Time budgets</h2>
+        <p class="tm-panel__sub">How finished work landed against its SLA</p>
+      </div>
+    </div>
+    <div class="tm-panel__body">
+      <% if @report.completed_count.zero? %>
+        <div class="tm-empty" style="padding: 2rem 1rem">
+          <p class="tm-empty__title">Nothing finished yet</p>
+          <p class="tm-empty__body">Completed work is measured against its budget here.</p>
+        </div>
+      <% else %>
+        <% rate = @report.on_time_rate %>
+        <div class="tm-meter-row">
+          <span class="tm-meter-row__value" data-numeric><%= rate %>% inside budget</span>
+          <span class="tm-meter-row__limit">
+            <%= @report.completed_count - @report.completed_over_sla %> of <%= @report.completed_count %>
+          </span>
+        </div>
+        <span class="tm-meter" role="img"
+              aria-label="<%= rate %>% of completed tasks finished inside their time budget">
+          <span class="tm-meter__fill <%= rate >= 90 ? 'tm-meter__fill--done' : (rate >= 70 ? 'tm-meter__fill--warn' : 'tm-meter__fill--over') %>"
+                style="width: <%= rate %>%"></span>
+        </span>
+
+        <ul class="tm-rows" style="margin-top: 1rem">
+          <li>
+            <span class="tm-rows__grow">Finished over budget</span>
+            <span class="tm-rows__num"><%= @report.completed_over_sla %></span>
+          </li>
+          <li>
+            <span class="tm-rows__grow">Running over budget now</span>
+            <span class="tm-rows__num"><%= @report.over_sla_count - @report.completed_over_sla %></span>
+          </li>
+        </ul>
+      <% end %>
+    </div>
+  </section>
+</div>
+
+<div class="tm-grid tm-grid--halves">
   <section class="tm-panel">
     <div class="tm-panel__head">
       <div>
         <h2 class="tm-panel__title">Workload by executive</h2>
         <p class="tm-panel__sub">Every task in the department, by who holds it</p>
       </div>
-      <div class="tm-panel__tools">
+      <% if workload.any? %>
         <button type="button" class="tm-reveal" data-tm-reveal="#tm-workload-table"
                 aria-expanded="false" aria-controls="tm-workload-table">
           <i class="fa-solid fa-table-list" aria-hidden="true"></i>
           <span class="tm-reveal__label">Show the numbers</span>
         </button>
-      </div>
+      <% end %>
     </div>
 
     <div class="tm-panel__body">
@@ -39,8 +155,7 @@
           <% end %>
         </ul>
 
-        <% plot_height = [workload.size * 46 + 52, 176].max %>
-        <div class="tm-chart tm-chart--tall" style="height: <%= plot_height %>px">
+        <div class="tm-chart tm-chart--tall" style="height: <%= [workload.size * 46 + 52, 176].max %>px">
           <canvas data-tm-chart="<%= chart_spec(workload_chart_spec(workload)) %>"
                   role="img"
                   aria-label="Tasks per executive, split by status. The same figures are in the table below."></canvas>
@@ -75,63 +190,26 @@
     </div>
   </section>
 
-  <div class="tm-grid__stack">
-    <section class="tm-panel">
-      <div class="tm-panel__head">
-        <div>
-          <h2 class="tm-panel__title">Tasks completed per day</h2>
-          <p class="tm-panel__sub">Last <%= Reports::TaskDashboard::THROUGHPUT_DAYS %> days</p>
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Tasks completed per day</h2>
+        <p class="tm-panel__sub">Last <%= Reports::TaskDashboard::THROUGHPUT_DAYS %> days</p>
+      </div>
+    </div>
+    <div class="tm-panel__body">
+      <% if throughput.sum(&:last).zero? %>
+        <div class="tm-empty" style="padding: 2rem 1rem">
+          <p class="tm-empty__title">Nothing completed in the last fortnight</p>
+          <p class="tm-empty__body">Finished tasks appear here on the day they were completed.</p>
         </div>
-      </div>
-      <div class="tm-panel__body">
-        <% if throughput.sum(&:last).zero? %>
-          <p class="tm-muted">Nothing has been completed in the last fortnight.</p>
-        <% else %>
-          <div class="tm-chart tm-chart--short">
-            <canvas data-tm-chart="<%= chart_spec(throughput_chart_spec(throughput)) %>"
-                    role="img"
-                    aria-label="<%= throughput.map { |d, n| "#{d.strftime('%-d %b')}: #{n}" }.join(', ') %>"></canvas>
-          </div>
-        <% end %>
-      </div>
-    </section>
-
-    <section class="tm-panel">
-      <div class="tm-panel__head">
-        <div>
-          <h2 class="tm-panel__title">Time budgets</h2>
-          <p class="tm-panel__sub">How finished work landed against its SLA</p>
+      <% else %>
+        <div class="tm-chart tm-chart--mid">
+          <canvas data-tm-chart="<%= chart_spec(throughput_chart_spec(throughput)) %>"
+                  role="img"
+                  aria-label="<%= throughput.map { |d, n| "#{d.strftime('%-d %b')}: #{n}" }.join(', ') %>"></canvas>
         </div>
-      </div>
-      <div class="tm-panel__body">
-        <% if @report.completed_count.zero? %>
-          <p class="tm-muted">No completed tasks yet, so there is nothing to measure.</p>
-        <% else %>
-          <% rate = @report.on_time_rate %>
-          <div class="tm-meter-row">
-            <span class="tm-meter-row__value" data-numeric><%= rate %>% inside budget</span>
-            <span class="tm-meter-row__limit">
-              <%= @report.completed_count - @report.completed_over_sla %> of <%= @report.completed_count %>
-            </span>
-          </div>
-          <span class="tm-meter" role="img"
-                aria-label="<%= rate %>% of completed tasks finished inside their time budget">
-            <span class="tm-meter__fill <%= rate >= 90 ? 'tm-meter__fill--done' : (rate >= 70 ? 'tm-meter__fill--warn' : 'tm-meter__fill--over') %>"
-                  style="width: <%= rate %>%"></span>
-          </span>
-
-          <ul class="tm-rows" style="margin-top: 1rem">
-            <li>
-              <span class="tm-rows__grow">Finished over budget</span>
-              <span class="tm-rows__num"><%= @report.completed_over_sla %></span>
-            </li>
-            <li>
-              <span class="tm-rows__grow">Running over budget now</span>
-              <span class="tm-rows__num"><%= @report.over_sla_count - @report.completed_over_sla %></span>
-            </li>
-          </ul>
-        <% end %>
-      </div>
-    </section>
-  </div>
+      <% end %>
+    </div>
+  </section>
 </div>

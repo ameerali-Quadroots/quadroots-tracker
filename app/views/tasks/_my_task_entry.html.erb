@@ -1,7 +1,7 @@
 <% sub = local_assigns.fetch(:sub, false) %>
 <% logged = task.subtask? ? task.live_duration_seconds : task.rolled_up_duration_seconds %>
 
-<div class="tm-item <%= 'tm-item--sub' if sub %>">
+<div class="tm-item <%= 'tm-item--sub' if sub %>" data-tm-open="<%= task.id %>">
   <div class="tm-item__main">
     <div class="tm-inline">
       <h3 class="tm-item__title">
@@ -43,7 +43,7 @@
       <% if task.in_progress? %>
         <span class="tm-item__figure" data-tm-timer="<%= task.started_at.iso8601 %>"
               data-tm-paused="<%= task.accumulated_pause_seconds %>"
-              data-tm-seconds="1"><%= hours_label(logged, blank: "0m") %></span>
+              data-tm-style="clock"><%= hours_label(logged, blank: "0m") %></span>
       <% else %>
         <span class="tm-item__figure <%= 'tm-muted' if logged.zero? %>"><%= hours_label(logged, blank: "0m") %></span>
       <% end %>

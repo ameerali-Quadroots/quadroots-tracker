@@ -64,16 +64,20 @@ module TasksHelper
     end
   end
 
+  # Deadline wording. A finished task is reported by when it was delivered
+  # rather than being left flagged as late for ever, and anything still open
+  # states the position plainly: "Overdue by 3 days", not "3 days overdue".
   def task_due_label(task)
-    return "No due date" if task.due_date.blank?
+    return "No deadline" if task.due_date.blank?
+    return "Delivered #{task.due_date.strftime('%d %b')}" if task.completed?
 
     days = (task.due_date - Date.current).to_i
     case days
     when 0 then "Due today"
     when 1 then "Due tomorrow"
-    when -1 then "1 day overdue"
+    when -1 then "Overdue by 1 day"
     else
-      days.negative? ? "#{-days} days overdue" : "Due #{task.due_date.strftime('%d %b')}"
+      days.negative? ? "Overdue by #{-days} days" : "Due #{task.due_date.strftime('%d %b')}"
     end
   end
 
@@ -141,6 +145,32 @@ module TasksHelper
       color: "#2a78d6",
       fill: "rgba(42, 120, 214, 0.10)",
       unit: "completed"
+    }
+  end
+
+  # Team hours per day. One hue, because the job is magnitude over time — not
+  # telling series apart. Today's column is the accent so "so far today" reads
+  # differently from a finished day.
+  def team_hours_chart_spec(points)
+    {
+      kind: "columns",
+      labels: points.map { |day, _| day.strftime("%-d %b") },
+      data: points.map { |_, seconds| hours_decimal(seconds) },
+      formatted: points.map { |_, seconds| hours_label(seconds, blank: "nothing logged") },
+      colors: points.map { |day, _| day == Date.current ? "#2a78d6" : "#9ec5f4" }
+    }
+  end
+
+  # Where the department's hours went, by client. Horizontal because client
+  # names are long, and capped because past a handful of bars the tail is
+  # noise — the remainder is folded into one honest "Other" row.
+  def hours_by_client_chart_spec(rows)
+    {
+      kind: "bars",
+      labels: rows.map(&:first),
+      data: rows.map { |_, seconds| hours_decimal(seconds) },
+      formatted: rows.map { |_, seconds| hours_label(seconds) },
+      color: "#2a78d6"
     }
   end
 

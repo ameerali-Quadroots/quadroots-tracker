@@ -1,0 +1,34 @@
+<section class="tm-panel" data-tm-board="<%= @sprint.id %>">
+  <div class="tm-panel__head">
+    <div>
+      <h2 class="tm-panel__title">Board</h2>
+      <p class="tm-board__hint">
+        Drag a card to change its state, or focus one and hold Ctrl with the arrow keys.
+        Click it to open the task and its comments.
+      </p>
+    </div>
+  </div>
+  <div class="tm-panel__body">
+    <div class="tm-board">
+      <% TasksHelper::STATUS_ROLES.each do |status, role| %>
+        <section class="tm-col" data-status="<%= status %>"
+                 aria-label="<%= role[:label] %>, <%= @by_status[status].size %> tasks">
+          <header class="tm-col__head">
+            <span class="tm-key tm-key--<%= status %>"></span>
+            <h3 class="tm-col__title"><%= role[:label] %></h3>
+            <span class="tm-seg__count"><%= @by_status[status].size %></span>
+          </header>
+          <div class="tm-col__body">
+            <% if @by_status[status].empty? %>
+              <p class="tm-sub" style="text-align: center; padding: 0.75rem 0">Nothing here</p>
+            <% else %>
+              <% @by_status[status].each do |task| %>
+                <%= render "tasks/task_card", task: task %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
+  </div>
+</section>

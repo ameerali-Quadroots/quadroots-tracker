@@ -41,4 +41,14 @@ class TasksMyTasksTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Orphan-looking child"
     refute_includes response.body, "Someone elses parent"
   end
+
+  test "every task row is clickable and opens the task" do
+    get my_tasks_tasks_path
+
+    assert_response :success
+    rows = css_select(".tm-item")
+    assert rows.any?, "expected task rows"
+    assert rows.all? { |row| row["data-tm-open"].present? },
+           "every row should open its task, not just the title"
+  end
 end

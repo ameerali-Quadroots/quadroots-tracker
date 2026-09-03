@@ -1,0 +1,71 @@
+<%= render "tasks/head" %>
+
+<div class="tm" data-tm-view="clients">
+  <div class="tm__inner">
+
+    <header class="tm-head">
+      <div>
+        <nav class="tm-crumb" aria-label="Breadcrumb">
+          <%= link_to "Task Manager", dashboard_tasks_path %>
+        </nav>
+        <h1 class="tm-head__title">Clients</h1>
+        <p class="tm-head__sub">Everyone <%= current_user.org_department&.name || "your department" %> delivers for</p>
+      </div>
+      <div class="tm-head__actions">
+        <%= link_to "All sprints", sprints_path, class: "tm-btn" %>
+        <button type="button" class="tm-btn tm-btn--primary" data-bs-toggle="modal" data-bs-target="#tm-client-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New client
+        </button>
+      </div>
+    </header>
+
+    <% if @clients.empty? %>
+      <section class="tm-panel">
+        <div class="tm-empty">
+          <span class="tm-empty__icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+          <p class="tm-empty__title">No clients yet</p>
+          <p class="tm-empty__body">
+            Add a client, give it a project, then open that project's first sprint.
+            Tasks grouped into a sprint roll their hours up per client.
+          </p>
+          <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+                  data-bs-toggle="modal" data-bs-target="#tm-client-modal">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>Add your first client
+          </button>
+        </div>
+      </section>
+    <% else %>
+      <div class="tm-cards">
+        <% @clients.each do |client| %>
+          <%= link_to client_path(client), class: "tm-tile" do %>
+            <div>
+              <h2 class="tm-tile__name"><%= client.name %></h2>
+              <p class="tm-tile__sub">
+                <%= pluralize(client.projects.size, "project") %>
+                <% if client.notes.present? %> · <%= truncate(client.notes, length: 60) %><% end %>
+              </p>
+            </div>
+            <div class="tm-tile__figures">
+              <div class="tm-tile__figure">
+                <span class="tm-tile__value"><%= hours_label(@logged[client.id], blank: "—") %></span>
+                <span class="tm-tile__label">Logged</span>
+              </div>
+              <div class="tm-tile__figure">
+                <span class="tm-tile__value"><%= @open_tasks[client.id].to_i %></span>
+                <span class="tm-tile__label">Open tasks</span>
+              </div>
+              <div class="tm-tile__figure">
+                <span class="tm-tile__value"><%= @sprint_counts[client.id].to_i %></span>
+                <span class="tm-tile__label">Sprints</span>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+  </div>
+</div>
+
+<%= render "tasks/drawer_shell" %>
+<%= render "tasks/sprint_modal" %>

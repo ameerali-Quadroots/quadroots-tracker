@@ -1,14 +1,26 @@
-<button type="button" class="tm-card" data-tm-open="<%= task.id %>">
+<%# A board card. Draggable between columns, and focusable so Ctrl+Arrow can
+    move it without a mouse. `data-status` is what the drag code reads to work
+    out which columns this card may legally enter. %>
+<article class="tm-card" draggable="true" tabindex="0" role="button"
+         data-tm-open="<%= task.id %>" data-status="<%= task.status %>"
+         aria-label="<%= task.title %> — <%= task_status_label(task.status) %>. Open the task, or hold Ctrl and press the arrow keys to move it.">
   <span class="tm-card__title"><%= task.title %></span>
 
   <span class="tm-card__meta">
     <span class="tm-who"><%= task_avatar(task.assigned_to) %><%= task.assigned_to&.name %></span>
-    <span data-numeric><%= hours_label(task.rolled_up_duration_seconds, blank: "0m") %></span>
+    <span data-numeric>
+      <% if task.in_progress? %>
+        <span data-tm-timer="<%= task.started_at.iso8601 %>"
+              data-tm-paused="<%= task.accumulated_pause_seconds %>"
+              data-tm-style="compact"><%= hours_label(task.rolled_up_duration_seconds, blank: "0m") %></span>
+      <% else %>
+        <%= hours_label(task.rolled_up_duration_seconds, blank: "0m") %>
+      <% end %>
+    </span>
   </span>
 
   <% done, total = task.subtask_progress %>
-  <% flags = task.priority == "urgent" || task.over_sla? || total.positive? || task.due_date.present? %>
-  <% if flags %>
+  <% if task.priority == "urgent" || task.over_sla? || total.positive? || task.due_date.present? || task.comments_count.positive? %>
     <span class="tm-card__flags">
       <% if task.priority == "urgent" && !task.completed? %>
         <span class="tm-flag tm-flag--urgent">Urgent</span>
@@ -26,11 +38,11 @@
           <i class="fa-regular fa-comment" aria-hidden="true"></i><%= task.comments_count %>
         </span>
       <% end %>
-      <% if task.due_date.present? %>
+      <% if task.due_date.present? && !task.completed? %>
         <span class="tm-flag <%= task_overdue?(task) ? 'tm-flag--sla' : 'tm-flag--sub' %>">
           <%= task_due_label(task) %>
         </span>
       <% end %>
     </span>
   <% end %>
-</button>
+</article>

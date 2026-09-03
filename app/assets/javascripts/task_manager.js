@@ -108,7 +108,7 @@
         startedAt: new Date(el.getAttribute("data-tm-timer")).getTime(),
         paused: parseInt(el.getAttribute("data-tm-paused"), 10) || 0,
         budget: parseInt(el.getAttribute("data-tm-budget"), 10) || 0,
-        seconds: el.getAttribute("data-tm-seconds") === "1"
+        style: el.getAttribute("data-tm-style") || "compact"
       };
     });
     tick();
@@ -117,20 +117,26 @@
   function tick() {
     ticking.forEach(function (t) {
       var elapsed = Math.max((Date.now() - t.startedAt) / 1000 - t.paused, 0);
-      t.el.textContent = formatDuration(elapsed, t.seconds);
+      t.el.textContent = formatDuration(elapsed, t.style);
       if (t.budget > 0) { t.el.classList.toggle("tm-timer--over", elapsed > t.budget); }
     });
   }
 
-  function formatDuration(totalSeconds, withSeconds) {
+  function formatDuration(totalSeconds, style) {
     var s = Math.floor(totalSeconds);
     var h = Math.floor(s / 3600);
     var m = Math.floor((s % 3600) / 60);
-    // The ticking clock reads h:mm:ss; everywhere else matches the server's
-    // hours_label, which drops the hour part below an hour ("45m", not
-    // "0h 45m") so a live cell and a static one beside it agree.
-    if (withSeconds) {
-      return h + ":" + String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+    var ss = s % 60;
+
+    // "clock"   — the hero: 1:04:22, unmistakably running.
+    // "compact" — in a table: 1h 04m 22s, still visibly ticking every second.
+    // "short"   — anything stopped, matching the server's hours_label.
+    if (style === "clock") {
+      return h + ":" + String(m).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+    }
+    if (style === "compact") {
+      return (h > 0 ? h + "h " + String(m).padStart(2, "0") + "m " : m + "m ") +
+             String(ss).padStart(2, "0") + "s";
     }
     return h > 0 ? h + "h " + m + "m" : m + "m";
   }
@@ -157,6 +163,10 @@
     return chartLoader;
   }
 
+  function chartFont() {
+    return '"Inter", -apple-system, "Segoe UI", Roboto, sans-serif';
+  }
+
   function ink(name, fallback) {
     var root = $(".tm");
     if (!root) { return fallback; }
@@ -169,7 +179,7 @@
     if (!canvases.length) { return; }
 
     withChartJs().then(function (Chart) {
-      Chart.defaults.font.family = '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif';
+      Chart.defaults.font.family = chartFont();
       Chart.defaults.font.size = 11;
       Chart.defaults.color = ink("--tm-ink-3", "#858e9b");
 
@@ -307,6 +317,62 @@
       };
     },
 
+    /* Ranked magnitude — hours per client. Horizontal because the labels are
+       names, with the value written at the tip of each bar. */
+    bars: function (spec) {
+      return {
+        type: "bar",
+        data: {
+          labels: spec.labels,
+          datasets: [{
+            data: spec.data,
+            backgroundColor: spec.color,
+            maxBarThickness: 18,
+            borderRadius: { topRight: 4, bottomRight: 4, topLeft: 0, bottomLeft: 0 },
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { right: 56 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: Object.assign({
+              callbacks: {
+                label: function (item) { return " " + (spec.formatted[item.dataIndex] || item.formattedValue); }
+              }
+            }, tooltipStyle)
+          },
+          scales: {
+            x: { display: false, beginAtZero: true, grace: "5%" },
+            y: {
+              grid: { display: false },
+              ticks: { color: ink("--tm-ink-2", "#4d5560"), font: { size: 12 } },
+              border: { display: false }
+            }
+          }
+        },
+        plugins: [{
+          id: "tmBarValues",
+          afterDatasetsDraw: function (chart) {
+            var ctx = chart.ctx;
+            var meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.fillStyle = "#4d5560";
+            ctx.font = '600 11px ' + chartFont();
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            meta.data.forEach(function (bar, i) {
+              ctx.fillText(spec.formatted[i] || "", bar.x + 8, bar.y);
+            });
+            ctx.restore();
+          }
+        }]
+      };
+    },
+
     /* Hours logged per day. Columns, one hue: the job is magnitude, not
        identity. */
     columns: function (spec) {
@@ -367,7 +433,7 @@
 
       ctx.save();
       ctx.fillStyle = "#4d5560";
-      ctx.font = '600 11px "IBM Plex Sans", system-ui, sans-serif';
+      ctx.font = '600 11px ' + chartFont();
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       var last = chart.getDatasetMeta(chart.data.datasets.length - 1);
@@ -379,6 +445,131 @@
       ctx.restore();
     }
   };
+
+  /* --- dragging a card between board columns -----------------------------
+     Plain HTML5 drag and drop — no library. The board mirrors the timer state
+     machine, so a column that cannot accept the card being dragged is dimmed
+     up front instead of rejecting the drop afterwards. Ctrl+Arrow does the
+     same thing from the keyboard. */
+
+  // Which columns a card in this state can actually be dropped into. Mirrors
+  // TasksController#apply_move — a move the server will refuse is never
+  // offered as a target.
+  function allowedTargets(status) {
+    switch (status) {
+      case "pending": return ["in_progress"];
+      case "in_progress": return ["paused", "completed"];
+      case "paused": return ["in_progress", "completed"];
+      default: return [];
+    }
+  }
+
+  var dragging = null;
+
+  function beginDrag(card) {
+    dragging = { card: card, from: card.getAttribute("data-status"), id: card.getAttribute("data-tm-open") };
+    card.classList.add("is-dragging");
+
+    var allowed = allowedTargets(dragging.from);
+    $$(".tm-col").forEach(function (col) {
+      var status = col.getAttribute("data-status");
+      if (status !== dragging.from && allowed.indexOf(status) === -1) { col.classList.add("is-blocked"); }
+    });
+  }
+
+  function endDrag() {
+    if (dragging) { dragging.card.classList.remove("is-dragging"); }
+    $$(".tm-col").forEach(function (col) { col.classList.remove("is-target", "is-blocked"); });
+    var ghost = $(".tm-drop");
+    if (ghost) { ghost.remove(); }
+    dragging = null;
+  }
+
+  function moveTask(taskId, status, card) {
+    var board = $("[data-tm-board]");
+    var body = document.body;
+    if (card) { card.classList.add("is-dragging"); }
+
+    request("/tasks/" + taskId + "/move", {
+      method: "PATCH",
+      json: true,
+      body: JSON.stringify({ status: status, sprint_id: board ? board.getAttribute("data-tm-board") : null })
+    }).then(function (payload) {
+      applyRegions(payload);
+      notify(payload.message);
+    }).catch(function (error) {
+      if (card) { card.classList.remove("is-dragging"); }
+      notify(error.message, "error");
+    });
+    void body;
+  }
+
+  document.addEventListener("dragstart", function (event) {
+    var card = event.target.closest(".tm-card");
+    if (!card) { return; }
+    event.dataTransfer.effectAllowed = "move";
+    // Firefox will not start a drag without payload on the transfer.
+    event.dataTransfer.setData("text/plain", card.getAttribute("data-tm-open"));
+    beginDrag(card);
+  });
+
+  document.addEventListener("dragend", endDrag);
+
+  document.addEventListener("dragover", function (event) {
+    if (!dragging) { return; }
+    var col = event.target.closest(".tm-col");
+    if (!col || col.classList.contains("is-blocked")) { return; }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+
+    if (!col.classList.contains("is-target")) {
+      $$(".tm-col").forEach(function (c) { c.classList.remove("is-target"); });
+      col.classList.add("is-target");
+
+      var ghost = $(".tm-drop") || document.createElement("div");
+      ghost.className = "tm-drop";
+      $(".tm-col__body", col).appendChild(ghost);
+    }
+  });
+
+  document.addEventListener("drop", function (event) {
+    if (!dragging) { return; }
+    var col = event.target.closest(".tm-col");
+    if (!col || col.classList.contains("is-blocked")) { return endDrag(); }
+
+    event.preventDefault();
+    var status = col.getAttribute("data-status");
+    var id = dragging.id;
+    var card = dragging.card;
+    endDrag();
+    if (status !== card.getAttribute("data-status")) { moveTask(id, status, card); }
+  });
+
+  // Ctrl/Cmd + Left/Right walks a focused card through the columns it may
+  // legally enter, so the board works without a mouse.
+  document.addEventListener("keydown", function (event) {
+    if (!(event.ctrlKey || event.metaKey)) { return; }
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") { return; }
+
+    var card = document.activeElement && document.activeElement.closest(".tm-card");
+    if (!card) { return; }
+
+    var order = ["pending", "in_progress", "paused", "completed"];
+    var from = card.getAttribute("data-status");
+    var allowed = allowedTargets(from);
+    if (!allowed.length) { return; }
+
+    var step = event.key === "ArrowRight" ? 1 : -1;
+    var candidates = order.filter(function (s) { return allowed.indexOf(s) !== -1; });
+    var target = step > 0
+      ? candidates.find(function (s) { return order.indexOf(s) > order.indexOf(from); })
+      : candidates.slice().reverse().find(function (s) { return order.indexOf(s) < order.indexOf(from); });
+    if (!target) { return; }
+
+    event.preventDefault();
+    moveTask(card.getAttribute("data-tm-open"), target, card);
+  });
 
   /* --- the task drawer --------------------------------------------------- */
 
@@ -714,6 +905,13 @@
 
     var open = target.closest("[data-tm-open]");
     if (open) {
+      // The whole row opens the task, but a control sitting inside it — the
+      // actions menu, a Start button, a link — keeps its own behaviour. When
+      // the clickable element IS the control (a title button, a board card),
+      // there is nothing nested and the row wins.
+      var control = target.closest("a, button, select, input, textarea, label, .dropdown");
+      if (control && control !== open && open.contains(control)) { return; }
+
       event.preventDefault();
       drawer.open(open.getAttribute("data-tm-open"));
       return;
@@ -872,21 +1070,45 @@
     }, 300);
   });
 
-  window.addEventListener("popstate", function () { window.location.reload(); });
+  // Back and forward restore the view the same way a filter builds it, so
+  // stepping through history costs a region swap rather than a full reload.
+  window.addEventListener("popstate", function () {
+    if (!currentView()) { return; }
+    drawer.close();
+
+    var url = new URL(window.location.href);
+    url.searchParams.set("regions", currentView() === "my_tasks" ? "focus,summary,tasks" : "summary,charts,tasks");
+
+    request(url.href)
+      .then(applyRegions)
+      .then(function () {
+        var tab = new URL(window.location.href).searchParams.get("tab");
+        if (tab && $('[data-tm-tab="' + tab + '"]')) { selectTab(tab, { push: false }); }
+      })
+      .catch(function () { window.location.reload(); });
+  });
 
   /* --- tabs -------------------------------------------------------------- */
 
-  function selectTab(name) {
+  // Purely client side: every panel is already on the page, so switching is a
+  // hidden-attribute flip and never a request.
+  function selectTab(name, options) {
+    var opts = options || {};
+
     $$("[data-tm-tab]").forEach(function (button) {
-      button.setAttribute("aria-selected", String(button.getAttribute("data-tm-tab") === name));
+      var on = button.getAttribute("data-tm-tab") === name;
+      button.setAttribute("aria-selected", String(on));
+      button.classList.toggle("is-active", on);
     });
     $$("[data-tm-panel]").forEach(function (panel) {
       panel.hidden = panel.getAttribute("data-tm-panel") !== name;
     });
 
-    var url = new URL(window.location.href);
-    url.searchParams.set("tab", name);
-    window.history.replaceState({}, "", url.href);
+    if (opts.push !== false) {
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", name);
+      window.history.replaceState({}, "", url.href);
+    }
     refresh();
   }
 

@@ -1,0 +1,37 @@
+<%= render "tasks/head" %>
+
+<div class="tm" data-tm-view="sprints">
+  <div class="tm__inner">
+
+    <header class="tm-head">
+      <div>
+        <nav class="tm-crumb" aria-label="Breadcrumb">
+          <%= link_to "Task Manager", dashboard_tasks_path %>
+        </nav>
+        <h1 class="tm-head__title">Sprints</h1>
+        <p class="tm-head__sub">Every delivery cycle in <%= current_user.org_department&.name || "your department" %>, newest first</p>
+      </div>
+      <div class="tm-head__actions">
+        <%= link_to "Clients", clients_path, class: "tm-btn" %>
+        <button type="button" class="tm-btn tm-btn--primary" data-bs-toggle="modal" data-bs-target="#tm-sprint-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New sprint
+        </button>
+      </div>
+    </header>
+
+    <% if @sprints.empty? %>
+      <%= render "sprints/list", sprints: [], task_counts: {}, logged: {},
+                 title: "Sprints", subtitle: "Client work, broken into delivery cycles" %>
+    <% else %>
+      <% @sprints.group_by { |s| s.project.client }.each do |client, client_sprints| %>
+        <%= render "sprints/list", sprints: client_sprints, task_counts: @task_counts,
+                   logged: @logged, show_project: true, title: client.name,
+                   subtitle: pluralize(client_sprints.size, "sprint") %>
+      <% end %>
+    <% end %>
+
+  </div>
+</div>
+
+<%= render "tasks/drawer_shell" %>
+<%= render "tasks/sprint_modal" %>

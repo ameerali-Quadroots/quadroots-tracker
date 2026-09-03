@@ -2,7 +2,8 @@
     over fetch(): they live in their own controllers, they are occasional
     setup actions rather than day-to-day work, and a full reload afterwards is
     what makes the new record show up in every sprint picker on the page. %>
-<% project_options = @clients.flat_map { |client| client.projects.map { |p| ["#{client.name} — #{p.name}", p.id] } } %>
+<% clients = @clients || [] %>
+<% project_options = clients.flat_map { |client| client.projects.map { |p| ["#{client.name} — #{p.name}", p.id] } } %>
 
 <div class="modal fade tm-modal" id="tm-client-modal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -40,13 +41,13 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <% if @clients.empty? %>
+          <% if clients.empty? %>
             <p class="tm-muted">Add a client first — a project always belongs to one.</p>
           <% else %>
             <div class="tm-field">
               <label class="tm-field__label" for="tm-project-client">Client</label>
               <select name="project[client_id]" id="tm-project-client" class="tm-select" required>
-                <% @clients.each do |client| %>
+                <% clients.each do |client| %>
                   <option value="<%= client.id %>"><%= client.name %></option>
                 <% end %>
               </select>
@@ -66,7 +67,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="tm-btn tm-btn--primary" <%= "disabled" if @clients.empty? %>>Create project</button>
+          <button type="submit" class="tm-btn tm-btn--primary" <%= "disabled" if clients.empty? %>>Create project</button>
         </div>
       <% end %>
     </div>

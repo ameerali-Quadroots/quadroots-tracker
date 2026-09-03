@@ -1,7 +1,11 @@
 <% logged = task.subtask? ? task.live_duration_seconds : task.rolled_up_duration_seconds %>
 <% done, total = task.subtask_progress %>
 
-<tr class="tm-row <%= 'tm-row--sub' if task.subtask? %> <%= 'is-going' if task.in_progress? %>">
+<%# The whole row opens the task. The controls inside it keep their own
+    behaviour — task_manager.js only treats the row as a target when the click
+    did not land on a nested control. %>
+<tr class="tm-row <%= 'tm-row--sub' if task.subtask? %> <%= 'is-going' if task.in_progress? %>"
+    data-tm-open="<%= task.id %>">
   <td>
     <div class="tm-stack">
       <div class="tm-inline">
@@ -63,7 +67,8 @@
     <% if task.in_progress? %>
       <span class="tm-strong" data-tm-timer="<%= task.started_at.iso8601 %>"
             data-tm-paused="<%= task.accumulated_pause_seconds %>"
-            data-tm-budget="<%= task.sla_seconds %>"><%= hours_label(logged, blank: "0m") %></span>
+            data-tm-budget="<%= task.sla_seconds %>"
+            data-tm-style="compact"><%= hours_label(logged, blank: "0m") %></span>
     <% else %>
       <span class="<%= 'tm-muted' if logged.zero? %>"><%= hours_label(logged, blank: "0m") %></span>
     <% end %>

@@ -63,6 +63,23 @@ module DepartmentTaskScope
   # it transparently, so the caller would receive 200 OK carrying the sign-in or
   # dashboard page and inject it wherever the real answer belonged. Browsers
   # navigating normally still get the redirect and the flash.
+  # Everything the sprint board renders. Shared because a card dragged between
+  # columns is handled by TasksController but has to answer with the board
+  # SprintsController drew, and the two must agree on what a board is.
+  def load_sprint_board(sprint)
+    @sprint = sprint
+    @tasks = sprint.tasks.top_level
+                   .includes(:assigned_to, :task_type, subtasks: %i[assigned_to task_type])
+                   .order(:position, created_at: :asc)
+    @by_status = Task.statuses.keys.index_with { |status| @tasks.select { |t| t.status == status } }
+
+    # Hours in this sprint, by whoever actually did the work — subtasks
+    # included, since a subtask can belong to a different executive.
+    task_ids = sprint.tasks.pluck(:id)
+    @hours_by_user = TaskWorkSession.where(task_id: task_ids).group(:user_id).sum(:duration_seconds)
+    @people = User.where(id: @hours_by_user.keys).index_by(&:id)
+  end
+
   def forbid!(message = "You are not authorized to do that.")
     if request.xhr? || request.format.json?
       render json: { ok: false, error: message }, status: :forbidden

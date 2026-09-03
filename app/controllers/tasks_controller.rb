@@ -12,7 +12,7 @@ class TasksController < ApplicationController
   include DepartmentTaskScope
 
   before_action -> { authorize_page!("task_manager") },
-                only: %i[dashboard new create import_preview import export update destroy]
+                only: %i[dashboard new create import_preview import export update destroy move]
   before_action :set_period, only: %i[dashboard export]
   before_action :set_task, only: %i[start pause resume complete]
 
@@ -178,7 +178,54 @@ class TasksController < ApplicationController
     guarded_transition(:complete!, "Completed “#{@task.title}”.", "This task cannot be completed.")
   end
 
+  # Dragging a card between board columns. The board is a view onto the same
+  # timer state machine the executive drives, so a move is translated into the
+  # real lifecycle call rather than writing the status column directly — a
+  # dragged card starts and stops the clock exactly as the buttons do.
+  def move
+    task = department_tasks.find_by(id: params[:id])
+    return forbid! if task.nil?
+
+    target = params[:status].to_s
+    view = params[:sprint_id].present? ? :sprint : :dashboard
+    return respond_error("#{target.humanize} isn't a column.", view: view) unless Task.statuses.key?(target)
+    return respond_ok("“#{task.title}” is already there.", view: view) if task.status == target
+
+    message = apply_move(task, target)
+    return respond_error(message[:error], view: view) if message[:error]
+
+    respond_ok(message[:notice], view: view)
+  end
+
   private
+
+  # Returns {notice:} or {error:}. Each branch names the reason a move is
+  # refused, because "that didn't work" on a drag tells the manager nothing.
+  def apply_move(task, target)
+    case target
+    when "in_progress"
+      if (running = Task.for_executive(task.assigned_to).in_progress.where.not(id: task.id).first)
+        return { error: "#{task.assigned_to.name} is already working on “#{running.title}”. "                         "Move that one out of Running first." }
+      end
+
+      started = task.pending? ? task.start! : task.resume!
+      started ? { notice: "Started “#{task.title}”." } : { error: "“#{task.title}” cannot be started." }
+    when "paused"
+      # A task that was never started has no clock to pause.
+      return { error: "“#{task.title}” hasn't been started yet, so there is nothing to pause." } if task.pending?
+
+      task.pause!(reason: "Moved to Paused on the board") ? { notice: "Paused “#{task.title}”." }
+                                                          : { error: "“#{task.title}” cannot be paused." }
+    when "completed"
+      return { error: "“#{task.title}” hasn't been started yet. Start it before marking it done." } if task.pending?
+
+      task.complete! ? { notice: "Completed “#{task.title}”." } : { error: "“#{task.title}” cannot be completed." }
+    when "pending"
+      # Deliberately one-way: rewinding to Not started would have to throw away
+      # or silently keep logged hours, and either answer misreports the sprint.
+      { error: "“#{task.title}” has already been started, so it can't go back to Not started." }
+    end
+  end
 
   BUSY_MESSAGE = "Finish or pause your current task before starting another.".freeze
 
@@ -282,6 +329,12 @@ class TasksController < ApplicationController
     "tasks" => "tasks/panel_my_tasks"
   }.freeze
 
+  SPRINT_REGIONS = {
+    "summary" => "sprints/summary",
+    "board" => "sprints/board",
+    "people" => "sprints/people"
+  }.freeze
+
   def dashboard_regions(requested = nil)
     build_regions(DASHBOARD_REGIONS, requested)
   end
@@ -317,9 +370,16 @@ class TasksController < ApplicationController
   end
 
   def regions_for(view)
-    if view == :my_tasks
+    case view
+    when :my_tasks
       load_my_tasks
       my_tasks_regions
+    when :sprint
+      sprint = department_sprints.includes(project: :client).find_by(id: params[:sprint_id])
+      return {} if sprint.nil?
+
+      load_sprint_board(sprint)
+      build_regions(SPRINT_REGIONS, nil)
     else
       load_dashboard
       dashboard_regions
@@ -327,7 +387,11 @@ class TasksController < ApplicationController
   end
 
   def fallback_for(view)
-    view == :my_tasks ? my_tasks_tasks_path : dashboard_tasks_path
+    case view
+    when :my_tasks then my_tasks_tasks_path
+    when :sprint then params[:sprint_id].present? ? sprint_path(params[:sprint_id]) : dashboard_tasks_path
+    else dashboard_tasks_path
+    end
   end
 
   def tasks_tab_path
