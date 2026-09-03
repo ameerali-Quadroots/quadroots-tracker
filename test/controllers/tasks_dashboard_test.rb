@@ -42,7 +42,7 @@ class TasksDashboardTest < ActionDispatch::IntegrationTest
     get dashboard_tasks_path
 
     assert_response :success
-    assert_includes response.body, "Team Hours"
+    assert_includes response.body, "Team hours"
     assert_includes response.body, "Web Exec A"
     assert_includes response.body, "Web Exec B"
   end
@@ -54,20 +54,30 @@ class TasksDashboardTest < ActionDispatch::IntegrationTest
 
     get dashboard_tasks_path
 
-    assert_equal 1, css_select("tbody tr.task-row--top").size
+    assert_equal 1, css_select("tbody tr.tm-row:not(.tm-row--sub)").size
   end
 
-  # .dashboard-glass sets backdrop-filter, which makes it a containing block for
-  # position:fixed descendants — a modal nested inside it sizes against the
-  # wrapper instead of the viewport and renders as a stuck dark overlay.
-  test "modals render outside the backdrop-filtered wrapper" do
+  # A modal nested inside a wrapper that establishes a containing block for
+  # position:fixed children (a transform, a filter, a backdrop-filter) sizes
+  # against that wrapper instead of the viewport and renders as a stuck dark
+  # overlay. Keeping every modal a sibling of the page wrapper is what prevents
+  # a future style on .tm from reintroducing that bug.
+  test "modals render outside the page wrapper" do
     get dashboard_tasks_path
 
-    %w[importTasksModal newSprintModal newClientModal newProjectModal newTaskModal].each do |modal_id|
+    %w[tm-import-modal tm-sprint-modal tm-client-modal tm-project-modal
+       tm-new-task-modal tm-task-edit-modal].each do |modal_id|
       assert_select "##{modal_id}", 1, "#{modal_id} should exist"
-      assert_select ".dashboard-glass ##{modal_id}", false,
-                    "#{modal_id} must not be nested inside .dashboard-glass"
+      assert_select ".tm ##{modal_id}", false,
+                    "#{modal_id} must not be nested inside .tm"
     end
+  end
+
+  test "the task drawer shell renders outside the page wrapper too" do
+    get dashboard_tasks_path
+
+    assert_select "#tm-drawer", 1
+    assert_select ".tm #tm-drawer", false, "the drawer must not be nested inside .tm"
   end
 
   test "week param moves the hours window" do

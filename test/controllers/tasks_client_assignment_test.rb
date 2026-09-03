@@ -9,8 +9,8 @@ class TasksClientAssignmentTest < ActionDispatch::IntegrationTest
     get dashboard_tasks_path
 
     assert_response :success
-    assert_select "#newTaskModal select[name=?]", "task[sprint_id]"
-    assert_select "#newTaskModal optgroup[label=?]", "GN Exteriors — CRM"
+    assert_select "#tm-new-task-modal select[name=?]", "task[sprint_id]"
+    assert_select "#tm-new-task-modal optgroup[label=?]", "GN Exteriors — CRM"
   end
 
   test "creating a task with a sprint attaches it to that client's work" do
@@ -51,13 +51,13 @@ class TasksClientAssignmentTest < ActionDispatch::IntegrationTest
 
     get dashboard_tasks_path
 
-    assert_select "td.task-client", text: /GN Exteriors/
-    assert_select "td.task-client", text: /CRM · Week 1/
+    assert_select "td.tm-client", text: /GN Exteriors/
+    assert_select "td.tm-client", text: %r{CRM / Week 1}
   end
 
   test "a task with no sprint shows a dash rather than blank" do
     get dashboard_tasks_path
 
-    assert_select "td.task-client", text: "—"
+    assert_select "td.tm-client", text: "Internal"
   end
 end

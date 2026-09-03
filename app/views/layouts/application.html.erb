@@ -21,6 +21,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+<%# Per-page <head> additions (fonts, page-scoped scripts). Used by the
+    Task Manager module so its font and JS never load on pages that
+    have no use for them. %>
+<%= yield :head %>
 
   </head>
 

@@ -1,50 +1,86 @@
-        <div class="task-row d-flex flex-wrap justify-content-between align-items-start gap-3">
-          <div>
-            <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-              <h5 class="fw-bold mb-0"><%= task.title %></h5>
-              <span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span>
-              <% if task.over_sla? %>
-                <span class="pill pill--over-sla">Over SLA</span>
-              <% end %>
-              <span class="type-tag"><%= task.priority.capitalize %></span>
-            </div>
-            <div class="text-muted small mb-1">
-              <i class="fa-solid fa-tag me-1"></i><%= task.task_type.name %>
-            </div>
-            <% if task.description.present? %>
-              <p class="text-muted mb-2"><%= task.description %></p>
-            <% end %>
-            <div class="text-muted small d-flex align-items-center">
-              <span class="task-avatar"><%= task.assigned_by.initials %></span>
-              Assigned by <span class="fw-semibold text-dark ms-1"><%= task.assigned_by.name %></span>
-              <% if task.due_date.present? %>&nbsp;&middot; Due <%= task.due_date.strftime("%d %b %Y") %><% end %>
-            </div>
-            <% if task.paused? && task.reason.present? %>
-              <div class="task-reason-note"><i class="fa-solid fa-circle-info"></i><%= task.reason %></div>
-            <% end %>
-          </div>
+<% sub = local_assigns.fetch(:sub, false) %>
+<% logged = task.subtask? ? task.live_duration_seconds : task.rolled_up_duration_seconds %>
 
-          <div class="text-end">
-            <div class="task-duration mb-2"><%= render "tasks/live_task_duration", task: task %></div>
+<div class="tm-item <%= 'tm-item--sub' if sub %>">
+  <div class="tm-item__main">
+    <div class="tm-inline">
+      <h3 class="tm-item__title">
+        <button type="button" class="tm-title" data-tm-open="<%= task.id %>"><%= task.title %></button>
+      </h3>
+      <%= task_status_badge(task.status) %>
+      <% if task.priority == "urgent" && !task.completed? %>
+        <span class="tm-flag tm-flag--urgent">Urgent</span>
+      <% end %>
+      <span class="tm-flag tm-flag--sub" data-tm-comment-badge="<%= task.id %>"
+            <%= "hidden" if task.comments_count.zero? %>>
+        <i class="fa-regular fa-comment" aria-hidden="true"></i><span data-tm-comment-badge-value><%= task.comments_count %></span>
+      </span>
+    </div>
 
-            <% if task.pending? %>
-              <%= button_to start_task_path(task), method: :post, class: "btn btn-primary btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-play me-1"></i>Start
-              <% end %>
-            <% elsif task.in_progress? %>
-              <button type="button" class="btn btn-warning btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#pauseModal-<%= task.id %>">
-                <i class="fa-solid fa-pause me-1"></i>Pause
-              </button>
-              <%= button_to complete_task_path(task), method: :post, class: "btn btn-success btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-circle-check me-1"></i>Complete
-              <% end %>
-            <% elsif task.paused? %>
-              <%= button_to resume_task_path(task), method: :post, class: "btn btn-primary btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-play me-1"></i>Resume
-              <% end %>
-              <%= button_to complete_task_path(task), method: :post, class: "btn btn-success btn-premium btn-sm", data: { turbo: false } do %>
-                <i class="fa-solid fa-circle-check me-1"></i>Complete
-              <% end %>
-            <% end %>
-          </div>
-        </div>
+    <div class="tm-item__meta">
+      <span><i class="fa-solid fa-tag" aria-hidden="true"></i> <%= task.task_type.name %></span>
+      <% if task.sprint.present? %>
+        <span><i class="fa-solid fa-flag" aria-hidden="true"></i> <%= task.sprint.project.client.name %></span>
+      <% end %>
+      <span class="<%= 'tm-flag tm-flag--sla' if task_overdue?(task) %>"><%= task_due_label(task) %></span>
+      <span class="tm-who"><%= task_avatar(task.assigned_by) %>from <%= task.assigned_by.name %></span>
+    </div>
+
+    <% if task.description.present? %>
+      <p class="tm-sub" style="margin: 0.35rem 0 0; max-width: 70ch"><%= truncate(task.description, length: 160) %></p>
+    <% end %>
+
+    <% if task.paused? && task.reason.present? %>
+      <div class="tm-note">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span><%= task.reason %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="tm-item__side">
+    <div class="tm-item__time">
+      <% if task.in_progress? %>
+        <span class="tm-item__figure" data-tm-timer="<%= task.started_at.iso8601 %>"
+              data-tm-paused="<%= task.accumulated_pause_seconds %>"
+              data-tm-seconds="1"><%= hours_label(logged, blank: "0m") %></span>
+      <% else %>
+        <span class="tm-item__figure <%= 'tm-muted' if logged.zero? %>"><%= hours_label(logged, blank: "0m") %></span>
+      <% end %>
+      <span class="tm-sub"><%= task.sla_seconds.positive? ? "of #{task.formatted_sla}" : "no budget" %></span>
+    </div>
+
+    <div class="tm-item__actions">
+      <% if task.pending? %>
+        <button type="button" class="tm-btn tm-btn--go tm-btn--sm"
+                data-tm-action="<%= start_task_path(task) %>" data-tm-method="POST">
+          <i class="fa-solid fa-play" aria-hidden="true"></i>Start
+        </button>
+      <% elsif task.in_progress? %>
+        <button type="button" class="tm-btn tm-btn--hold tm-btn--sm"
+                data-bs-toggle="modal" data-bs-target="#tm-pause-modal"
+                data-tm-pause-url="<%= pause_task_path(task) %>"
+                data-tm-pause-title="<%= task.title %>">
+          <i class="fa-solid fa-pause" aria-hidden="true"></i>Pause
+        </button>
+        <button type="button" class="tm-btn tm-btn--done tm-btn--sm"
+                data-tm-action="<%= complete_task_path(task) %>" data-tm-method="POST"
+                data-tm-confirm="Mark “<%= task.title %>” as done?">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>Complete
+        </button>
+      <% elsif task.paused? %>
+        <button type="button" class="tm-btn tm-btn--go tm-btn--sm"
+                data-tm-action="<%= resume_task_path(task) %>" data-tm-method="POST">
+          <i class="fa-solid fa-play" aria-hidden="true"></i>Resume
+        </button>
+        <button type="button" class="tm-btn tm-btn--done tm-btn--sm"
+                data-tm-action="<%= complete_task_path(task) %>" data-tm-method="POST"
+                data-tm-confirm="Mark “<%= task.title %>” as done?">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>Complete
+        </button>
+      <% else %>
+        <button type="button" class="tm-btn tm-btn--sm" data-tm-open="<%= task.id %>">Open</button>
+      <% end %>
+    </div>
+  </div>
+</div>

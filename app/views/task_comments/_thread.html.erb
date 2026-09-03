@@ -1,0 +1,7 @@
+<% if comments.empty? %>
+  <p class="tm-muted">No comments yet. Start the thread below.</p>
+<% else %>
+  <% comments.each do |comment| %>
+    <%= render "task_comments/comment", comment: comment %>
+  <% end %>
+<% end %>

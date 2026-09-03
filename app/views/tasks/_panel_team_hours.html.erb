@@ -1,0 +1,113 @@
+<%# Task time against clocked time, per person per day. The gap between the two
+    is the figure that matters — hours somebody was at work but not on any
+    task — so it gets its own column rather than being left for the reader to
+    subtract. %>
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div>
+      <h2 class="tm-panel__title">Team hours</h2>
+      <p class="tm-panel__sub">
+        <%= @hours_report.dates.first.strftime("%d %b") %> to <%= @hours_report.dates.last.strftime("%d %b %Y") %>
+      </p>
+    </div>
+
+    <div class="tm-panel__tools">
+      <div class="tm-seg" role="group" aria-label="Period">
+        <button type="button" class="tm-seg__item <%= 'is-active' if @period == 'week' %>"
+                data-tm-filter='<%= { period: "week", week_start: @week_start.to_s, tab: "team_hours" }.to_json %>'
+                data-tm-regions="summary,team_hours">Week</button>
+        <button type="button" class="tm-seg__item <%= 'is-active' if @period == 'month' %>"
+                data-tm-filter='<%= { period: "month", week_start: @week_start.to_s, tab: "team_hours" }.to_json %>'
+                data-tm-regions="summary,team_hours">Month</button>
+      </div>
+
+      <button type="button" class="tm-btn tm-btn--icon" aria-label="Previous period"
+              data-tm-filter='<%= { period: @period, week_start: (@week_start - (@period == "month" ? 1.month : 7.days)).to_s, tab: "team_hours" }.to_json %>'
+              data-tm-regions="summary,team_hours">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="tm-btn tm-btn--icon" aria-label="Next period"
+              data-tm-filter='<%= { period: @period, week_start: (@week_start + (@period == "month" ? 1.month : 7.days)).to_s, tab: "team_hours" }.to_json %>'
+              data-tm-regions="summary,team_hours">
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+
+      <div class="dropdown">
+        <button class="tm-btn tm-btn--sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fa-solid fa-download" aria-hidden="true"></i>Export
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end tm-menu">
+          <li><%= link_to "Weekly timing (CSV)",
+                    export_tasks_path(report: "weekly_timing", format: :csv, period: @period, week_start: @week_start),
+                    class: "dropdown-item" %></li>
+          <li><%= link_to "Monthly stats (Excel)",
+                    export_tasks_path(report: "monthly_stats", format: :xlsx, period: @period, week_start: @week_start),
+                    class: "dropdown-item" %></li>
+          <li><%= link_to "Full task list (CSV)",
+                    export_tasks_path(report: "task_list", format: :csv, period: @period, week_start: @week_start),
+                    class: "dropdown-item" %></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <% if @hours_report.executives.empty? %>
+    <div class="tm-empty">
+      <span class="tm-empty__icon"><i class="fa-solid fa-user-group" aria-hidden="true"></i></span>
+      <p class="tm-empty__title">No executives in this department</p>
+      <p class="tm-empty__body">Add executives under Settings and their hours will appear here.</p>
+    </div>
+  <% else %>
+    <div class="tm-panel__body" style="padding-bottom: 0">
+      <ul class="tm-legend">
+        <li><span class="tm-key" style="background: var(--tm-ink)"></span>Logged on tasks</li>
+        <li><span class="tm-key" style="background: var(--tm-line-strong)"></span>Clocked in</li>
+        <li><span class="tm-key" style="background: var(--tm-warn)"></span>Untracked — at work, not on a task</li>
+      </ul>
+    </div>
+
+    <div class="tm-tablewrap">
+      <table class="tm-hours">
+        <thead>
+          <tr>
+            <th scope="col" class="tm-hours__name">Executive</th>
+            <% @hours_report.columns(@period).each do |label, days| %>
+              <th scope="col">
+                <%= label %>
+                <small><%= days.one? ? days.first.strftime("%a") : "#{days.size} days" %></small>
+              </th>
+            <% end %>
+            <th scope="col" class="tm-hours__total">Total</th>
+            <th scope="col">Untracked</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @hours_report.executives.each do |executive| %>
+            <tr>
+              <th scope="row" class="tm-hours__name">
+                <span class="tm-who"><%= task_avatar(executive) %><%= executive.name %></span>
+              </th>
+              <% @hours_report.columns(@period).each do |_label, days| %>
+                <% cell = @hours_report.bucket(executive.id, days) %>
+                <td class="<%= 'tm-hours__cell--empty' if cell[:task_seconds].zero? && cell[:attendance_seconds].zero? %>">
+                  <div class="tm-hours__task"><%= hours_label(cell[:task_seconds]) %></div>
+                  <div class="tm-hours__clock"><%= hours_label(cell[:attendance_seconds]) %></div>
+                </td>
+              <% end %>
+              <% totals = @hours_report.totals_for(executive.id) %>
+              <td class="tm-hours__total <%= 'tm-hours__cell--empty' if totals[:task_seconds].zero? %>">
+                <div class="tm-hours__task"><%= hours_label(totals[:task_seconds]) %></div>
+                <div class="tm-hours__clock"><%= hours_label(totals[:attendance_seconds]) %></div>
+              </td>
+              <td>
+                <span class="tm-gap <%= 'tm-gap--flag' if totals[:gap_seconds] >= 3600 %>">
+                  <%= hours_label(totals[:gap_seconds]) %>
+                </span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</section>

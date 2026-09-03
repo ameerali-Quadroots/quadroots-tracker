@@ -1,165 +1,98 @@
-<!-- New Task Modal -->
-<div class="modal fade" id="newTaskModal" tabindex="-1" aria-labelledby="newTaskModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content dashboard-card">
-      <%= form_with(model: @task, url: tasks_path, local: true, html: { data: { turbo: false } }) do |f| %>
+<div class="modal fade tm-modal" id="tm-new-task-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form data-tm-form data-tm-url="<%= tasks_path %>" data-tm-method="POST">
         <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-list-check me-2 text-primary"></i>Assign New Task</h5>
+          <h2 class="modal-title">New task</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+
         <div class="modal-body">
-          <div class="mb-3">
-            <%= f.label :sprint_id, "Client / Project / Sprint", class: "form-label fw-semibold text-dark" %>
-            <%= f.select :sprint_id,
-                  grouped_options_for_select(sprint_options_grouped_by_project, params[:sprint_id]),
-                  { include_blank: "No sprint — standalone task" },
-                  class: "form-select" %>
-            <div class="form-text">Leave blank for internal work that isn't tied to a client.</div>
+          <div class="tm-alert"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span class="tm-alert__text"></span></div>
+
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-new-title">What needs doing?</label>
+            <input type="text" name="task[title]" id="tm-new-title" class="tm-input" required
+                   placeholder="Update the client's homepage copy">
           </div>
 
-          <div class="mb-3">
-            <%= f.label :assigned_to_id, "Assign to Executive", class: "form-label fw-semibold text-dark" %>
-            <%= f.collection_select :assigned_to_id, @executives, :id, :name, { include_blank: "Select executive..." }, class: "form-select", required: true %>
-          </div>
-
-          <div class="mb-3">
-            <%= f.label :task_type_id, "Task Type", class: "form-label fw-semibold text-dark" %>
-            <select name="task[task_type_id]" id="task_task_type_id" class="form-select" onchange="window.__onTaskTypeChange(this)">
-              <option value="">Select task type...</option>
-              <% @task_types.each do |tt| %>
-                <option value="<%= tt.id %>" data-sla-minutes="<%= tt.sla_minutes %>" data-description="<%= tt.description %>"><%= tt.name %></option>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-new-assignee">Who is doing it?</label>
+            <select name="task[assigned_to_id]" id="tm-new-assignee" class="tm-select" required>
+              <option value="">Choose an executive</option>
+              <% @executives.each do |executive| %>
+                <option value="<%= executive.id %>"><%= executive.name %></option>
               <% end %>
-              <option value="__new__">+ Type a new task type...</option>
             </select>
-            <div id="task-type-description" class="form-text"></div>
-            <% if @task_types.empty? %>
-              <div class="form-text">
-                No task types configured for your department yet — pick "+ Type a new task type..." below, or ask an admin to add some under Settings &rarr; Task Types.
-              </div>
+            <% if @executives.empty? %>
+              <p class="tm-field__hint">
+                No executives in your department yet. Add them under Settings before assigning work.
+              </p>
             <% end %>
           </div>
 
-          <div class="mb-3" id="new-task-type-wrapper" style="display: none;">
-            <%= label_tag :task_new_task_type_name, "New Task Type Name", class: "form-label fw-semibold text-dark" %>
-            <input type="text" name="task[new_task_type_name]" id="task_new_task_type_name" class="form-control" placeholder="e.g. Client Onboarding">
-            <div class="form-text">Saved as a reusable task type for your department, so it shows up in this list next time.</div>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-new-type-select">Task type</label>
+            <select name="task[task_type_id]" id="tm-new-type-select" class="tm-select" data-tm-type-select required>
+              <option value="">Choose a type</option>
+              <% @task_types.each do |type| %>
+                <option value="<%= type.id %>" data-sla="<%= type.sla_minutes %>"
+                        data-description="<%= type.description %>"><%= type.name %></option>
+              <% end %>
+              <option value="__new__">Add a new type…</option>
+            </select>
+            <p class="tm-field__hint" id="tm-type-description"></p>
           </div>
 
-          <div class="mb-3">
-            <%= label_tag :task_custom_sla_minutes, "SLA (minutes)", class: "form-label fw-semibold text-dark" %>
-            <input type="number" name="task[custom_sla_minutes]" id="task_custom_sla_minutes" class="form-control" min="0" placeholder="Defaults to the task type's SLA">
-            <div id="task-type-sla-hint"></div>
+          <div class="tm-field" id="tm-new-type" hidden>
+            <label class="tm-field__label" for="tm-new-type-name">Name the new type</label>
+            <input type="text" name="task[new_task_type_name]" id="tm-new-type-name" class="tm-input"
+                   placeholder="Client onboarding">
+            <p class="tm-field__hint">Saved for your department, so it is in the list next time.</p>
           </div>
 
-          <div class="mb-3">
-            <%= f.label :title, "Task Title", class: "form-label fw-semibold text-dark" %>
-            <%= f.text_field :title, class: "form-control", required: true, placeholder: "e.g. Update client homepage" %>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-sla">Time budget in minutes</label>
+            <input type="number" min="0" name="task[custom_sla_minutes]" id="tm-sla" class="tm-input"
+                   placeholder="Leave blank to use the type's budget">
+            <p class="tm-field__hint" id="tm-sla-hint"></p>
           </div>
-          <div class="mb-3">
-            <%= f.label :description, class: "form-label fw-semibold text-dark" %>
-            <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Optional details or instructions..." %>
+
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-new-sprint">Client work this belongs to</label>
+            <select name="task[sprint_id]" id="tm-new-sprint" class="tm-select">
+              <option value="">None — internal work</option>
+              <%= grouped_options_for_select(sprint_options_grouped_by_project, params[:sprint_id]) %>
+            </select>
           </div>
-          <div class="row">
-            <div class="col-6 mb-3">
-              <%= f.label :priority, class: "form-label fw-semibold text-dark" %>
-              <%= f.select :priority, Task::PRIORITIES.map { |p| [p.capitalize, p] }, {}, class: "form-select" %>
+
+          <div class="tm-field__row">
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-new-priority">Priority</label>
+              <select name="task[priority]" id="tm-new-priority" class="tm-select">
+                <% Task::PRIORITIES.each do |priority| %>
+                  <option value="<%= priority %>"><%= priority.capitalize %></option>
+                <% end %>
+              </select>
             </div>
-            <div class="col-6 mb-3">
-              <%= f.label :due_date, class: "form-label fw-semibold text-dark" %>
-              <%= f.date_field :due_date, class: "form-control" %>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-new-due">Due date</label>
+              <input type="date" name="task[due_date]" id="tm-new-due" class="tm-input">
             </div>
+          </div>
+
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-new-description">Details</label>
+            <textarea name="task[description]" id="tm-new-description" class="tm-textarea" rows="3"
+                      placeholder="Anything the executive needs to know before starting."></textarea>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
-          <%= f.submit "Assign Task", class: "btn btn-primary btn-premium" %>
+          <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="tm-btn tm-btn--primary">Assign task</button>
         </div>
-      <% end %>
+      </form>
     </div>
   </div>
 </div>
-
-<script>
-  (function () {
-    window.__onTaskTypeChange = function (select) {
-      var opt = select.options[select.selectedIndex];
-      var isNew = select.value === "__new__";
-
-      var newTypeWrapper = document.getElementById('new-task-type-wrapper');
-      var newTypeInput = document.getElementById('task_new_task_type_name');
-      if (newTypeWrapper) {
-        newTypeWrapper.style.display = isNew ? "" : "none";
-        if (newTypeInput) newTypeInput.required = isNew;
-      }
-
-      var minutes = isNew ? NaN : parseInt(opt && opt.dataset.slaMinutes, 10);
-      var slaInput = document.getElementById('task_custom_sla_minutes');
-      var hint = document.getElementById('task-type-sla-hint');
-      if (slaInput && hint) {
-        if (!minutes && minutes !== 0) {
-          hint.innerHTML = "";
-        } else {
-          // Only pre-fill if the manager hasn't already typed a custom value.
-          if (!slaInput.value) slaInput.value = minutes;
-          var h = Math.floor(minutes / 60), m = minutes % 60;
-          hint.innerHTML = '<span class="task-sla-hint"><i class="fa-solid fa-stopwatch"></i>Type default: ' + (h > 0 ? h + "h " : "") + m + "m</span>";
-        }
-      }
-
-      var descBox = document.getElementById('task-type-description');
-      if (descBox) {
-        var description = isNew ? "" : (opt && opt.dataset.description);
-        descBox.textContent = description || "";
-      }
-    };
-
-    function initTaskDuration() {
-      document.querySelectorAll('[data-task-start]').forEach(function (el) {
-        var span = document.getElementById('task-duration-' + el.dataset.taskId);
-        if (!span) return;
-        var start = new Date(el.dataset.taskStart);
-        var pauseSeconds = parseInt(el.dataset.taskPauseSeconds, 10) || 0;
-
-        function tick() {
-          var elapsed = Math.max((new Date() - start) / 1000 - pauseSeconds, 0);
-          var h = Math.floor(elapsed / 3600);
-          var m = Math.floor((elapsed % 3600) / 60);
-          var s = Math.floor(elapsed % 60);
-          span.textContent = h + "h " + String(m).padStart(2, "0") + "m " + String(s).padStart(2, "0") + "s";
-        }
-        tick();
-        setInterval(tick, 1000);
-      });
-    }
-
-    // Draws the value at the end of each horizontal bar — Chart.js has no
-    // built-in data-label support, so this is a tiny local plugin rather
-    // than pulling in the chartjs-plugin-datalabels dependency for one use.
-    var directLabelPlugin = {
-      id: 'directLabels',
-      afterDatasetsDraw: function (chart) {
-        var ctx = chart.ctx;
-        chart.data.datasets.forEach(function (dataset, i) {
-          var meta = chart.getDatasetMeta(i);
-          if (meta.hidden) return;
-          meta.data.forEach(function (el, index) {
-            var value = dataset.data[index];
-            if (!value) return;
-            ctx.save();
-            ctx.fillStyle = '#44403c';
-            ctx.font = '600 12px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            var pos = el.tooltipPosition();
-            ctx.fillText(value, pos.x + 8, pos.y);
-            ctx.restore();
-          });
-        });
-      }
-    };
-
-    function initCharts() {
-      // Fixed status roles — never reassigned by filter state, and always
-      // paired with the text label the axis already renders.
-  })();
-</script>

@@ -35,6 +35,28 @@ class NotificationService
     LeaveMailer.new_request_notification(leave, recipient_emails_for(user)).deliver_later
   end
 
+  # A comment goes to the other side of the task, not up the organogram: the
+  # executive hears from their manager and the manager hears from their
+  # executive. Nobody is told about their own comment.
+  def self.notify_task_comment(comment)
+    task      = comment.task
+    author    = comment.user
+    recipient = task.assigned_to_id == author.id ? task.assigned_by : task.assigned_to
+    return if recipient.blank? || recipient.id == author.id
+
+    title   = "New comment on #{task.title}"
+    message = "#{author.name}: #{comment.body.truncate(140)}"
+    url     = task.assigned_to_id == recipient.id ? "/tasks/my_tasks" : "/tasks/dashboard"
+
+    recipient.notifications.create!(title: title, message: message, url: url)
+    push_realtime(recipient, "new-task-comment", title: title, message: message, url: url)
+    push_web(recipient, title, message, url)
+    SlackNotifier.notify(":speech_balloon: *#{title}*\n#{message}", email: recipient.email)
+  rescue StandardError => e
+    # A comment must still save if the notification fan-out fails.
+    Rails.logger.error "[TaskComment ##{comment.id}] notify failed: #{e.message}"
+  end
+
   private
 
   def self.deliver(user, event, title, message, url)

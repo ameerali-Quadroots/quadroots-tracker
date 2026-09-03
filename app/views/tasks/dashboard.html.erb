@@ -1,124 +1,63 @@
-<div class="dashboard-container">
-  <div class="dashboard-glass">
+<%= render "tasks/head" %>
 
-<div class="dashboard-card task-page-card p-4 mb-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div>
-      <h3 class="fw-bold mb-1">Task Manager</h3>
-      <p class="text-muted mb-0">Assign and track tasks for your executives</p>
-    </div>
-    <div class="d-flex gap-2">
-      <button type="button" class="btn btn-outline-premium btn-premium" data-bs-toggle="modal" data-bs-target="#importTasksModal">
-        <i class="fa-solid fa-file-csv me-2"></i>Import CSV
-      </button>
-      <button type="button" class="btn btn-primary btn-premium" data-bs-toggle="modal" data-bs-target="#newTaskModal">
-        <i class="fa-solid fa-plus me-2"></i>New Task
-      </button>
-    </div>
-  </div>
-</div>
+<div class="tm" data-tm-view="dashboard">
+  <div class="tm__inner">
 
-<div class="task-stat-cards mb-4">
-  <div class="task-stat-card">
-    <div class="task-stat-icon task-stat-icon--primary"><i class="fa-solid fa-people-group"></i></div>
-    <div>
-      <span class="task-stat-label">Total Executives</span>
-      <span class="task-stat-value"><%= @executives.count %></span>
-    </div>
-  </div>
-  <div class="task-stat-card">
-    <div class="task-stat-icon task-stat-icon--info"><i class="fa-solid fa-list-check"></i></div>
-    <div>
-      <span class="task-stat-label">Total Tasks</span>
-      <span class="task-stat-value"><%= @stats.values.sum %></span>
-    </div>
-  </div>
-  <div class="task-stat-card">
-    <div class="task-stat-icon task-stat-icon--warning"><i class="fa-solid fa-hourglass-half"></i></div>
-    <div>
-      <span class="task-stat-label">In Progress</span>
-      <span class="task-stat-value"><%= @stats["in_progress"] || 0 %></span>
-    </div>
-  </div>
-  <div class="task-stat-card">
-    <div class="task-stat-icon task-stat-icon--success"><i class="fa-solid fa-circle-check"></i></div>
-    <div>
-      <span class="task-stat-label">Completed</span>
-      <span class="task-stat-value"><%= @stats["completed"] || 0 %></span>
-    </div>
-  </div>
-  <div class="task-stat-card">
-    <div class="task-stat-icon task-stat-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
-    <div>
-      <span class="task-stat-label">Over SLA</span>
-      <span class="task-stat-value"><%= @over_sla_count %></span>
-    </div>
-  </div>
-</div>
+    <header class="tm-head">
+      <div>
+        <h1 class="tm-head__title">Task Manager</h1>
+        <p class="tm-head__sub">
+          <%= @executives.size %> executive<%= "s" if @executives.size != 1 %> in
+          <%= current_user.org_department&.name || "your department" %>
+        </p>
+      </div>
+      <div class="tm-head__actions">
+        <button type="button" class="tm-btn" data-bs-toggle="modal" data-bs-target="#tm-import-modal">
+          <i class="fa-solid fa-file-csv" aria-hidden="true"></i>Import CSV
+        </button>
+        <button type="button" class="tm-btn tm-btn--primary" data-bs-toggle="modal" data-bs-target="#tm-new-task-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New task
+        </button>
+      </div>
+    </header>
 
-<div class="row g-4 mb-4">
-  <div class="col-lg-4">
-    <div class="dashboard-card task-page-card p-4">
-      <h6 class="fw-bold mb-3">Status Distribution</h6>
-      <div style="position: relative; height: 220px;">
-        <canvas id="taskStatusChart"></canvas>
+    <div id="tm-region-summary"><%= render "tasks/manager_summary" %></div>
+    <div id="tm-region-charts"><%= render "tasks/manager_charts" %></div>
+
+    <% active_tab = params[:tab].presence_in(%w[tasks team_hours sprints]) || "tasks" %>
+
+    <div class="tm-tabbar">
+      <div class="tm-seg" role="tablist" aria-label="Task Manager sections">
+        <button type="button" class="tm-seg__item" role="tab" data-tm-tab="tasks"
+                aria-selected="<%= active_tab == 'tasks' %>">
+          Tasks <span class="tm-seg__count"><%= @tasks.size %></span>
+        </button>
+        <button type="button" class="tm-seg__item" role="tab" data-tm-tab="team_hours"
+                aria-selected="<%= active_tab == 'team_hours' %>">
+          Team hours <span class="tm-seg__count"><%= @hours_report.executives.size %></span>
+        </button>
+        <button type="button" class="tm-seg__item" role="tab" data-tm-tab="sprints"
+                aria-selected="<%= active_tab == 'sprints' %>">
+          Sprints <span class="tm-seg__count"><%= @sprints.size %></span>
+        </button>
       </div>
     </div>
-  </div>
-  <div class="col-lg-8">
-    <div class="dashboard-card task-page-card p-4">
-      <h6 class="fw-bold mb-3">Tasks per Executive</h6>
-      <div style="position: relative; height: 220px;">
-        <canvas id="taskExecutiveChart"></canvas>
-      </div>
+
+    <div data-tm-panel="tasks" <%= "hidden" unless active_tab == "tasks" %>>
+      <div id="tm-region-tasks"><%= render "tasks/panel_tasks" %></div>
     </div>
-  </div>
-</div>
-
-<ul class="nav nav-tabs task-tabs mb-3" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link <%= 'active' if params[:tab].blank? || params[:tab] == 'tasks' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-tasks" type="button" role="tab">
-      Tasks <span class="task-tab-count"><%= @tasks.size %></span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link <%= 'active' if params[:tab] == 'team_hours' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-team-hours" type="button" role="tab">
-      Team Hours <span class="task-tab-count"><%= @hours_report.executives.size %></span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link <%= 'active' if params[:tab] == 'sprints' %>"
-            data-bs-toggle="tab" data-bs-target="#tab-sprints" type="button" role="tab">
-      Sprints <span class="task-tab-count"><%= @sprints.size %></span>
-    </button>
-  </li>
-</ul>
-
-<div class="tab-content">
-  <div class="tab-pane fade <%= 'show active' if params[:tab].blank? || params[:tab] == 'tasks' %>" id="tab-tasks">
-    <%= render "tasks/tab_tasks" %>
-  </div>
-  <div class="tab-pane fade <%= 'show active' if params[:tab] == 'team_hours' %>" id="tab-team-hours">
-    <%= render "tasks/tab_team_hours" %>
-  </div>
-  <div class="tab-pane fade <%= 'show active' if params[:tab] == 'sprints' %>" id="tab-sprints">
-    <%= render "tasks/tab_sprints" %>
-  </div>
-</div>
+    <div data-tm-panel="team_hours" <%= "hidden" unless active_tab == "team_hours" %>>
+      <div id="tm-region-team-hours"><%= render "tasks/panel_team_hours" %></div>
+    </div>
+    <div data-tm-panel="sprints" <%= "hidden" unless active_tab == "sprints" %>>
+      <div id="tm-region-sprints"><%= render "tasks/panel_sprints" %></div>
+    </div>
 
   </div>
 </div>
 
-<%# Modals must live OUTSIDE .dashboard-glass: that wrapper sets
-    backdrop-filter, which makes it a containing block for position:fixed
-    descendants, so a modal nested inside it sizes against the wrapper
-    instead of the viewport. %>
-<%= render "tasks/sprint_modal" %>
-<%= render "tasks/import_modal" %>
-<%= render "tasks/task_modals" %>
-<%= render "tasks/task_modals_js" %>
-
+<%= render "tasks/drawer_shell" %>
 <%= render "tasks/new_task_modal" %>
-<%= render "tasks/dashboard_charts" %>
+<%= render "tasks/task_edit_modal" %>
+<%= render "tasks/import_modal" %>
+<%= render "tasks/sprint_modal" %>

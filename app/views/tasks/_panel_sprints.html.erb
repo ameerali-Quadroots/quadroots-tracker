@@ -1,0 +1,73 @@
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div>
+      <h2 class="tm-panel__title">Sprints</h2>
+      <p class="tm-panel__sub">Client work, broken into delivery cycles</p>
+    </div>
+    <div class="tm-panel__tools">
+      <button type="button" class="tm-btn tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-client-modal">
+        <i class="fa-solid fa-building" aria-hidden="true"></i>New client
+      </button>
+      <button type="button" class="tm-btn tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-project-modal">
+        <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>New project
+      </button>
+      <button type="button" class="tm-btn tm-btn--primary tm-btn--sm" data-bs-toggle="modal" data-bs-target="#tm-sprint-modal">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>New sprint
+      </button>
+    </div>
+  </div>
+
+  <% if @sprints.empty? %>
+    <div class="tm-empty">
+      <span class="tm-empty__icon"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i></span>
+      <p class="tm-empty__title">No sprints yet</p>
+      <p class="tm-empty__body">
+        Add a client, give it a project, then open that project's first delivery cycle.
+        Tasks can then be grouped into it and their hours roll up per client.
+      </p>
+      <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+              data-bs-toggle="modal" data-bs-target="#tm-client-modal">
+        <i class="fa-solid fa-building" aria-hidden="true"></i>Add your first client
+      </button>
+    </div>
+  <% else %>
+    <% @sprints.group_by { |s| s.project.client }.each do |client, client_sprints| %>
+      <% client_sprints.group_by(&:project).each do |project, project_sprints| %>
+        <div class="tm-sprintgroup">
+          <div class="tm-sprintgroup__head">
+            <h3 class="tm-sprintgroup__client"><%= client.name %></h3>
+            <p class="tm-sprintgroup__project"><%= project.name %></p>
+          </div>
+
+          <% project_sprints.each do |sprint| %>
+            <% done, total = sprint.progress %>
+            <% pct = total.zero? ? 0 : (done * 100.0 / total).round %>
+            <div class="tm-sprint">
+              <div class="tm-sprint__main">
+                <%= link_to sprint.name, sprint_path(sprint), class: "tm-sprint__name" %>
+                <% if sprint.goal.present? %>
+                  <div class="tm-sprint__goal"><%= sprint.goal %></div>
+                <% end %>
+              </div>
+
+              <div class="tm-sprint__meta">
+                <span><%= sprint.start_date.strftime("%d %b") %> to <%= sprint.end_date.strftime("%d %b") %></span>
+                <span class="tm-badge tm-badge--<%= sprint.status %>"><%= sprint.status.humanize %></span>
+                <span><%= hours_label(sprint.logged_seconds) %> logged</span>
+              </div>
+
+              <div class="tm-sprint__progress">
+                <span class="tm-meter" role="img" aria-label="<%= sprint.name %>: <%= done %> of <%= total %> tasks done">
+                  <span class="tm-meter__fill <%= 'tm-meter__fill--done' if pct == 100 %>" style="width: <%= pct %>%"></span>
+                </span>
+                <span class="tm-sub"><%= done %> of <%= total %> done</span>
+              </div>
+
+              <%= link_to "Open board", sprint_path(sprint), class: "tm-btn tm-btn--sm" %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</section>

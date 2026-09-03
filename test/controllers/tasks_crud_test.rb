@@ -25,7 +25,7 @@ class TasksCrudTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, @task.title
-    assert_select ".task-detail"
+    assert_select ".tm-drawer__head"
   end
 
   test "the popup shows subtasks and logged time" do

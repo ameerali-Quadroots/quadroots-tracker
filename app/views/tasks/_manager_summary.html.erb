@@ -1,0 +1,72 @@
+<%# The hero figure plus a hairline ledger. Time is the module's currency, so
+    the display number is the team's logged hours; the counts that qualify it
+    sit beside it at a smaller weight rather than as five identical cards, each
+    of which claimed the same importance and so ranked nothing. %>
+<% delta = @report.logged_delta_seconds %>
+
+<section class="tm-hero" aria-label="Department summary">
+  <div class="tm-hero__lead">
+    <p class="tm-hero__label">
+      Logged <%= @period == "month" ? "this month" : "this week" %>
+    </p>
+    <strong class="tm-hero__figure" data-numeric>
+      <% h, rem = @report.logged_seconds.divmod(3600) %>
+      <%= number_with_delimiter(h) %><small>h</small>
+      <%= rem / 60 %><small>m</small>
+    </strong>
+    <% if delta.present? && delta != 0 %>
+      <span class="tm-hero__delta <%= delta.positive? ? 'tm-hero__delta--up' : 'tm-hero__delta--down' %>">
+        <i class="fa-solid fa-arrow-<%= delta.positive? ? 'up' : 'down' %>" aria-hidden="true"></i>
+        <%= hours_label(delta.abs) %> vs <%= @period == "month" ? "last month" : "last week" %>
+      </span>
+    <% elsif delta.present? %>
+      <span class="tm-hero__delta">Level with <%= @period == "month" ? "last month" : "last week" %></span>
+    <% end %>
+  </div>
+
+  <div class="tm-ledger">
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label">In flight</span>
+      <span class="tm-ledger__value" data-numeric><%= @report.in_flight %></span>
+      <span class="tm-ledger__note">
+        <%= @report.count_for("in_progress") %> running · <%= @report.count_for("paused") %> paused
+      </span>
+    </div>
+
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label"><span class="tm-key tm-key--pending"></span>Not started</span>
+      <span class="tm-ledger__value <%= 'tm-ledger__value--muted' if @report.count_for('pending').zero? %>" data-numeric>
+        <%= @report.count_for("pending") %>
+      </span>
+      <span class="tm-ledger__note">waiting to be picked up</span>
+    </div>
+
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label"><span class="tm-key tm-key--completed"></span>Done</span>
+      <span class="tm-ledger__value" data-numeric><%= @report.completed_count %></span>
+      <span class="tm-ledger__note">
+        <%= @report.on_time_rate.present? ? "#{@report.on_time_rate}% inside budget" : "nothing finished yet" %>
+      </span>
+    </div>
+
+    <div class="tm-ledger__item">
+      <span class="tm-ledger__label">
+        <% if @report.over_sla_count.positive? %>
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="color: var(--tm-critical)"></i>
+        <% end %>
+        Over budget
+      </span>
+      <span class="tm-ledger__value <%= @report.over_sla_count.positive? ? 'tm-ledger__value--alert' : 'tm-ledger__value--muted' %>" data-numeric>
+        <%= @report.over_sla_count %>
+      </span>
+      <span class="tm-ledger__note">
+        <% if @report.over_sla_count.positive? %>
+          <button type="button" class="tm-reveal" data-tm-filter='{"over":"1","status":"","tab":"tasks"}'
+                  data-tm-regions="tasks">Show them</button>
+        <% else %>
+          every task inside its SLA
+        <% end %>
+      </span>
+    </div>
+  </div>
+</section>

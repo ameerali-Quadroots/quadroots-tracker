@@ -1,0 +1,23 @@
+<%# One comment. Rendered inline on the drawer's first paint and returned on
+    its own from the comments endpoint, so the same markup serves both. %>
+<div class="tm-comment" data-comment-id="<%= comment.id %>">
+  <%= task_avatar(comment.user) %>
+  <div class="tm-comment__body">
+    <div class="tm-comment__head">
+      <span class="tm-comment__who"><%= comment.user.name %></span>
+      <span class="tm-comment__when" title="<%= comment.created_at.strftime('%d %b %Y, %H:%M') %>">
+        <%= task_time_ago(comment.created_at) %><%= " · edited" if comment.updated_at > comment.created_at + 5.seconds %>
+      </span>
+    </div>
+    <p class="tm-comment__text"><%= comment.body %></p>
+
+    <% if comment.deletable_by?(current_user) %>
+      <div class="tm-comment__tools">
+        <% if comment.editable_by?(current_user) %>
+          <button type="button" class="tm-comment__tool" data-tm-comment-edit>Edit</button>
+        <% end %>
+        <button type="button" class="tm-comment__tool tm-comment__tool--danger" data-tm-comment-delete>Delete</button>
+      </div>
+    <% end %>
+  </div>
+</div>

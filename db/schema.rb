@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_02_223908) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_03_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -286,6 +286,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223908) do
     t.index ["project_id"], name: "index_sprints_on_project_id"
   end
 
+  create_table "task_comments", force: :cascade do |t|
+    t.bigint "task_id", null: false
+    t.bigint "user_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["task_id", "created_at"], name: "index_task_comments_on_task_id_and_created_at"
+    t.index ["task_id"], name: "index_task_comments_on_task_id"
+    t.index ["user_id"], name: "index_task_comments_on_user_id"
+  end
+
   create_table "task_types", force: :cascade do |t|
     t.string "name", null: false
     t.bigint "department_id", null: false
@@ -334,6 +345,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223908) do
     t.bigint "parent_id"
     t.integer "position", default: 0, null: false
     t.bigint "sprint_id"
+    t.integer "comments_count", default: 0, null: false
     t.index ["assigned_by_id"], name: "index_tasks_on_assigned_by_id"
     t.index ["assigned_to_id", "status"], name: "index_tasks_on_assigned_to_id_and_status"
     t.index ["assigned_to_id"], name: "index_tasks_on_assigned_to_id"
@@ -414,6 +426,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_02_223908) do
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"
   add_foreign_key "sprints", "projects"
+  add_foreign_key "task_comments", "tasks"
+  add_foreign_key "task_comments", "users"
   add_foreign_key "task_types", "departments"
   add_foreign_key "task_work_sessions", "tasks"
   add_foreign_key "task_work_sessions", "users"

@@ -1,0 +1,41 @@
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div class="tm-seg" role="group" aria-label="Which tasks to show">
+      <button type="button" class="tm-seg__item <%= 'is-active' if @scope == 'open' %>"
+              data-tm-filter='{"scope":"open"}' data-tm-regions="tasks">
+        Open <span class="tm-seg__count"><%= @report.open_count %></span>
+      </button>
+      <button type="button" class="tm-seg__item <%= 'is-active' if @scope == 'completed' %>"
+              data-tm-filter='{"scope":"completed"}' data-tm-regions="tasks">
+        Done <span class="tm-seg__count"><%= @report.completed_count %></span>
+      </button>
+      <button type="button" class="tm-seg__item <%= 'is-active' if @scope == 'all' %>"
+              data-tm-filter='{"scope":"all"}' data-tm-regions="tasks">All</button>
+    </div>
+  </div>
+
+  <% if @visible_tasks.empty? %>
+    <div class="tm-empty">
+      <span class="tm-empty__icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+      <% if @scope == "completed" %>
+        <p class="tm-empty__title">Nothing finished yet</p>
+        <p class="tm-empty__body">Tasks you complete are kept here as your record.</p>
+      <% elsif @scope == "open" %>
+        <p class="tm-empty__title">Your queue is clear</p>
+        <p class="tm-empty__body">No open tasks. Anything new your manager assigns shows up here.</p>
+      <% else %>
+        <p class="tm-empty__title">No tasks assigned to you yet</p>
+        <p class="tm-empty__body">When your manager assigns work, it lands here.</p>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="tm-list">
+      <% @visible_tasks.each do |task| %>
+        <%= render "tasks/my_task_entry", task: task %>
+        <% task.subtasks.each do |subtask| %>
+          <%= render "tasks/my_task_entry", task: subtask, sub: true %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</section>

@@ -2,8 +2,8 @@
 # action redirects back to the Sprints tab of the task dashboard — this module
 # has no pages of its own.
 class SprintsController < ApplicationController
-  before_action :authenticate_user!
-  before_action :require_department_task_manager
+  include DepartmentTaskScope
+
   before_action -> { authorize_page!("task_manager") }
 
   def show
@@ -22,11 +22,9 @@ class SprintsController < ApplicationController
                                     .group(:user_id).sum(:duration_seconds)
     @people = User.where(id: @hours_by_user.keys).index_by(&:id)
     @sprints = department_sprints.includes(project: :client).ordered
-    @executives = User.employed.joins(:access_role)
-                      .where(department_id: current_user.department_id, roles: { name: "Executive" })
-                      .order(:name)
-    @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
-    @clients = Client.where(department_id: current_user.department_id).includes(projects: :sprints).ordered
+    @executives = department_executives
+    @task_types = department_task_types
+    @clients = department_clients
   end
 
   def create
@@ -69,21 +67,11 @@ class SprintsController < ApplicationController
     Project.joins(:client).where(clients: { department_id: current_user.department_id })
   end
 
-  def department_sprints
-    Sprint.for_department(current_user.department_id)
-  end
-
   def sprint_params
     params.require(:sprint).permit(:name, :goal, :start_date, :end_date, :status)
   end
 
   def back_with(**flash_opts)
     redirect_to dashboard_tasks_path(tab: "sprints"), **flash_opts
-  end
-
-  def require_department_task_manager
-    return if current_user.org_department&.task_manager_enabled?
-
-    redirect_to root_path, alert: "Task Manager isn't enabled for your department."
   end
 end

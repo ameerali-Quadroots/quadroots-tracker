@@ -1,0 +1,29 @@
+<%# One pause dialog for the whole page. The old version rendered a separate
+    modal per in-progress task; the URL is now carried by whichever button
+    opened it. %>
+<div class="modal fade tm-modal" id="tm-pause-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form data-tm-form data-tm-url="" data-tm-method="POST" id="tm-pause-form">
+        <div class="modal-header">
+          <h2 class="modal-title">Pause the timer</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="tm-alert"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span class="tm-alert__text"></span></div>
+          <p class="tm-muted" id="tm-pause-context"></p>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-pause-reason">Why are you pausing?</label>
+            <textarea name="reason" id="tm-pause-reason" class="tm-textarea" rows="3"
+                      placeholder="Waiting on client feedback, switching to something urgent…"></textarea>
+            <p class="tm-field__hint">Optional, but your manager sees this next to the task.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="tm-btn" data-bs-dismiss="modal">Keep working</button>
+          <button type="submit" class="tm-btn tm-btn--primary">Pause the timer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

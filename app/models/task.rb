@@ -8,6 +8,7 @@ class Task < ApplicationRecord
   belongs_to :assigned_by, class_name: "User" # Manager
   belongs_to :task_type
   has_many :work_sessions, class_name: "TaskWorkSession", dependent: :destroy
+  has_many :comments, class_name: "TaskComment", dependent: :destroy
   belongs_to :parent, class_name: "Task", optional: true
   belongs_to :sprint, optional: true
   has_many :subtasks, class_name: "Task", foreign_key: :parent_id, dependent: :destroy, inverse_of: :parent
@@ -34,6 +35,17 @@ class Task < ApplicationRecord
 
   def subtask? = parent_id.present?
   def parent_task? = subtasks.any?
+
+  # Who may open this task and talk on it: any manager holding the
+  # task_manager permission in the same department, plus the executive it
+  # belongs to. Kept on the model so the detail popup, the comment endpoints
+  # and the row actions all answer the question the same way.
+  def visible_to?(user, manager: false)
+    return false if user.blank?
+    return true if assigned_to_id == user.id
+
+    manager && assigned_to&.department_id == user.department_id
+  end
 
   # A parent's real cost is its own logged time plus everything its children
   # logged — including children assigned to a different executive.

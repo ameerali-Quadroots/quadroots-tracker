@@ -1,49 +1,107 @@
+# The Task Manager module. Two faces on the same data:
+#
+#   * #dashboard — the manager's view of their whole department.
+#   * #my_tasks  — the executive's view of the work assigned to them.
+#
+# Every mutation answers twice over: a redirect for a plain form post, and a
+# JSON envelope of re-rendered regions for a fetch() from the page. The regions
+# mechanism is deliberate — the server re-renders the parts of the page its own
+# change touched and the browser swaps them in by selector, so the screen can
+# never drift out of step with the database the way hand-patched rows do.
 class TasksController < ApplicationController
-  before_action :authenticate_user!
-  # The whole module is off unless the user's department has it enabled, so this
-  # guards every action — not just the manager-side ones.
-  before_action :require_department_task_manager
-  before_action -> { authorize_page!("task_manager") }, only: %i[dashboard new create import_preview import export update destroy]
+  include DepartmentTaskScope
+
+  before_action -> { authorize_page!("task_manager") },
+                only: %i[dashboard new create import_preview import export update destroy]
+  before_action :set_period, only: %i[dashboard export]
   before_action :set_task, only: %i[start pause resume complete]
+
+  REPORTS = %w[weekly_timing monthly_stats task_list].freeze
 
   def index
     redirect_to manager_task_manager? ? dashboard_tasks_path : my_tasks_tasks_path
   end
 
   def dashboard
-    @period = params[:period] == "month" ? "month" : "week"
-    @week_start = parse_week_start
+    load_dashboard
 
-    @tasks = department_tasks.top_level
-                             .includes(:assigned_to, :task_type, { sprint: { project: :client } },
-                                       subtasks: [:assigned_to, :task_type, { sprint: { project: :client } }])
-                             .order(created_at: :desc)
-    @tasks = @tasks.where(status: params[:status]) if params[:status].present?
-    @tasks = @tasks.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?
-    @tasks = @tasks.in_sprint(params[:sprint_id]) if params[:sprint_id].present?
-    @tasks = @tasks.where(assigned_by_id: current_user.id) if params[:mine] == "1"
+    return render_regions(dashboard_regions(params[:regions])) if ajax?
 
-    @executives = department_executives
-    @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
-    @clients = Client.where(department_id: current_user.department_id).includes(projects: :sprints).ordered
-    @sprints = Sprint.for_department(current_user.department_id).includes(project: :client).ordered
-    @selected_sprint = @sprints.detect { |s| s.id.to_s == params[:sprint_id].to_s }
-    @stats = department_tasks.group(:status).count
-    @over_sla_count = department_tasks.includes(:task_type).count(&:over_sla?)
-    @tasks_per_executive = department_tasks.joins(:assigned_to).group("users.name").count
-
-    @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
-    @task = Task.new
+    render :dashboard
   end
 
-  REPORTS = %w[weekly_timing monthly_stats task_list].freeze
+  def my_tasks
+    load_my_tasks
+
+    return render_regions(my_tasks_regions(params[:regions])) if ajax?
+
+    render :my_tasks
+  end
+
+  # The task drawer. Readable by a manager anywhere in their department and by
+  # the executive the task belongs to; rendered as a bare partial because it is
+  # fetched into the drawer, not visited as a page.
+  def show
+    task = find_visible_task(params[:id])
+    return forbid! if task.nil?
+
+    task = Task.includes(:assigned_to, :assigned_by, :task_type, :parent,
+                         { sprint: { project: :client } },
+                         { subtasks: %i[assigned_to task_type] },
+                         :work_sessions, { comments: :user })
+               .find(task.id)
+
+    render partial: "tasks/drawer",
+           locals: { task: task, manager: can_view?("task_manager") }, layout: false
+  end
+
+  def new
+    @task = Task.new
+    @executives = department_executives
+    @task_types = department_task_types
+  end
+
+  def create
+    attrs = task_params.to_h
+    type_id, error = resolve_task_type(attrs)
+    return respond_error(error) if error.present?
+
+    attrs["task_type_id"] = type_id
+    @task = Task.new(attrs.merge(assigned_by: current_user))
+
+    if @task.save
+      notify_executive_of_new_task(@task)
+      respond_ok("Assigned “#{@task.title}” to #{@task.assigned_to.name}.")
+    else
+      respond_error(@task.errors.full_messages.to_sentence)
+    end
+  end
+
+  def update
+    task = department_tasks.find_by(id: params[:id])
+    return forbid! if task.nil?
+
+    if task.update(task_params.except(:new_task_type_name))
+      respond_ok("Saved “#{task.title}”.")
+    else
+      respond_error(task.errors.full_messages.to_sentence)
+    end
+  end
+
+  def destroy
+    task = department_tasks.find_by(id: params[:id])
+    return forbid! if task.nil?
+
+    title = task.title
+    count = task.subtasks.count
+    task.destroy
+    suffix = count.positive? ? " and #{count} subtask#{'s' if count > 1}" : ""
+    respond_ok("Deleted “#{title}”#{suffix}.")
+  end
 
   def export
     report_name = params[:report].to_s
     return redirect_to(dashboard_tasks_path, alert: "Unknown report.") unless REPORTS.include?(report_name)
-
-    @period = params[:period] == "month" ? "month" : "week"
-    @week_start = parse_week_start
 
     exporter = TaskReportExporter.new(
       department: current_user.org_department,
@@ -61,153 +119,239 @@ class TasksController < ApplicationController
     end
   end
 
-  # The task detail popup. Readable by a manager anywhere in their department
-  # and by the executive the task belongs to; rendered as a bare partial
-  # because it is fetched into a modal, not visited as a page.
-  def show
-    task = department_tasks.includes(:assigned_to, :assigned_by, :task_type, :parent,
-                                     { sprint: { project: :client } },
-                                     { subtasks: %i[assigned_to task_type] },
-                                     :work_sessions)
-                           .find_by(id: params[:id])
-    return forbid! if task.nil?
-    return forbid! unless can_view?("task_manager") || task.assigned_to_id == current_user.id
-
-    render partial: "tasks/task_detail", locals: { task: task }, layout: false
-  end
-
-  def update
-    task = department_tasks.find_by(id: params[:id])
-    return forbid! if task.nil?
-
-    if task.update(task_params.except(:new_task_type_name))
-      redirect_back fallback_location: dashboard_tasks_path, notice: "Task updated."
-    else
-      redirect_back fallback_location: dashboard_tasks_path,
-                    alert: task.errors.full_messages.to_sentence
-    end
-  end
-
-  def destroy
-    task = department_tasks.find_by(id: params[:id])
-    return forbid! if task.nil?
-
-    title = task.title
-    count = task.subtasks.count
-    task.destroy
-    suffix = count.positive? ? " and #{count} subtask(s)" : ""
-    redirect_to dashboard_tasks_path, notice: "Deleted #{title}#{suffix}."
-  end
-
   def import_preview
     importer, error = build_importer
-    return redirect_to(dashboard_tasks_path(tab: "tasks"), alert: error) if importer.nil?
+    return respond_error(error, fallback: tasks_tab_path) if importer.nil?
 
-    render partial: "tasks/import_preview", locals: { importer: importer }
+    render json: {
+      ok: importer.valid?,
+      html: render_to_string(partial: "tasks/import_preview",
+                             locals: { importer: importer }, formats: [:html])
+    }
   end
 
   def import
     importer, error = build_importer
-    return redirect_to(dashboard_tasks_path(tab: "tasks"), alert: error) if importer.nil?
+    return respond_error(error, fallback: tasks_tab_path) if importer.nil?
 
-    if importer.valid?
-      created = importer.commit!
-      redirect_to dashboard_tasks_path(tab: "tasks"), notice: "Imported #{created} task(s)."
-    else
-      redirect_to dashboard_tasks_path(tab: "tasks"),
-                  alert: "Nothing was imported — #{importer.error_count} row(s) have errors."
-    end
-  end
-
-  def my_tasks
-    mine = Task.for_executive(current_user)
-    # A subtask is nested under its parent only when the parent is also mine;
-    # otherwise it would silently vanish from the executive's list.
-    nested_ids = mine.subtasks_only.where(parent_id: mine.select(:id)).pluck(:id)
-
-    @tasks = mine.where.not(id: nested_ids)
-                 .includes(:task_type, subtasks: :task_type)
-                 .order(created_at: :desc)
-  end
-
-  def new
-    @task = Task.new
-    @executives = current_user.direct_reports.joins(:access_role).where(roles: { name: "Executive" }).order(:name)
-    @task_types = TaskType.where(department_id: current_user.department_id).order(:name)
-  end
-
-  def create
-    attrs = task_params.to_h
-    new_type_name = attrs.delete("new_task_type_name").to_s.strip
-
-    if attrs["task_type_id"] == "__new__" || (attrs["task_type_id"].blank? && new_type_name.present?)
-      if new_type_name.blank?
-        redirect_to dashboard_tasks_path, alert: "Please enter a name for the new task type." and return
-      end
-
-      # Reused if a type with this name already exists in the department
-      # (matches the tasks_type unique index on department_id + name).
-      task_type = TaskType.find_or_initialize_by(department: current_user.org_department, name: new_type_name)
-      task_type.sla_minutes = attrs["custom_sla_minutes"].presence || 0 if task_type.new_record?
-      task_type.save!
-      attrs["task_type_id"] = task_type.id
+    unless importer.valid?
+      return respond_error("Nothing was imported — #{importer.error_count} row#{'s' if importer.error_count > 1} need fixing.",
+                           fallback: tasks_tab_path)
     end
 
-    @task = Task.new(attrs.merge(assigned_by: current_user))
-
-    if @task.save
-      notify_executive_of_new_task(@task)
-      redirect_to dashboard_tasks_path, notice: "Task assigned."
-    else
-      redirect_to dashboard_tasks_path, alert: @task.errors.full_messages.to_sentence
-    end
+    created = importer.commit!
+    respond_ok("Imported #{created} task#{'s' if created != 1}.", fallback: tasks_tab_path)
   end
+
+  # --- The executive's timer ------------------------------------------------
+  #
+  # Only one task may run at a time, so start and resume both have to check for
+  # an existing runner before they change anything.
 
   def start
     return forbid! unless owns?(@task)
+    return respond_error(BUSY_MESSAGE, view: :my_tasks) if another_task_running?
 
-    if Task.for_executive(current_user).in_progress.exists?
-      redirect_to my_tasks_tasks_path, alert: "Finish or pause your current task before starting another."
-    elsif @task.start!
-      redirect_to my_tasks_tasks_path, notice: "Task started."
-    else
-      redirect_to my_tasks_tasks_path, alert: "This task cannot be started."
-    end
+    guarded_transition(:start!, "Started “#{@task.title}”.", "This task cannot be started.")
+  end
+
+  def resume
+    return forbid! unless owns?(@task)
+    return respond_error(BUSY_MESSAGE, view: :my_tasks) if another_task_running?
+
+    guarded_transition(:resume!, "Resumed “#{@task.title}”.", "This task cannot be resumed.")
   end
 
   def pause
     return forbid! unless owns?(@task)
 
     if @task.pause!(reason: params[:reason])
-      redirect_to my_tasks_tasks_path, notice: "Task paused."
+      respond_ok("Paused “#{@task.title}”.", view: :my_tasks)
     else
-      redirect_to my_tasks_tasks_path, alert: "This task cannot be paused."
-    end
-  end
-
-  def resume
-    return forbid! unless owns?(@task)
-
-    if Task.for_executive(current_user).in_progress.exists?
-      redirect_to my_tasks_tasks_path, alert: "Finish or pause your current task before resuming another."
-    elsif @task.resume!
-      redirect_to my_tasks_tasks_path, notice: "Task resumed."
-    else
-      redirect_to my_tasks_tasks_path, alert: "This task cannot be resumed."
+      respond_error("This task cannot be paused.", view: :my_tasks)
     end
   end
 
   def complete
     return forbid! unless owns?(@task)
 
-    if @task.complete!
-      redirect_to my_tasks_tasks_path, notice: "Task completed."
-    else
-      redirect_to my_tasks_tasks_path, alert: "This task cannot be completed."
-    end
+    guarded_transition(:complete!, "Completed “#{@task.title}”.", "This task cannot be completed.")
   end
 
   private
+
+  BUSY_MESSAGE = "Finish or pause your current task before starting another.".freeze
+
+  def another_task_running?
+    Task.for_executive(current_user).in_progress.where.not(id: @task.id).exists?
+  end
+
+  def guarded_transition(action, success, failure)
+    if @task.public_send(action)
+      respond_ok(success, view: :my_tasks)
+    else
+      respond_error(failure, view: :my_tasks)
+    end
+  end
+
+  # --- Loading --------------------------------------------------------------
+
+  def load_dashboard
+    @executives = department_executives
+    @task_types = department_task_types
+    @sprints = department_sprints.includes(project: :client).ordered
+    @clients = department_clients
+    @selected_sprint = @sprints.detect { |s| s.id.to_s == params[:sprint_id].to_s }
+    @tasks = filtered_tasks
+    @report = Reports::TaskDashboard.new(scope: department_tasks, executives: @executives,
+                                         range: hours_range, previous_range: previous_hours_range)
+    @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
+    @task = Task.new
+  end
+
+  def load_my_tasks
+    mine = Task.for_executive(current_user)
+    # A subtask is nested under its parent only when the parent is also mine;
+    # otherwise it would silently vanish from the executive's list.
+    nested_ids = mine.subtasks_only.where(parent_id: mine.select(:id)).pluck(:id)
+
+    @tasks = mine.where.not(id: nested_ids)
+                 .includes(:task_type, :assigned_by, { sprint: { project: :client } },
+                           subtasks: %i[task_type assigned_by])
+                 .order(created_at: :desc)
+    @scope = params[:scope].presence_in(%w[open completed all]) || "open"
+    @visible_tasks = case @scope
+                     when "completed" then @tasks.select(&:completed?)
+                     when "all" then @tasks.to_a
+                     else @tasks.reject(&:completed?)
+                     end
+    @report = Reports::ExecutiveDashboard.new(user: current_user, tasks: @tasks)
+  end
+
+  def filtered_tasks
+    scope = department_tasks.top_level
+                            .includes(:assigned_to, :task_type, { sprint: { project: :client } },
+                                      subtasks: [:assigned_to, :task_type, { sprint: { project: :client } }])
+                            .order(created_at: :desc)
+    scope = scope.where(status: params[:status]) if params[:status].present?
+    scope = scope.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?
+    scope = scope.in_sprint(params[:sprint_id]) if params[:sprint_id].present?
+    scope = scope.where(assigned_by_id: current_user.id) if params[:mine] == "1"
+    scope = scope.where(priority: "urgent") if params[:priority] == "urgent"
+
+    if params[:q].present?
+      term = "%#{params[:q].to_s.strip.downcase}%"
+      scope = scope.where("LOWER(tasks.title) LIKE :t OR LOWER(tasks.description) LIKE :t", t: term)
+    end
+
+    scope = scope.where(id: over_sla_task_ids) if params[:over] == "1"
+    scope
+  end
+
+  # An unfinished task's SLA breach depends on the clock right now, so this
+  # cannot be a pure WHERE. Finished work is read straight off the column;
+  # only the started-but-unfinished handful is measured in Ruby.
+  def over_sla_task_ids
+    finished = department_tasks.where(status: "completed", over_sla: true).pluck(:id)
+    running = department_tasks.where(status: %w[in_progress paused])
+                              .where.not(started_at: nil)
+                              .includes(:task_type)
+                              .select(&:over_sla?).map(&:id)
+    finished + running
+  end
+
+  # --- AJAX plumbing --------------------------------------------------------
+
+  def ajax?
+    request.xhr? || request.format.json?
+  end
+
+  # Regions are addressed by the CSS selector they live at, so the browser side
+  # is one loop over the payload rather than a switch per action.
+  DASHBOARD_REGIONS = {
+    "summary" => "tasks/manager_summary",
+    "charts" => "tasks/manager_charts",
+    "tasks" => "tasks/panel_tasks",
+    "team_hours" => "tasks/panel_team_hours",
+    "sprints" => "tasks/panel_sprints"
+  }.freeze
+
+  MY_TASKS_REGIONS = {
+    "focus" => "tasks/executive_focus",
+    "summary" => "tasks/executive_summary",
+    "tasks" => "tasks/panel_my_tasks"
+  }.freeze
+
+  def dashboard_regions(requested = nil)
+    build_regions(DASHBOARD_REGIONS, requested)
+  end
+
+  def my_tasks_regions(requested = nil)
+    build_regions(MY_TASKS_REGIONS, requested)
+  end
+
+  def build_regions(map, requested)
+    names = requested.presence&.to_s&.split(",")&.map(&:strip) || map.keys
+    map.slice(*names).transform_values do |partial|
+      render_to_string(partial: partial, formats: [:html])
+    end.transform_keys { |name| "#tm-region-#{name.tr('_', '-')}" }
+  end
+
+  def render_regions(regions, message: nil, ok: true)
+    render json: { ok: ok, message: message, regions: regions }
+  end
+
+  # A mutation reloads whichever view the request came from, so the page it
+  # updates is the page the person is looking at.
+  def respond_ok(message, view: :dashboard, fallback: nil)
+    return redirect_back(fallback_location: fallback || fallback_for(view), notice: message) unless ajax?
+
+    regions = regions_for(view)
+    render json: { ok: true, message: message, regions: regions }
+  end
+
+  def respond_error(message, view: :dashboard, status: :unprocessable_entity, fallback: nil)
+    return redirect_back(fallback_location: fallback || fallback_for(view), alert: message) unless ajax?
+
+    render json: { ok: false, error: message }, status: status
+  end
+
+  def regions_for(view)
+    if view == :my_tasks
+      load_my_tasks
+      my_tasks_regions
+    else
+      load_dashboard
+      dashboard_regions
+    end
+  end
+
+  def fallback_for(view)
+    view == :my_tasks ? my_tasks_tasks_path : dashboard_tasks_path
+  end
+
+  def tasks_tab_path
+    dashboard_tasks_path(tab: "tasks")
+  end
+
+  # --- Creation helpers -----------------------------------------------------
+
+  # Returns [task_type_id, nil] or [nil, error]. A manager can invent a task
+  # type inline instead of leaving the form to go and configure one first.
+  def resolve_task_type(attrs)
+    new_type_name = attrs.delete("new_task_type_name").to_s.strip
+    inline = attrs["task_type_id"] == "__new__" ||
+             (attrs["task_type_id"].blank? && new_type_name.present?)
+    return [attrs["task_type_id"], nil] unless inline
+    return [nil, "Enter a name for the new task type."] if new_type_name.blank?
+
+    # Reused if a type with this name already exists in the department (matches
+    # the task_types unique index on department_id + name).
+    task_type = TaskType.find_or_initialize_by(department: current_user.org_department, name: new_type_name)
+    task_type.sla_minutes = attrs["custom_sla_minutes"].presence || 0 if task_type.new_record?
+    task_type.save!
+    [task_type.id, nil]
+  end
 
   # Returns [importer, nil] or [nil, error_message]. A sprint id from another
   # department must never reach the importer, and the manager needs to be told
@@ -217,7 +361,7 @@ class TasksController < ApplicationController
 
     sprint = nil
     if params[:sprint_id].present?
-      sprint = Sprint.for_department(current_user.department_id).find_by(id: params[:sprint_id])
+      sprint = department_sprints.find_by(id: params[:sprint_id])
       return [nil, "That sprint doesn't belong to your department."] if sprint.nil?
     end
 
@@ -230,16 +374,11 @@ class TasksController < ApplicationController
     [importer, nil]
   end
 
-  # Department is the visibility boundary, not "tasks I assigned" — a manager
-  # needs to see what every executive in the department is carrying.
-  def department_tasks
-    Task.joins(:assigned_to).where(users: { department_id: current_user.department_id })
-  end
+  # --- Misc -----------------------------------------------------------------
 
-  def department_executives
-    User.employed.joins(:access_role)
-        .where(department_id: current_user.department_id, roles: { name: "Executive" })
-        .order(:name)
+  def set_period
+    @period = params[:period] == "month" ? "month" : "week"
+    @week_start = parse_week_start
   end
 
   def parse_week_start
@@ -247,6 +386,8 @@ class TasksController < ApplicationController
   end
 
   def hours_range
+    set_period if @period.blank?
+
     if @period == "month"
       @week_start.beginning_of_month.beginning_of_day..@week_start.end_of_month.end_of_day
     else
@@ -254,21 +395,19 @@ class TasksController < ApplicationController
     end
   end
 
-  # Task Manager is a role capability (Manager) gated additionally by whether
-  # the manager's own department has it turned on (Settings -> Departments in
-  # the admin panel) — some departments don't use it at all.
-  def manager_task_manager?
-    can_view?("task_manager") && current_user.org_department&.task_manager_enabled?
-  end
-
-  def require_department_task_manager
-    return if current_user.org_department&.task_manager_enabled?
-
-    redirect_to root_path, alert: "Task Manager isn't enabled for your department."
+  def previous_hours_range
+    if @period == "month"
+      previous = @week_start.beginning_of_month - 1.month
+      previous.beginning_of_month.beginning_of_day..previous.end_of_month.end_of_day
+    else
+      start = @week_start - 7.days
+      start.beginning_of_day..(start + 6.days).end_of_day
+    end
   end
 
   def set_task
-    @task = Task.find(params[:id])
+    @task = Task.find_by(id: params[:id])
+    forbid! if @task.nil?
   end
 
   # SLA is a manager-side tracking figure, deliberately left out of what the
@@ -285,10 +424,6 @@ class TasksController < ApplicationController
 
   def owns?(task)
     task.assigned_to_id == current_user.id
-  end
-
-  def forbid!
-    redirect_to root_path, alert: "You are not authorized to do that."
   end
 
   def task_params

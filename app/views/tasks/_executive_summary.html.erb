@@ -1,0 +1,65 @@
+<%# The executive's own numbers. Deliberately no comparison against colleagues
+    and no SLA verdict on work still in progress — SLA stays a manager-side
+    tracking figure, as it does everywhere else in this module. %>
+<% trend = @report.trend %>
+
+<div class="tm-grid">
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Hours you logged</h2>
+        <p class="tm-panel__sub">Last <%= Reports::ExecutiveDashboard::TREND_DAYS %> days</p>
+      </div>
+      <div class="tm-panel__tools">
+        <span class="tm-sub"><%= hours_label(@report.seconds_this_week, blank: "nothing yet") %> this week</span>
+      </div>
+    </div>
+    <div class="tm-panel__body">
+      <% if @report.seconds_this_week.zero? %>
+        <div class="tm-empty" style="padding: 2rem 1rem">
+          <p class="tm-empty__title">No time logged this week</p>
+          <p class="tm-empty__body">Start a task's timer and your hours appear here.</p>
+        </div>
+      <% else %>
+        <div class="tm-chart tm-chart--short">
+          <canvas data-tm-chart="<%= chart_spec(hours_chart_spec(trend)) %>"
+                  role="img"
+                  aria-label="<%= trend.map { |d, s| "#{d.strftime('%a')}: #{hours_label(s, blank: 'nothing')}" }.join(', ') %>"></canvas>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="tm-panel">
+    <div class="tm-panel__head">
+      <h2 class="tm-panel__title">Where your work stands</h2>
+    </div>
+    <div class="tm-panel__body">
+      <ul class="tm-rows">
+        <% TasksHelper::STATUS_ROLES.each do |status, role| %>
+          <li>
+            <span class="tm-key tm-key--<%= status %>"></span>
+            <span class="tm-rows__grow"><%= role[:label] %></span>
+            <span class="tm-rows__num <%= 'tm-muted' if @report.count_for(status).zero? %>">
+              <%= @report.count_for(status) %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+
+      <% if @report.on_time_rate.present? %>
+        <div style="margin-top: 1.1rem">
+          <div class="tm-meter-row">
+            <span class="tm-meter-row__value" data-numeric><%= @report.on_time_rate %>% inside budget</span>
+            <span class="tm-meter-row__limit">of <%= @report.completed_count %> finished</span>
+          </div>
+          <span class="tm-meter" role="img"
+                aria-label="<%= @report.on_time_rate %>% of your finished tasks landed inside their budget">
+            <span class="tm-meter__fill <%= @report.on_time_rate >= 90 ? 'tm-meter__fill--done' : (@report.on_time_rate >= 70 ? 'tm-meter__fill--warn' : 'tm-meter__fill--over') %>"
+                  style="width: <%= @report.on_time_rate %>%"></span>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  </section>
+</div>

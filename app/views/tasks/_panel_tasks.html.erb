@@ -1,0 +1,108 @@
+<%# One filter row above the table it scopes. Every control here is AJAX: the
+    server re-renders this region and the querystring is pushed, so the filtered
+    view stays shareable and the back button still works. %>
+<% filtered = params[:status].present? || params[:executive_id].present? ||
+              params[:sprint_id].present? || params[:mine] == "1" ||
+              params[:q].present? || params[:over] == "1" %>
+
+<section class="tm-panel">
+  <div class="tm-panel__head">
+    <div class="tm-seg" role="group" aria-label="Filter by status">
+      <button type="button" class="tm-seg__item <%= 'is-active' if params[:status].blank? && params[:over] != '1' %>"
+              data-tm-filter='{"status":"","over":"","mine":""}' data-tm-regions="tasks">All</button>
+      <% TasksHelper::STATUS_ROLES.each do |status, role| %>
+        <button type="button" class="tm-seg__item <%= 'is-active' if params[:status] == status %>"
+                data-tm-filter='<%= { status: status, over: "" }.to_json %>' data-tm-regions="tasks">
+          <span class="tm-key tm-key--<%= status %>"></span><%= role[:label] %>
+        </button>
+      <% end %>
+      <button type="button" class="tm-seg__item <%= 'is-active' if params[:over] == '1' %>"
+              data-tm-filter='{"over":"1","status":""}' data-tm-regions="tasks">Over budget</button>
+    </div>
+
+    <div class="tm-panel__tools">
+      <label class="tm-search">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <span class="visually-hidden">Search tasks</span>
+        <input type="search" class="tm-input" data-tm-search value="<%= params[:q] %>"
+               placeholder="Search tasks" autocomplete="off">
+      </label>
+
+      <label>
+        <span class="visually-hidden">Filter by executive</span>
+        <select class="tm-select tm-select--inline" data-tm-filter-field="executive_id" data-tm-regions="tasks">
+          <option value="">All executives</option>
+          <% @executives.each do |executive| %>
+            <option value="<%= executive.id %>" <%= "selected" if params[:executive_id].to_s == executive.id.to_s %>>
+              <%= executive.name %>
+            </option>
+          <% end %>
+        </select>
+      </label>
+
+      <% if @sprints.any? %>
+        <label>
+          <span class="visually-hidden">Filter by sprint</span>
+          <select class="tm-select tm-select--inline" data-tm-filter-field="sprint_id" data-tm-regions="tasks">
+            <option value="">All sprints</option>
+            <% @sprints.each do |sprint| %>
+              <option value="<%= sprint.id %>" <%= "selected" if params[:sprint_id].to_s == sprint.id.to_s %>>
+                <%= sprint_label(sprint) %>
+              </option>
+            <% end %>
+          </select>
+        </label>
+      <% end %>
+
+      <button type="button" class="tm-btn tm-btn--sm <%= 'tm-btn--primary' if params[:mine] == '1' %>"
+              data-tm-filter='<%= { mine: params[:mine] == "1" ? "" : "1" }.to_json %>' data-tm-regions="tasks">
+        Assigned by me
+      </button>
+    </div>
+  </div>
+
+  <% if @tasks.empty? %>
+    <div class="tm-empty">
+      <span class="tm-empty__icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+      <% if filtered %>
+        <p class="tm-empty__title">Nothing matches these filters</p>
+        <p class="tm-empty__body">Widen the search, or clear the filters to see the whole department's work.</p>
+        <button type="button" class="tm-btn tm-btn--sm"
+                data-tm-filter='{"status":"","executive_id":"","sprint_id":"","mine":"","q":"","over":""}'
+                data-tm-regions="tasks">Clear filters</button>
+      <% else %>
+        <p class="tm-empty__title">No tasks yet</p>
+        <p class="tm-empty__body">Assign the first task to an executive, or import a batch from a CSV.</p>
+        <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+                data-bs-toggle="modal" data-bs-target="#tm-new-task-modal">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>New task
+        </button>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="tm-tablewrap">
+      <table class="tm-table">
+        <thead>
+          <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Client</th>
+            <th scope="col">Executive</th>
+            <th scope="col">Status</th>
+            <th scope="col">Due</th>
+            <th scope="col" class="tm-num">Logged</th>
+            <th scope="col">Budget</th>
+            <th scope="col" class="tm-shrink"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @tasks.each do |task| %>
+            <%= render "tasks/task_row", task: task %>
+            <% task.subtasks.each do |subtask| %>
+              <%= render "tasks/task_row", task: subtask %>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</section>

@@ -37,6 +37,10 @@ resources :edit_requests, only: [:index, :create] do
 end
 resources :users, only: [:edit, :update]
 resources :tasks, only: [:index, :new, :create, :show, :update, :destroy] do
+  # The discussion thread on a task. Reached over fetch() from the task
+  # drawer, so these answer with JSON rather than redirecting.
+  resources :comments, only: [:index, :create, :update, :destroy], controller: "task_comments"
+
   collection do
     get :dashboard
     get :my_tasks

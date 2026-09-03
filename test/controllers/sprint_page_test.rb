@@ -30,9 +30,9 @@ class SprintPageTest < ActionDispatch::IntegrationTest
 
     get sprint_path(@sprint)
 
-    assert_select ".sprint-column", 4
-    assert_select ".sprint-column[data-status=pending] .task-card", 1
-    assert_select ".sprint-column[data-status=completed] .task-card", 1
+    assert_select ".tm-col", 4
+    assert_select ".tm-col[data-status=pending] .tm-card", 1
+    assert_select ".tm-col[data-status=completed] .tm-card", 1
     assert_includes response.body, "Waiting task"
   end
 
@@ -45,7 +45,7 @@ class SprintPageTest < ActionDispatch::IntegrationTest
 
     get sprint_path(@sprint)
 
-    assert_select ".sprint-people", text: /Web Exec A/
+    assert_select ".tm-people", text: /Web Exec A/
     assert_includes response.body, "3h 0m"
   end
 

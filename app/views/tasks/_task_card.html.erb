@@ -1,22 +1,36 @@
-<article class="task-card" data-task-open="<%= task.id %>" role="button" tabindex="0">
-  <div class="task-card__title"><%= task.title %></div>
-  <div class="task-card__meta">
-    <span class="task-card__who"><%= task.assigned_to&.name %></span>
-    <span class="task-card__time"><%= hours_label(task.rolled_up_duration_seconds) %></span>
-  </div>
-  <div class="task-card__foot">
-    <% if task.priority == "urgent" %>
-      <span class="task-card__flag task-card__flag--urgent">Urgent</span>
-    <% end %>
-    <% if task.over_sla? %>
-      <span class="task-card__flag task-card__flag--over">Over SLA</span>
-    <% end %>
-    <% done, total = task.subtask_progress %>
-    <% if total.positive? %>
-      <span class="task-card__flag"><i class="fa-solid fa-list-ul" aria-hidden="true"></i> <%= done %>/<%= total %></span>
-    <% end %>
-    <% if task.due_date.present? %>
-      <span class="task-card__due"><%= task.due_date.strftime("%d %b") %></span>
-    <% end %>
-  </div>
-</article>
+<button type="button" class="tm-card" data-tm-open="<%= task.id %>">
+  <span class="tm-card__title"><%= task.title %></span>
+
+  <span class="tm-card__meta">
+    <span class="tm-who"><%= task_avatar(task.assigned_to) %><%= task.assigned_to&.name %></span>
+    <span data-numeric><%= hours_label(task.rolled_up_duration_seconds, blank: "0m") %></span>
+  </span>
+
+  <% done, total = task.subtask_progress %>
+  <% flags = task.priority == "urgent" || task.over_sla? || total.positive? || task.due_date.present? %>
+  <% if flags %>
+    <span class="tm-card__flags">
+      <% if task.priority == "urgent" && !task.completed? %>
+        <span class="tm-flag tm-flag--urgent">Urgent</span>
+      <% end %>
+      <% if task.over_sla? %>
+        <span class="tm-flag tm-flag--sla">Over budget</span>
+      <% end %>
+      <% if total.positive? %>
+        <span class="tm-flag tm-flag--sub">
+          <i class="fa-solid fa-list-ul" aria-hidden="true"></i><%= done %>/<%= total %>
+        </span>
+      <% end %>
+      <% if task.comments_count.positive? %>
+        <span class="tm-flag tm-flag--sub">
+          <i class="fa-regular fa-comment" aria-hidden="true"></i><%= task.comments_count %>
+        </span>
+      <% end %>
+      <% if task.due_date.present? %>
+        <span class="tm-flag <%= task_overdue?(task) ? 'tm-flag--sla' : 'tm-flag--sub' %>">
+          <%= task_due_label(task) %>
+        </span>
+      <% end %>
+    </span>
+  <% end %>
+</button>

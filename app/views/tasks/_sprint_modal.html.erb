@@ -1,115 +1,129 @@
-<%
-  project_options = @clients.flat_map { |client| client.projects.map { |p| ["#{client.name} — #{p.name}", p.id] } }
-%>
+<%# Client / project / sprint creation. These three post normally rather than
+    over fetch(): they live in their own controllers, they are occasional
+    setup actions rather than day-to-day work, and a full reload afterwards is
+    what makes the new record show up in every sprint picker on the page. %>
+<% project_options = @clients.flat_map { |client| client.projects.map { |p| ["#{client.name} — #{p.name}", p.id] } } %>
 
-<div class="modal fade" id="newClientModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade tm-modal" id="tm-client-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <%= form_with url: clients_path, method: :post, local: true do %>
+      <%= form_with url: clients_path, method: :post, local: true, html: { data: { turbo: false } } do %>
         <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-building me-2 text-primary"></i>New Client</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h2 class="modal-title">New client</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <%= label_tag "client[name]", "Client name", class: "form-label" %>
-            <%= text_field_tag "client[name]", nil, class: "form-control", required: true %>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-client-name">Client name</label>
+            <input type="text" name="client[name]" id="tm-client-name" class="tm-input" required>
           </div>
-          <div class="mb-3">
-            <%= label_tag "client[notes]", "Notes", class: "form-label" %>
-            <%= text_area_tag "client[notes]", nil, class: "form-control", rows: 2 %>
+          <div class="tm-field">
+            <label class="tm-field__label" for="tm-client-notes">Notes</label>
+            <textarea name="client[notes]" id="tm-client-notes" class="tm-textarea" rows="2"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
-          <%= submit_tag "Create Client", class: "btn btn-primary btn-premium" %>
+          <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="tm-btn tm-btn--primary">Create client</button>
         </div>
       <% end %>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="newProjectModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade tm-modal" id="tm-project-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <%= form_with url: projects_path, method: :post, local: true do %>
+      <%= form_with url: projects_path, method: :post, local: true, html: { data: { turbo: false } } do %>
         <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-diagram-project me-2 text-primary"></i>New Project</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h2 class="modal-title">New project</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <%= label_tag "project[client_id]", "Client", class: "form-label" %>
-            <%= select_tag "project[client_id]",
-                  options_for_select(@clients.map { |c| [c.name, c.id] }),
-                  class: "form-select", required: true %>
-          </div>
-          <div class="mb-3">
-            <%= label_tag "project[name]", "Project name", class: "form-label" %>
-            <%= text_field_tag "project[name]", nil, class: "form-control", required: true,
-                  placeholder: "CRM" %>
-          </div>
-          <div class="mb-3">
-            <%= label_tag "project[status]", "Status", class: "form-label" %>
-            <%= select_tag "project[status]",
-                  options_for_select(Project::STATUSES.map { |st| [st.humanize, st] }, "active"),
-                  class: "form-select" %>
-          </div>
+          <% if @clients.empty? %>
+            <p class="tm-muted">Add a client first — a project always belongs to one.</p>
+          <% else %>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-project-client">Client</label>
+              <select name="project[client_id]" id="tm-project-client" class="tm-select" required>
+                <% @clients.each do |client| %>
+                  <option value="<%= client.id %>"><%= client.name %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-project-name">Project name</label>
+              <input type="text" name="project[name]" id="tm-project-name" class="tm-input" required
+                     placeholder="Website refresh">
+            </div>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-project-status">Status</label>
+              <select name="project[status]" id="tm-project-status" class="tm-select">
+                <%= options_for_select(Project::STATUSES.map { |st| [st.humanize, st] }, "active") %>
+              </select>
+            </div>
+          <% end %>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
-          <%= submit_tag "Create Project", class: "btn btn-primary btn-premium" %>
+          <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="tm-btn tm-btn--primary" <%= "disabled" if @clients.empty? %>>Create project</button>
         </div>
       <% end %>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="newSprintModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade tm-modal" id="tm-sprint-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <%= form_with url: sprints_path, method: :post, local: true do %>
+      <%= form_with url: sprints_path, method: :post, local: true, html: { data: { turbo: false } } do %>
         <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-flag-checkered me-2 text-primary"></i>New Sprint</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h2 class="modal-title">New sprint</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <%= label_tag "sprint[project_id]", "Project", class: "form-label" %>
-            <%= select_tag "sprint[project_id]", options_for_select(project_options),
-                  class: "form-select", required: true %>
-          </div>
-          <div class="mb-3">
-            <%= label_tag "sprint[name]", "Sprint name", class: "form-label" %>
-            <%= text_field_tag "sprint[name]", nil, class: "form-control", required: true,
-                  placeholder: "Week 1" %>
-          </div>
-          <div class="mb-3">
-            <%= label_tag "sprint[goal]", "Goal", class: "form-label" %>
-            <%= text_area_tag "sprint[goal]", nil, class: "form-control", rows: 2 %>
-          </div>
-          <div class="row g-2">
-            <div class="col-6 mb-3">
-              <%= label_tag "sprint[start_date]", "Starts", class: "form-label" %>
-              <%= date_field_tag "sprint[start_date]", Date.current.beginning_of_week,
-                    class: "form-control", required: true %>
+          <% if project_options.empty? %>
+            <p class="tm-muted">Add a client and a project first — a sprint is one cycle of a project.</p>
+          <% else %>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-sprint-project">Project</label>
+              <select name="sprint[project_id]" id="tm-sprint-project" class="tm-select" required>
+                <%= options_for_select(project_options) %>
+              </select>
             </div>
-            <div class="col-6 mb-3">
-              <%= label_tag "sprint[end_date]", "Ends", class: "form-label" %>
-              <%= date_field_tag "sprint[end_date]", Date.current.end_of_week,
-                    class: "form-control", required: true %>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-sprint-name">Sprint name</label>
+              <input type="text" name="sprint[name]" id="tm-sprint-name" class="tm-input" required
+                     placeholder="Week 1">
             </div>
-          </div>
-          <div class="mb-3">
-            <%= label_tag "sprint[status]", "Status", class: "form-label" %>
-            <%= select_tag "sprint[status]",
-                  options_for_select(Sprint::STATUSES.map { |st| [st.humanize, st] }, "active"),
-                  class: "form-select" %>
-          </div>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-sprint-goal">What is this cycle for?</label>
+              <textarea name="sprint[goal]" id="tm-sprint-goal" class="tm-textarea" rows="2"
+                        placeholder="Ship the new homepage and hand over the CMS."></textarea>
+            </div>
+            <div class="tm-field__row">
+              <div class="tm-field">
+                <label class="tm-field__label" for="tm-sprint-start">Starts</label>
+                <input type="date" name="sprint[start_date]" id="tm-sprint-start" class="tm-input" required
+                       value="<%= Date.current.beginning_of_week %>">
+              </div>
+              <div class="tm-field">
+                <label class="tm-field__label" for="tm-sprint-end">Ends</label>
+                <input type="date" name="sprint[end_date]" id="tm-sprint-end" class="tm-input" required
+                       value="<%= Date.current.end_of_week %>">
+              </div>
+            </div>
+            <div class="tm-field">
+              <label class="tm-field__label" for="tm-sprint-status">Status</label>
+              <select name="sprint[status]" id="tm-sprint-status" class="tm-select">
+                <%= options_for_select(Sprint::STATUSES.map { |st| [st.humanize, st] }, "active") %>
+              </select>
+            </div>
+          <% end %>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-premium btn-premium" data-bs-dismiss="modal">Cancel</button>
-          <%= submit_tag "Create Sprint", class: "btn btn-primary btn-premium" %>
+          <button type="button" class="tm-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="tm-btn tm-btn--primary" <%= "disabled" if project_options.empty? %>>Create sprint</button>
         </div>
       <% end %>
     </div>

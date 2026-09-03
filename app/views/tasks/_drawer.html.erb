@@ -1,0 +1,209 @@
+<%# The task sheet. Fetched into #tm-drawer-panel, so this partial renders the
+    panel's whole contents and nothing outside it.
+
+    A right-hand sheet rather than a centred modal, because the discussion
+    thread needs vertical room and the list the task came from stays visible
+    behind it. %>
+<% logged = task.rolled_up_duration_seconds %>
+<% done, total = task.subtask_progress %>
+<% comments = task.comments.sort_by(&:created_at) %>
+
+<header class="tm-drawer__head">
+  <button type="button" class="tm-btn tm-btn--icon tm-drawer__close"
+          data-tm-close-drawer-trigger aria-label="Close">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+
+  <nav class="tm-crumb" aria-label="Where this task sits">
+    <% if task.sprint.present? %>
+      <%= task.sprint.project.client.name %>
+      <span aria-hidden="true">/</span><%= task.sprint.project.name %>
+      <span aria-hidden="true">/</span><%= task.sprint.name %>
+    <% elsif task.parent.present? %>
+      Subtask of <%= task.parent.title %>
+    <% else %>
+      Internal task
+    <% end %>
+  </nav>
+
+  <h2 class="tm-drawer__title"><%= task.title %></h2>
+
+  <div class="tm-drawer__tags">
+    <%= task_status_badge(task.status) %>
+    <% if task.priority == "urgent" %><span class="tm-flag tm-flag--urgent">Urgent</span><% end %>
+    <% if task.over_sla? %>
+      <span class="tm-flag tm-flag--sla">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Over budget
+      </span>
+    <% end %>
+  </div>
+</header>
+
+<div class="tm-drawer__tabs">
+  <div class="tm-seg" role="tablist" aria-label="Task sections">
+    <button type="button" class="tm-seg__item is-active" role="tab"
+            data-tm-drawer-tab="details" aria-selected="true">Details</button>
+    <button type="button" class="tm-seg__item" role="tab"
+            data-tm-drawer-tab="comments" aria-selected="false">
+      Comments <span class="tm-seg__count" data-tm-comment-count><%= comments.size %></span>
+    </button>
+    <button type="button" class="tm-seg__item" role="tab"
+            data-tm-drawer-tab="activity" aria-selected="false">Activity</button>
+  </div>
+</div>
+
+<div class="tm-drawer__body">
+  <%# --- Details ------------------------------------------------------- %>
+  <div data-tm-drawer-panel="details">
+    <% if task.description.present? %>
+      <div class="tm-desc"><%= simple_format(task.description) %></div>
+    <% else %>
+      <p class="tm-desc tm-muted">No description was given for this task.</p>
+    <% end %>
+
+    <section class="tm-section">
+      <h3 class="tm-section__title">Time</h3>
+      <div class="tm-meter-row">
+        <span class="tm-meter-row__value" data-numeric>
+          <% if task.in_progress? %>
+            <span data-tm-timer="<%= task.started_at.iso8601 %>"
+                  data-tm-paused="<%= task.accumulated_pause_seconds %>"
+                  data-tm-budget="<%= task.sla_seconds %>"><%= hours_label(logged, blank: "0m") %></span>
+          <% else %>
+            <%= hours_label(logged, blank: "Nothing logged") %>
+          <% end %>
+        </span>
+        <span class="tm-meter-row__limit">
+          <%= task.sla_seconds.positive? ? "of #{task.formatted_sla} budgeted" : "no budget set" %>
+        </span>
+      </div>
+      <% if task.sla_seconds.positive? %>
+        <span class="tm-meter" role="img"
+              aria-label="<%= sla_percentage(task, logged) %>% of the time budget used">
+          <span class="tm-meter__fill <%= sla_meter_class(task, logged) %>"
+                style="width: <%= sla_percentage(task, logged) %>%"></span>
+        </span>
+      <% end %>
+    </section>
+
+    <section class="tm-section">
+      <h3 class="tm-section__title">Details</h3>
+      <dl class="tm-meta">
+        <div>
+          <dt>Executive</dt>
+          <dd><span class="tm-who"><%= task_avatar(task.assigned_to) %><%= task.assigned_to&.name || "—" %></span></dd>
+        </div>
+        <div>
+          <dt>Assigned by</dt>
+          <dd><span class="tm-who"><%= task_avatar(task.assigned_by) %><%= task.assigned_by&.name || "—" %></span></dd>
+        </div>
+        <div><dt>Type</dt><dd><%= task.task_type&.name || "—" %></dd></div>
+        <div><dt>Due</dt><dd><%= task.due_date&.strftime("%d %b %Y") || "No due date" %></dd></div>
+        <div><dt>Priority</dt><dd><%= task.priority.capitalize %></dd></div>
+        <div><dt>Created</dt><dd><%= task.created_at.strftime("%d %b %Y") %></dd></div>
+      </dl>
+    </section>
+
+    <% if total.positive? %>
+      <section class="tm-section">
+        <h3 class="tm-section__title">
+          Subtasks <span class="tm-muted" style="font-weight: 400"><%= done %> of <%= total %> done</span>
+        </h3>
+        <ul class="tm-rows">
+          <% task.subtasks.each do |sub| %>
+            <li>
+              <span class="tm-key tm-key--<%= sub.status %>"></span>
+              <span class="tm-rows__grow">
+                <button type="button" class="tm-title" data-tm-open="<%= sub.id %>"><%= sub.title %></button>
+                <span class="tm-sub"><%= sub.assigned_to&.name %></span>
+              </span>
+              <span class="tm-rows__num"><%= hours_label(sub.live_duration_seconds, blank: "0m") %></span>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+  </div>
+
+  <%# --- Comments ------------------------------------------------------ %>
+  <div data-tm-drawer-panel="comments" hidden>
+    <div class="tm-thread" id="tm-thread">
+      <% if comments.empty? %>
+        <p class="tm-muted">No comments yet. Start the thread below.</p>
+      <% else %>
+        <% comments.each do |comment| %>
+          <%= render "task_comments/comment", comment: comment %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <form class="tm-composer" id="tm-comment-form" data-initials="<%= initials_for(current_user) %>">
+      <label class="tm-field__label" for="tm-comment-body">Add a comment</label>
+      <textarea class="tm-textarea" id="tm-comment-body" rows="3"
+                maxlength="<%= TaskComment::MAX_LENGTH %>"
+                placeholder="Ask a question, leave an update, flag a blocker…"></textarea>
+      <div class="tm-composer__row">
+        <span class="tm-composer__hint">
+          <%= task.assigned_to_id == current_user.id ? task.assigned_by&.name : task.assigned_to&.name %>
+          is notified.
+        </span>
+        <button type="submit" class="tm-btn tm-btn--primary tm-btn--sm">Post comment</button>
+      </div>
+    </form>
+  </div>
+
+  <%# --- Activity ------------------------------------------------------ %>
+  <div data-tm-drawer-panel="activity" hidden>
+    <% sessions = task.work_sessions.to_a + task.subtasks.flat_map { |s| s.work_sessions.to_a } %>
+    <% by_day = sessions.group_by { |s| s.started_at.in_time_zone.to_date }.sort.reverse %>
+
+    <% if by_day.empty? %>
+      <div class="tm-empty" style="padding: 2rem 0">
+        <p class="tm-empty__title">No time logged yet</p>
+        <p class="tm-empty__body">
+          Sessions appear here as soon as the executive starts the timer.
+        </p>
+      </div>
+    <% else %>
+      <ul class="tm-rows">
+        <% by_day.each do |day, rows| %>
+          <li>
+            <span class="tm-rows__grow">
+              <span class="tm-strong"><%= day.strftime("%a %d %b %Y") %></span>
+              <span class="tm-sub"><%= rows.map { |r| r.user&.name }.compact.uniq.join(", ") %></span>
+            </span>
+            <span class="tm-rows__num"><%= hours_label(rows.sum(&:duration_seconds), blank: "0m") %></span>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <% if task.paused? && task.reason.present? %>
+      <div class="tm-note" style="margin-top: 1rem">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>Paused: <%= task.reason %></span>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% if manager %>
+  <footer class="tm-drawer__foot">
+    <button type="button" class="tm-btn tm-btn--danger tm-btn--sm"
+            data-tm-action="<%= task_path(task) %>" data-tm-method="DELETE"
+            data-tm-confirm="Delete “<%= task.title %>”<%= total.positive? ? " and its #{total} subtask#{'s' if total > 1}" : '' %>? This cannot be undone.">
+      <i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete
+    </button>
+    <span class="tm-spacer"></span>
+    <button type="button" class="tm-btn tm-btn--sm" data-tm-close-drawer-trigger>Close</button>
+    <button type="button" class="tm-btn tm-btn--primary tm-btn--sm"
+            data-tm-edit="<%= task.id %>"
+            data-task='<%= { title: task.title, description: task.description,
+                             assigned_to_id: task.assigned_to_id, task_type_id: task.task_type_id,
+                             sprint_id: task.sprint_id, priority: task.priority,
+                             due_date: task.due_date&.to_s, custom_sla_minutes: task.custom_sla_minutes,
+                             parent_id: task.parent_id }.to_json %>'>
+      Edit task
+    </button>
+  </footer>
+<% end %>

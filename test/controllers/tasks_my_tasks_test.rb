@@ -13,8 +13,8 @@ class TasksMyTasksTest < ActionDispatch::IntegrationTest
     get my_tasks_tasks_path
 
     assert_response :success
-    assert_equal 2, css_select(".task-row").size, "parent and child should both render"
-    assert_equal 1, css_select(".subtask-nest .task-row").size, "the child should be nested"
+    assert_equal 2, css_select(".tm-item").size, "parent and child should both render"
+    assert_equal 1, css_select(".tm-item--sub").size, "the child should be nested"
     assert_equal 1, response.body.scan("Nested child").size, "and rendered exactly once"
   end
 
@@ -25,7 +25,7 @@ class TasksMyTasksTest < ActionDispatch::IntegrationTest
 
     get my_tasks_tasks_path
 
-    assert_select ".subtask-nest form[action=?]", start_task_path(child)
+    assert_select ".tm-item--sub [data-tm-action=?]", start_task_path(child)
   end
 
   test "a subtask whose parent belongs to another executive still appears" do

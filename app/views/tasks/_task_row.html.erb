@@ -1,92 +1,151 @@
-<tr class="<%= task.parent_id.present? ? 'task-row--sub' : 'task-row--top' %>">
+<% logged = task.subtask? ? task.live_duration_seconds : task.rolled_up_duration_seconds %>
+<% done, total = task.subtask_progress %>
+
+<tr class="tm-row <%= 'tm-row--sub' if task.subtask? %> <%= 'is-going' if task.in_progress? %>">
   <td>
-    <div class="task-cell">
-      <% if task.parent_id.present? %>
-        <i class="fa-solid fa-turn-up fa-rotate-90 text-muted me-2 small" aria-hidden="true"></i>
-      <% end %>
-      <button type="button" class="task-open" data-task-open="<%= task.id %>">
-        <%= task.title %>
-      </button>
-      <% if task.parent_id.blank? %>
-        <% done, total = task.subtask_progress %>
+    <div class="tm-stack">
+      <div class="tm-inline">
+        <button type="button" class="tm-title" data-tm-open="<%= task.id %>">
+          <%= task.title %>
+        </button>
+        <% if task.priority == "urgent" && !task.completed? %>
+          <span class="tm-flag tm-flag--urgent">Urgent</span>
+        <% end %>
+        <% if task.over_sla? %>
+          <span class="tm-flag tm-flag--sla">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Over budget
+          </span>
+        <% end %>
         <% if total.positive? %>
-          <span class="task-subcount" title="<%= done %> of <%= total %> subtasks done">
+          <span class="tm-flag tm-flag--sub" title="<%= done %> of <%= total %> subtasks done">
             <i class="fa-solid fa-list-ul" aria-hidden="true"></i><%= done %>/<%= total %>
           </span>
         <% end %>
+        <span class="tm-flag tm-flag--sub" data-tm-comment-badge="<%= task.id %>"
+              <%= "hidden" if task.comments_count.zero? %>>
+          <i class="fa-regular fa-comment" aria-hidden="true"></i><span data-tm-comment-badge-value><%= task.comments_count %></span>
+        </span>
+      </div>
+      <% if task.description.present? %>
+        <span class="tm-sub"><%= truncate(task.description, length: 72) %></span>
       <% end %>
     </div>
-    <% if task.description.present? %>
-      <div class="text-muted small"><%= truncate(task.description, length: 60) %></div>
-    <% end %>
   </td>
-  <td class="task-client">
+
+  <td class="tm-client">
     <% if task.sprint.present? %>
-      <div class="fw-semibold"><%= task.sprint.project.client.name %></div>
-      <div class="text-muted small"><%= task.sprint.project.name %> · <%= task.sprint.name %></div>
+      <div class="tm-stack">
+        <span class="tm-strong"><%= task.sprint.project.client.name %></span>
+        <span class="tm-sub"><%= task.sprint.project.name %> / <%= task.sprint.name %></span>
+      </div>
     <% else %>
-      —
+      <span class="tm-muted">Internal</span>
     <% end %>
   </td>
-  <td><%= task.assigned_to&.name %></td>
-  <td><%= task.task_type&.name %> · <%= task.formatted_sla %></td>
-  <td><span class="pill pill--<%= task.status %>"><%= task.status.humanize %></span></td>
-  <td><%= task.priority.capitalize %></td>
-  <td><%= task.due_date&.strftime("%d %b %Y") || "—" %></td>
-  <td><%= task.formatted_duration(task.parent_id.blank? ? task.rolled_up_duration_seconds : task.live_duration_seconds) %></td>
-  <td class="text-end">
-    <div class="dropdown task-actions">
-      <button class="btn btn-sm task-actions__toggle" type="button" data-bs-toggle="dropdown"
+
+  <td>
+    <span class="tm-who">
+      <%= task_avatar(task.assigned_to) %><%= task.assigned_to&.name %>
+    </span>
+  </td>
+
+  <td><%= task_status_badge(task.status) %></td>
+
+  <td>
+    <% if task.due_date.blank? %>
+      <span class="tm-muted">—</span>
+    <% else %>
+      <span class="<%= 'tm-flag tm-flag--sla' if task_overdue?(task) %>"><%= task_due_label(task) %></span>
+    <% end %>
+  </td>
+
+  <td class="tm-num">
+    <% if task.in_progress? %>
+      <span class="tm-strong" data-tm-timer="<%= task.started_at.iso8601 %>"
+            data-tm-paused="<%= task.accumulated_pause_seconds %>"
+            data-tm-budget="<%= task.sla_seconds %>"><%= hours_label(logged, blank: "0m") %></span>
+    <% else %>
+      <span class="<%= 'tm-muted' if logged.zero? %>"><%= hours_label(logged, blank: "0m") %></span>
+    <% end %>
+  </td>
+
+  <td>
+    <% if task.sla_seconds.zero? %>
+      <span class="tm-muted">No budget</span>
+    <% else %>
+      <div style="min-width: 6.5rem">
+        <span class="tm-sub"><%= task.formatted_sla %></span>
+        <span class="tm-meter" role="img"
+              aria-label="<%= sla_percentage(task, logged) %>% of the time budget used">
+          <span class="tm-meter__fill <%= sla_meter_class(task, logged) %>"
+                style="width: <%= sla_percentage(task, logged) %>%"></span>
+        </span>
+      </div>
+    <% end %>
+  </td>
+
+  <td class="tm-shrink">
+    <div class="dropdown">
+      <button class="tm-btn tm-btn--icon" type="button" data-bs-toggle="dropdown"
               data-bs-boundary="viewport" aria-expanded="false"
               aria-label="Actions for <%= task.title %>">
         <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end task-actions__menu">
+      <ul class="dropdown-menu dropdown-menu-end tm-menu">
         <li>
-          <button type="button" class="dropdown-item" data-task-open="<%= task.id %>">
-            <i class="fa-regular fa-eye" aria-hidden="true"></i>Open details
+          <button type="button" class="dropdown-item" data-tm-open="<%= task.id %>">
+            <i class="fa-regular fa-eye" aria-hidden="true"></i>Open task
           </button>
         </li>
         <li>
-          <button type="button" class="dropdown-item" data-task-edit="<%= task.id %>">
-            <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>Edit
+          <button type="button" class="dropdown-item" data-tm-edit="<%= task.id %>"
+                  data-task='<%= { title: task.title, description: task.description,
+                                   assigned_to_id: task.assigned_to_id, task_type_id: task.task_type_id,
+                                   sprint_id: task.sprint_id, priority: task.priority,
+                                   due_date: task.due_date&.to_s, custom_sla_minutes: task.custom_sla_minutes,
+                                   parent_id: task.parent_id }.to_json %>'>
+            <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>Edit task
           </button>
         </li>
-        <% if task.parent_id.blank? %>
+        <% unless task.subtask? %>
           <li>
-            <button type="button" class="dropdown-item" data-task-add-subtask="<%= task.id %>"
-                    data-task-title="<%= task.title %>">
-              <i class="fa-solid fa-list-ul" aria-hidden="true"></i>Add subtask
+            <button type="button" class="dropdown-item" data-tm-add-subtask="<%= task.id %>"
+                    data-task-title="<%= task.title %>"
+                    data-task='<%= { assigned_to_id: task.assigned_to_id, task_type_id: task.task_type_id,
+                                     sprint_id: task.sprint_id }.to_json %>'>
+              <i class="fa-solid fa-list-ul" aria-hidden="true"></i>Add a subtask
             </button>
           </li>
         <% end %>
-        <% if @sprints.present? && task.parent_id.blank? %>
+
+        <% if @sprints.present? && !task.subtask? %>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header">Move to sprint</li>
           <% if task.sprint_id.present? %>
             <li>
-              <%= button_to task_path(task), method: :patch, class: "dropdown-item",
-                    form: { data: { turbo: false } }, params: { task: { sprint_id: "" } } do %>
-                Remove from sprint
-              <% end %>
+              <button type="button" class="dropdown-item" data-tm-action="<%= task_path(task) %>"
+                      data-tm-method="PATCH" data-tm-params='{"task":{"sprint_id":""}}'>
+                Take out of the sprint
+              </button>
             </li>
           <% end %>
-          <% @sprints.reject { |s| s.id == task.sprint_id }.first(6).each do |sprint| %>
+          <% @sprints.reject { |s| s.id == task.sprint_id }.first(5).each do |sprint| %>
             <li>
-              <%= button_to task_path(task), method: :patch, class: "dropdown-item",
-                    form: { data: { turbo: false } }, params: { task: { sprint_id: sprint.id } } do %>
-                <%= sprint.project.client.name %> · <%= sprint.name %>
-              <% end %>
+              <button type="button" class="dropdown-item" data-tm-action="<%= task_path(task) %>"
+                      data-tm-method="PATCH" data-tm-params='<%= { task: { sprint_id: sprint.id } }.to_json %>'>
+                <%= sprint.project.client.name %> / <%= sprint.name %>
+              </button>
             </li>
           <% end %>
         <% end %>
+
         <li><hr class="dropdown-divider"></li>
         <li>
-          <%= button_to task_path(task), method: :delete, class: "dropdown-item dropdown-item--danger",
-                form: { data: { turbo: false } },
-                data: { confirm: "Delete \"#{task.title}\"? This cannot be undone." } do %>
-            <i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete
-          <% end %>
+          <button type="button" class="dropdown-item dropdown-item--danger"
+                  data-tm-action="<%= task_path(task) %>" data-tm-method="DELETE"
+                  data-tm-confirm="Delete “<%= task.title %>”<%= total.positive? ? " and its #{total} subtask#{'s' if total > 1}" : '' %>? This cannot be undone.">
+            <i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete task
+          </button>
         </li>
       </ul>
     </div>

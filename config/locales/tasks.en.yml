@@ -1,0 +1,33 @@
+# Validation copy for the Task Manager module. Rails' defaults surface the
+# column name and "must exist", which reads as a developer message: a manager
+# who leaves the assignee blank was told "Assigned to must exist". These name
+# the field as the form labels it and say what to do about it.
+en:
+  activerecord:
+    attributes:
+      task:
+        assigned_to: "Executive"
+        assigned_by: "Manager"
+        task_type: "Task type"
+        custom_sla_minutes: "Time budget"
+        due_date: "Due date"
+        sprint: "Client work"
+      task_comment:
+        body: "Comment"
+    errors:
+      models:
+        task:
+          attributes:
+            assigned_to:
+              required: "needs choosing"
+              blank: "needs choosing"
+            task_type:
+              required: "needs choosing"
+              blank: "needs choosing"
+            title:
+              blank: "is needed — say what has to be done"
+        task_comment:
+          attributes:
+            body:
+              blank: "cannot be empty"
+              too_long: "is too long (keep it under %{count} characters)"

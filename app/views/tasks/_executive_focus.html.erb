@@ -1,0 +1,112 @@
+<%# The module's hero. What is running right now, with the clock at display
+    size — this is the one thing an executive opens the page to see. When
+    nothing is running the panel becomes the invitation to start something,
+    rather than an empty box. %>
+<% running = @report.running_task %>
+
+<% if running.present? %>
+  <% logged = running.live_duration_seconds %>
+  <section class="tm-focus" aria-label="Currently running">
+    <div class="tm-focus__main">
+      <span class="tm-focus__state">
+        <span class="tm-focus__pulse" aria-hidden="true"></span>Running now
+      </span>
+      <h2 class="tm-focus__title"><%= running.title %></h2>
+
+      <div class="tm-focus__meta">
+        <span class="tm-who"><%= task_avatar(running.assigned_by) %>from <%= running.assigned_by.name %></span>
+        <span><i class="fa-solid fa-tag" aria-hidden="true"></i> <%= running.task_type.name %></span>
+        <% if running.sprint.present? %>
+          <span><i class="fa-solid fa-flag" aria-hidden="true"></i> <%= sprint_label(running.sprint) %></span>
+        <% end %>
+        <% if running.due_date.present? %>
+          <span class="<%= 'tm-flag tm-flag--sla' if task_overdue?(running) %>"><%= task_due_label(running) %></span>
+        <% end %>
+        <% if running.priority == "urgent" %>
+          <span class="tm-flag tm-flag--urgent">Urgent</span>
+        <% end %>
+      </div>
+
+      <% if running.description.present? %>
+        <p class="tm-desc" style="margin: 0.8rem 0 0; max-width: 60ch"><%= running.description %></p>
+      <% end %>
+    </div>
+
+    <div class="tm-focus__side">
+      <span class="tm-timer" data-tm-timer="<%= running.started_at.iso8601 %>"
+            data-tm-paused="<%= running.accumulated_pause_seconds %>"
+            data-tm-budget="<%= running.sla_seconds %>"
+            data-tm-seconds="1"
+            aria-live="off"><%= hours_label(logged, blank: "0m") %></span>
+
+      <% if running.sla_seconds.positive? %>
+        <div class="tm-timer__budget"><%= running.formatted_sla %> budgeted</div>
+        <span class="tm-meter" style="margin-top: 0.5rem" role="img"
+              aria-label="<%= sla_percentage(running, logged) %>% of the budget used">
+          <span class="tm-meter__fill <%= sla_meter_class(running, logged) %>"
+                style="width: <%= sla_percentage(running, logged) %>%"></span>
+        </span>
+      <% else %>
+        <div class="tm-timer__budget">No time budget set</div>
+      <% end %>
+
+      <div class="tm-focus__actions">
+        <button type="button" class="tm-btn tm-btn--hold"
+                data-bs-toggle="modal" data-bs-target="#tm-pause-modal"
+                data-tm-pause-url="<%= pause_task_path(running) %>"
+                data-tm-pause-title="<%= running.title %>">
+          <i class="fa-solid fa-pause" aria-hidden="true"></i>Pause
+        </button>
+        <button type="button" class="tm-btn tm-btn--done"
+                data-tm-action="<%= complete_task_path(running) %>" data-tm-method="POST"
+                data-tm-confirm="Mark “<%= running.title %>” as done? The timer stops and the total is recorded.">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>Complete
+        </button>
+      </div>
+    </div>
+  </section>
+
+<% else %>
+  <% next_up = @report.next_up %>
+  <% resume = @report.paused_tasks.first %>
+  <section class="tm-focus tm-focus--idle" aria-label="Nothing running">
+    <div class="tm-focus__main">
+      <span class="tm-focus__state" style="color: var(--tm-ink-3)">Timer stopped</span>
+      <% if resume.present? %>
+        <h2 class="tm-focus__title">You paused “<%= resume.title %>”</h2>
+        <div class="tm-focus__meta">
+          <span><%= hours_label(resume.live_duration_seconds, blank: "nothing") %> logged so far</span>
+          <% if resume.reason.present? %><span class="tm-muted">Reason: <%= resume.reason %></span><% end %>
+        </div>
+      <% elsif next_up.present? %>
+        <h2 class="tm-focus__title">Up next: <%= next_up.title %></h2>
+        <div class="tm-focus__meta">
+          <span><i class="fa-solid fa-tag" aria-hidden="true"></i> <%= next_up.task_type.name %></span>
+          <span><%= task_due_label(next_up) %></span>
+          <% if next_up.priority == "urgent" %><span class="tm-flag tm-flag--urgent">Urgent</span><% end %>
+        </div>
+      <% else %>
+        <h2 class="tm-focus__title">Nothing waiting on you</h2>
+        <div class="tm-focus__meta"><span>Every task assigned to you is finished.</span></div>
+      <% end %>
+    </div>
+
+    <div class="tm-focus__side">
+      <span class="tm-timer tm-muted">0:00:00</span>
+      <div class="tm-timer__budget"><%= hours_label(@report.seconds_today, blank: "Nothing") %> logged today</div>
+      <div class="tm-focus__actions">
+        <% if resume.present? %>
+          <button type="button" class="tm-btn tm-btn--go"
+                  data-tm-action="<%= resume_task_path(resume) %>" data-tm-method="POST">
+            <i class="fa-solid fa-play" aria-hidden="true"></i>Resume
+          </button>
+        <% elsif next_up.present? %>
+          <button type="button" class="tm-btn tm-btn--go"
+                  data-tm-action="<%= start_task_path(next_up) %>" data-tm-method="POST">
+            <i class="fa-solid fa-play" aria-hidden="true"></i>Start this task
+          </button>
+        <% end %>
+      </div>
+    </div>
+  </section>
+<% end %>
