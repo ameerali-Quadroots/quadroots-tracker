@@ -933,12 +933,17 @@
       // actions menu, a Start button, a link — keeps its own behaviour. When
       // the clickable element IS the control (a title button, a board card),
       // there is nothing nested and the row wins.
+      //
+      // A nested control must FALL THROUGH to the branches below rather than
+      // leave the listener: every row action (Start, Resume, Complete, the
+      // dropdown items) is a button inside a [data-tm-open] row, so returning
+      // here swallowed the click and the button did nothing at all.
       var control = target.closest("a, button, select, input, textarea, label, .dropdown");
-      if (control && control !== open && open.contains(control)) { return; }
-
-      event.preventDefault();
-      drawer.open(open.getAttribute("data-tm-open"));
-      return;
+      if (!control || control === open || !open.contains(control)) {
+        event.preventDefault();
+        drawer.open(open.getAttribute("data-tm-open"));
+        return;
+      }
     }
 
     if (target.closest("[data-tm-close-drawer-trigger]") ||

@@ -52,6 +52,10 @@ end
   # moment - otherwise the break row stays open forever, on_break? never flips
   # back and every later duration calculation ignores that break entirely.
   # Used by manual clock out and by AutoClockJob at 4am.
+  #
+  # Task timers stop here too, and outside the transaction: the shift is closed
+  # either way, so a task that refuses to pause is logged rather than allowed to
+  # roll back a clock-out the employee has already been told succeeded.
   def close_out!(at: Time.zone.now)
     transaction do
       open_breaks.each { |b| b.update!(break_out: [at, b.break_in].max) }
@@ -65,6 +69,8 @@ end
         current_state: "off"
       )
     end
+
+    TaskBreakSync.pause_for_clock_out(employee)
   end
 
 

@@ -145,21 +145,28 @@ class TasksController < ApplicationController
 
   # --- The executive's timer ------------------------------------------------
   #
-  # Only one task may run at a time, so start and resume both have to check for
-  # an existing runner before they change anything.
+  # Only one task may run at a time. Start and resume therefore pause whatever
+  # was running instead of refusing: the executive clicking Start has already
+  # said unambiguously which task they mean, and sending them back to pause the
+  # old one first was three clicks to say the same thing twice.
+  #
+  # The transition is checked BEFORE the switch, so a click that cannot succeed
+  # never stops the clock on the task that was legitimately running.
 
   def start
     return forbid! unless owns?(@task)
-    return respond_error(BUSY_MESSAGE, view: :my_tasks) if another_task_running?
+    return respond_error("This task cannot be started.", view: :my_tasks) unless @task.may_start?
 
-    guarded_transition(:start!, "Started “#{@task.title}”.", "This task cannot be started.")
+    switched = pause_running_task
+    guarded_transition(:start!, timer_message("Started", switched), "This task cannot be started.")
   end
 
   def resume
     return forbid! unless owns?(@task)
-    return respond_error(BUSY_MESSAGE, view: :my_tasks) if another_task_running?
+    return respond_error("This task cannot be resumed.", view: :my_tasks) unless @task.may_resume?
 
-    guarded_transition(:resume!, "Resumed “#{@task.title}”.", "This task cannot be resumed.")
+    switched = pause_running_task
+    guarded_transition(:resume!, timer_message("Resumed", switched), "This task cannot be resumed.")
   end
 
   def pause
@@ -227,10 +234,21 @@ class TasksController < ApplicationController
     end
   end
 
-  BUSY_MESSAGE = "Finish or pause your current task before starting another.".freeze
+  # Steps the running task aside so this one can take the clock. Paused as a
+  # manual pause (auto: false) on purpose — switching is the executive's own
+  # decision, and only a break-triggered pause may be auto-resumed later.
+  # Returns the task that was paused, or nil when nothing was running.
+  def pause_running_task
+    running = Task.for_executive(current_user).in_progress.where.not(id: @task.id).first
+    return nil if running.nil? || !running.pause!(reason: "Switched to “#{@task.title}”")
 
-  def another_task_running?
-    Task.for_executive(current_user).in_progress.where.not(id: @task.id).exists?
+    running
+  end
+
+  def timer_message(verb, switched)
+    return "#{verb} “#{@task.title}”." if switched.nil?
+
+    "Paused “#{switched.title}” and #{verb.downcase} “#{@task.title}”."
   end
 
   def guarded_transition(action, success, failure)
