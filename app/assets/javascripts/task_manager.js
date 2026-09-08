@@ -843,11 +843,67 @@
             function () { busy(submit, false); });
   }
 
+  /* Bootstrap's Modal.hide() is a no-op while the dialog is still animating
+     open — it returns early and the backdrop it put over the page stays there
+     for good, swallowing every click behind it. That is how pausing a task
+     used to leave the executive unable to start another one: the pause landed,
+     the list updated underneath, and the invisible backdrop ate the next
+     click. So a close asked for mid-animation is remembered and carried out
+     the moment the dialog has finished opening. */
+
+  var MODAL_OPENING = "data-tm-opening";
+  var MODAL_CLOSE_PENDING = "data-tm-close-pending";
+
   function closeModal(modal) {
     if (!modal || !window.bootstrap) { return; }
     var instance = bootstrap.Modal.getInstance(modal);
-    if (instance) { instance.hide(); }
+    if (!instance) { return; }
+
+    if (modal.hasAttribute(MODAL_OPENING)) {
+      // Don't sit through the rest of the animation — end it now. Bootstrap
+      // considers the dialog open the moment the dialog's own transition ends,
+      // which fires the listener below and closes it in the same breath.
+      modal.setAttribute(MODAL_CLOSE_PENDING, "");
+      var dialog = $(".modal-dialog", modal);
+      if (dialog) { dialog.dispatchEvent(new Event("transitionend")); }
+      return;
+    }
+    instance.hide();
   }
+
+  // Bootstrap's own events bubble, so one pair of listeners covers every
+  // dialog on the page.
+  document.addEventListener("show.bs.modal", function (event) {
+    event.target.setAttribute(MODAL_OPENING, "");
+    event.target.removeAttribute(MODAL_CLOSE_PENDING);
+  });
+
+  document.addEventListener("shown.bs.modal", function (event) {
+    var modal = event.target;
+    modal.removeAttribute(MODAL_OPENING);
+    if (modal.hasAttribute(MODAL_CLOSE_PENDING)) {
+      modal.removeAttribute(MODAL_CLOSE_PENDING);
+      closeModal(modal);
+    }
+  });
+
+  // Bootstrap's own dismissals — the X, "Keep working", Escape, a click on the
+  // backdrop — call the same hide() and are refused in the same window, so
+  // they are queued the same way. Outside that window this does nothing and
+  // Bootstrap closes the dialog itself.
+  document.addEventListener("click", function (event) {
+    var modal = event.target.closest(".modal[" + MODAL_OPENING + "]");
+    if (!modal) { return; }
+    if (event.target === modal || event.target.closest('[data-bs-dismiss="modal"]')) {
+      closeModal(modal);
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") { return; }
+    var modal = $(".modal[" + MODAL_OPENING + "]");
+    if (modal) { closeModal(modal); }
+  });
 
   function runAction(trigger) {
     var confirmMessage = trigger.getAttribute("data-tm-confirm");
