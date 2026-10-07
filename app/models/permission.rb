@@ -15,7 +15,9 @@ class Permission < ApplicationRecord
     "Department"   => "Departments",
     "ApprovalFlow" => "Approval Flows",
     "AppSetting"   => "Request Limits",
-    "TaskType"     => "Task Types"
+    "TaskType"     => "Task Types",
+    # Not a model: gates the read-only KPI page (see Ability). Only "read" does anything.
+    "Kpi"          => "KPI"
   }.freeze
 
   # Named screens in the employee-facing app. These replace the hardcoded

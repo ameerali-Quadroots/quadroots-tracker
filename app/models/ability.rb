@@ -19,6 +19,7 @@ class Ability
     # nobody is locked out mid-rollout.
     if role.nil?
       can :read, :all
+      can :export, ActiveAdmin::Page, name: "KPI"
       return
     end
 
@@ -41,6 +42,14 @@ class Ability
     can :read, ActiveAdmin::Page
     can :live_state, ActiveAdmin::Page
     can :monthly_overview, ActiveAdmin::Page
+
+    # The KPI page is the exception: it is gated by its own "Read KPI" box in
+    # the matrix, which also covers its Excel export page_action.
+    if role.can?(:read, "Kpi")
+      can :export, ActiveAdmin::Page, name: "KPI"
+    else
+      cannot :read, ActiveAdmin::Page, name: "KPI"
+    end
   end
 
   private

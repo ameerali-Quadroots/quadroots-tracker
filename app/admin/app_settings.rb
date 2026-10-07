@@ -3,13 +3,17 @@ ActiveAdmin.register AppSetting do
 
   actions :index, :edit, :update
 
-  permit_params :edit_request_monthly_limit
+  permit_params :edit_request_monthly_limit, :late_kpi_monthly_limit
 
   form do |f|
     f.semantic_errors(*f.object.errors.attribute_names)
     f.inputs "Edit request limits" do
       f.input :edit_request_monthly_limit, label: "Monthly limit per employee",
               hint: "Maximum number of time-clock edit requests an employee may submit in a calendar month."
+    end
+    f.inputs "KPI" do
+      f.input :late_kpi_monthly_limit, label: "Allowed lates per month",
+              hint: "An employee with more late arrivals than this in a calendar month is flagged as KPI deducted."
     end
     f.actions
   end

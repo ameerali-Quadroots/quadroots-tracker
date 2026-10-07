@@ -1,5 +1,5 @@
 class AppSetting < ApplicationRecord
-  validates :edit_request_monthly_limit, presence: true,
+  validates :edit_request_monthly_limit, :late_kpi_monthly_limit, presence: true,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   # There's only ever one row; find it (creating with defaults if missing)
