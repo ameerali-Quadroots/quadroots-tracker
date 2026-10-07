@@ -28,6 +28,10 @@ module Reports
       end.sort_by { |row| [row.kpi_deducted ? 0 : 1, row.department, row.user.name.to_s] }
     end
 
+    def flagged_rows
+      rows.select(&:kpi_deducted)
+    end
+
     def department_summary
       @department_summary ||= rows.group_by(&:department).sort.map do |department, dept_rows|
         Summary.new(department: department,

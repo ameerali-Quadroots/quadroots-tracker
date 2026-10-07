@@ -41,9 +41,17 @@
                      options_for_select(department_options, params[:department]),
                      include_blank: "All departments", id: "kpi_department" %>
     </div>
+    <div>
+      <label for="kpi_show">Show</label>
+      <%= select_tag :show,
+                     options_for_select([["KPI deducted only", "flagged"], ["All employees", "all"]],
+                                        show_all ? "all" : "flagged"),
+                     id: "kpi_show" %>
+    </div>
     <%= submit_tag "Apply", name: nil, class: "button" %>
     <%= link_to "Export Excel",
-                admin_kpi_export_path(month: month_param, department: params[:department].presence),
+                admin_kpi_export_path(month: month_param, department: params[:department].presence,
+                                      show: ("all" if show_all)),
                 class: "button kpi-export" %>
   <% end %>
 
@@ -57,7 +65,7 @@
   <div class="panel">
     <h3>Department summary</h3>
     <div class="table-wrap">
-      <table>
+      <table class="kpi-summary">
         <thead>
           <tr>
             <th>Department</th>
@@ -94,9 +102,9 @@
   </div>
 
   <div class="panel">
-    <h3>Employees</h3>
+    <h3><%= show_all ? "All employees" : "KPI deducted employees" %></h3>
     <div class="table-wrap">
-      <table>
+      <table class="kpi-employees">
         <thead>
           <tr>
             <th>Employee</th>
@@ -108,7 +116,7 @@
           </tr>
         </thead>
         <tbody>
-          <% report.rows.each do |row| %>
+          <% employee_rows.each do |row| %>
             <tr class="<%= 'kpi-flagged' if row.kpi_deducted %>">
               <td><%= row.user.name %></td>
               <td><%= row.department %></td>
@@ -127,5 +135,10 @@
         </tbody>
       </table>
     </div>
+    <% if employee_rows.empty? %>
+      <div class="kpi-empty">
+        <%= show_all ? "No employees in the departments you can view." : "No one is over the late limit for this month." %>
+      </div>
+    <% end %>
   </div>
 </div>

@@ -2,7 +2,7 @@ ActiveAdmin.register_page "KPI" do
   menu label: "KPI", priority: 6
 
   controller do
-    helper_method :kpi_report, :kpi_month, :kpi_department_options
+    helper_method :kpi_report, :kpi_month, :kpi_department_options, :kpi_show_all?, :kpi_employee_rows
 
     private
 
@@ -25,6 +25,15 @@ ActiveAdmin.register_page "KPI" do
         end
     end
 
+    # Only flagged employees are listed unless ?show=all is chosen.
+    def kpi_show_all?
+      params[:show] == "all"
+    end
+
+    def kpi_employee_rows
+      kpi_show_all? ? kpi_report.rows : kpi_report.flagged_rows
+    end
+
     def kpi_report
       @kpi_report ||= begin
         departments =
@@ -43,10 +52,12 @@ ActiveAdmin.register_page "KPI" do
 
   content title: "KPI" do
     render partial: "admin/kpi/report",
-           locals: { report: kpi_report, month: kpi_month, department_options: kpi_department_options }
+           locals: { report: kpi_report, month: kpi_month, department_options: kpi_department_options,
+                     employee_rows: kpi_employee_rows, show_all: kpi_show_all? }
   end
 
   # Export the month being viewed as XLSX: department summary + per-employee sheet.
+  # The employee sheet follows the same flagged-only / all filter as the screen.
   page_action :export, method: :get do
     require 'caxlsx'
 
@@ -67,7 +78,7 @@ ActiveAdmin.register_page "KPI" do
 
     workbook.add_worksheet(name: "Employees") do |sheet|
       sheet.add_row ["Employee", "Department", "Shift Time", "Lates", "Allowed Lates", "KPI Deducted"]
-      report.rows.each do |row|
+      kpi_employee_rows.each do |row|
         sheet.add_row [
           row.user.name,
           row.department,
