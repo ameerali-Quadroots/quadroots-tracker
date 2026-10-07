@@ -77,7 +77,8 @@ end
       return render plain: "Invalid date", status: 400
     end
 
-    @time_clock = current_user.time_clocks.find_by(clock_in: date.beginning_of_day..date.end_of_day)
+    # The shift that started on this day, even if the clock-in came after midnight.
+    @time_clock = current_user.time_clocks.on_shift_dates(date..date).min_by(&:clock_in)
 
     if @time_clock.nil?
       return render plain: "No time clock record found for #{@date}", status: 404

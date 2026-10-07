@@ -1,21 +1,15 @@
+<%# Live status of everyone below this manager. Refreshed in place every 15 seconds. %>
 <div class="dashboard-container">
   <div class="particles" id="particles-js"></div>
-  
-  <div class="dashboard-glass" style="min-height: 100vh;">
-    <div class="glass-decoration glass-1"></div>
-    <div class="glass-decoration glass-2"></div>
-    <div class="glass-decoration glass-3"></div>
-    
-    <!-- Header -->
+
+  <div class="dashboard-glass">
     <%= render 'dashboard/header' %>
-    
-    <div class="row mt-4">
-      <div class="col-12">
-        <div class="dashboard-card border-0 shadow-sm" style="border-radius: 12px; background: #ffffff; overflow: hidden;" id="manager-status-container">
-          <%= render 'dashboard/manager_executives_status' %>
-        </div>
+
+    <section class="home-section">
+      <div class="dashboard-card" id="manager-status-container">
+        <%= render 'dashboard/manager_executives_status' %>
       </div>
-    </div>
+    </section>
   </div>
 </div>
 

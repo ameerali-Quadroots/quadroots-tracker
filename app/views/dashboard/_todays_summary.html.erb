@@ -1,3 +1,5 @@
+<%# Today's four figures. The day's breaks are listed further down the page
+    (dashboard/_insights), and only while a shift is open. %>
 <div class="summary-grid">
   <div class="summary-item">
     <div class="summary-icon">
@@ -52,33 +54,3 @@
     </div>
   </div>
 </div>
-
-<!-- Breaks List -->
-<% if @time_clock&.breaks.present? %>
-  <div class="breaks-section">
-    <h6 class="fw-bold mb-3 text-dark">
-      <i class="bi bi-list-check me-2"></i>Breaks Today
-    </h6>
-    <div class="breaks-list">
-      <% @time_clock.breaks.order(:break_in).each_with_index do |b, i| %>
-        <div class="break-item">
-          <div class="break-info">
-            <span class="break-number">Break <%= i + 1 %></span>
-            <span class="break-time">
-              <%= b.break_in&.strftime("%H:%M") || "--:--" %> - 
-              <%= b.break_out&.strftime("%H:%M") || "In Progress" %>
-            </span>
-          </div>
-          <div class="break-meta">
-            <span class="badge bg-light text-dark">
-              <%= b.duration > 0 ? "#{(b.duration / 60).round(1)} min" : "--" %>
-            </span>
-            <span class="badge break-type-badge">
-              <%= b.break_type %>
-            </span>
-          </div>
-        </div>
-      <% end %>
-    </div>
-  </div>
-<% end %>

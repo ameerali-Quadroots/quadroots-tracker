@@ -49,12 +49,12 @@ module Reports
       scope.to_a
     end
 
+    # Counted by the day each shift started, so a late clock-in just after
+    # midnight on the 1st belongs to the month that was ending.
     def late_counts
-      @late_counts ||= TimeClock.where(status: "late", clock_in: range).group(:user_id).count
-    end
-
-    def range
-      Time.zone.local(month.year, month.month, 1).all_month
+      @late_counts ||= TimeClock.where(status: "late")
+                                .on_shift_dates(month..month.end_of_month)
+                                .group_by(&:user_id).transform_values(&:size)
     end
   end
 end

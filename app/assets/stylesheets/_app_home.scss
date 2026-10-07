@@ -1,0 +1,418 @@
+// Home page (dashboard#index and its partials).
+// Everything is scoped under .dashboard-container and loads after the legacy
+// dashboard rules in application.scss, which it replaces visually: a tinted
+// page with white cards instead of a purple page with one frosted panel.
+// The !important flags here answer !important in those legacy rules.
+.dashboard-container {
+  font-family: var(--app-font);
+  color: var(--app-ink);
+  overflow: visible;
+
+  // Decorative layers from the old design (floating particles and blobs).
+  .particles, .glass-decoration { display: none !important; }
+
+  .dashboard-glass {
+    padding: 0 !important;
+    background: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  // ---- Headline band -------------------------------------------------------
+  .dashboard-header {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px 32px;
+    margin-bottom: 24px;
+    padding: 30px 34px;
+    border-radius: 20px;
+    color: #FFFFFF;
+    background: linear-gradient(120deg, #8A3FA8 0%, #6F2B8A 45%, #4E1B63 100%);
+    box-shadow: 0 20px 44px -20px rgba(78, 27, 99, 0.75);
+
+    // Two soft rings, so the band is not a flat block of colour.
+    &::before, &::after {
+      content: "";
+      position: absolute;
+      inset: auto;
+      border-radius: 50%;
+      background: none;
+      border: 42px solid rgba(255, 255, 255, 0.07);
+      pointer-events: none;
+    }
+    &::before { width: 320px; height: 320px; right: -100px; top: -170px; }
+    &::after  { width: 200px; height: 200px; right: 190px; bottom: -140px; border-width: 30px; }
+
+    h3 {
+      position: relative;
+      margin: 10px 0 0;
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -0.6px;
+      line-height: 1.15;
+      text-shadow: none;
+    }
+    .greeting-text { position: relative; margin-top: 6px; font-size: 14.5px; font-weight: 400; color: rgba(255, 255, 255, 0.82); }
+  }
+  .dashboard-header-main, .dashboard-header-clock { position: relative; z-index: 1; }
+  .dashboard-eyebrow {
+    display: inline-flex;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .dashboard-header-clock { text-align: right; }
+  .dashboard-header-date { margin-bottom: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.82); }
+  #live-clock {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // ---- Cards ---------------------------------------------------------------
+  // ---- Page grid -----------------------------------------------------------
+  // (Own grid classes rather than Bootstrap rows: a legacy global rule zeroes
+  // every column's padding, so .row gutters do nothing in this app.)
+  .home-summary { margin-bottom: 20px; }
+  .home-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: stretch; }
+  .home-section { margin-top: 20px; }
+  // The manager widgets bring their own inner padding and rounded corners.
+  #manager-status-container { overflow: hidden; }
+
+  .dashboard-card {
+    height: 100%;
+    margin: 0;
+    background: var(--app-card);
+    border: 1px solid var(--app-line) !important;
+    border-radius: var(--app-radius) !important;
+    box-shadow: var(--app-shadow) !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+    &:hover { transform: none; border-color: var(--app-primary-line) !important; box-shadow: 0 1px 2px rgba(27, 16, 35, 0.04), 0 14px 32px -12px rgba(86, 32, 108, 0.22) !important; }
+    > .card-body { padding: 22px 24px 24px; }
+  }
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 20px;
+    padding: 0 0 16px;
+    border-bottom: 1px solid var(--app-line);
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    color: var(--app-ink-title);
+
+    i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin: 0;
+      padding: 0;
+      border-radius: 10px;
+      background: var(--app-primary-soft);
+      color: var(--app-primary);
+      font-size: 17px;
+    }
+  }
+
+  // ---- Current status ------------------------------------------------------
+  .status-content { padding: 0; }
+  .status-state {
+    padding: 30px 20px 26px;
+    border: 1px solid var(--app-line);
+    border-radius: 14px;
+    background: #FBF8FD;
+    background-image: none;
+    box-shadow: none;
+  }
+  .status-indicator { margin-bottom: 18px !important; }
+  .status-icon-wrapper {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid var(--app-line);
+    box-shadow: 0 0 0 8px rgba(111, 43, 138, 0.06);
+
+    &.working-active { border-color: #86EFAC; box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.1); }
+    &.break-active   { border-color: #FCD34D; box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.12); }
+  }
+  .status-icon { font-size: 28px; color: var(--app-muted); }
+  .status-icon-wrapper.working-active .status-icon { color: #16A34A; }
+  .status-icon-wrapper.break-active .status-icon { color: #D97706; }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px 7px 14px !important;
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    box-shadow: none;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+
+    &::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    &.bg-secondary { background: #F4F4F5 !important; color: #52525B !important; border-color: #D4D4D8 !important; }
+    &.bg-success   { background: #DCFCE7 !important; color: #15803D !important; border-color: #86EFAC !important; }
+    &.bg-warning   { background: #FEF3C7 !important; color: #B45309 !important; border-color: #FCD34D !important; }
+    &.bg-primary   { background: var(--app-primary-soft) !important; color: var(--app-primary-dark) !important; border-color: var(--app-primary-line) !important; }
+  }
+  .status-description { max-width: 320px; margin: 12px auto 0 !important; font-size: 14px; line-height: 1.55; color: var(--app-muted) !important; }
+
+  // ---- Buttons -------------------------------------------------------------
+  // One shape for every action; colour says what kind of action it is.
+  .btn-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    box-shadow: 0 1px 2px rgba(27, 16, 35, 0.06);
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &::before, &::after { display: none; }   // the legacy shine sweep
+    &:hover { transform: translateY(-1px); }
+    &:active { transform: translateY(0) scale(0.98); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--app-primary-glow); }
+
+    &.btn-success { background: #16A34A; border-color: #16A34A; color: #FFFFFF;
+      &:hover { background: #15803D; border-color: #15803D; box-shadow: 0 8px 18px -8px rgba(22, 163, 74, 0.7); } }
+    &.btn-danger { background: #DC2626; border-color: #DC2626; color: #FFFFFF;
+      &:hover { background: #B91C1C; border-color: #B91C1C; box-shadow: 0 8px 18px -8px rgba(220, 38, 38, 0.7); } }
+    &.btn-warning { background: #FEF3C7 !important; border-color: #FCD34D !important; color: #92400E !important;
+      &:hover { background: #FDE68A !important; border-color: #F59E0B !important; color: #78350F !important; box-shadow: 0 8px 18px -10px rgba(217, 119, 6, 0.7); } }
+    &.btn-dark { background: var(--app-gradient); border-color: var(--app-primary); color: #FFFFFF;
+      &:hover { box-shadow: 0 8px 18px -8px var(--app-primary-glow); filter: brightness(1.06); } }
+    &.btn-outline-premium { background: #FFFFFF; border-color: #D9CCE2; color: var(--app-ink);
+      &:hover { background: var(--app-primary-soft); border-color: var(--app-primary); color: var(--app-primary-dark); box-shadow: 0 8px 18px -12px var(--app-primary-glow); } }
+  }
+  .action-buttons { gap: 12px !important; margin-top: 22px; }
+  .action-buttons .btn { min-width: 150px; margin: 0; }
+
+  .leave-actions { margin-top: 26px !important; padding-top: 22px !important; border-top: 1px solid var(--app-line); }
+  .section-divider { margin: 0 0 16px; &::before, &::after { background: var(--app-line); } }
+  .divider-text { font-size: 12.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--app-muted); background: var(--app-card); }
+
+  // The break menu opens downwards, past the bottom of its card and over the
+  // "Your month" section. It has to be opaque (the legacy rule made it 95%
+  // white with a blur, so the buttons behind showed through) and the status
+  // row has to stack above the sections that follow it.
+  .home-grid { position: relative; z-index: 3; }
+  .dropdown-premium .dropdown-menu {
+    z-index: 1060;
+    min-width: 250px;
+    padding: 6px;
+    background: #FFFFFF;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--app-line);
+    border-radius: 12px;
+    box-shadow: 0 20px 48px -12px rgba(27, 16, 35, 0.35);
+  }
+  .dropdown-premium .dropdown-item i { width: 20px; text-align: center; color: var(--app-primary); }
+  .dropdown-premium .dropdown-item {
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    &:hover { background: var(--app-primary-soft); color: var(--app-primary-dark); transform: none; }
+  }
+
+  // ---- Today's summary -----------------------------------------------------
+  .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; }
+  .summary-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    padding: 18px 20px;
+    background: var(--app-card);
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius);
+    box-shadow: var(--app-shadow);
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+    &::before, &::after { display: none; }
+    &:hover { transform: translateY(-2px); border-color: var(--app-primary-line); box-shadow: 0 1px 2px rgba(27, 16, 35, 0.04), 0 14px 32px -12px rgba(86, 32, 108, 0.22); }
+  }
+  .summary-icon {
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin: 0;
+    border-radius: 11px;
+    background: var(--app-primary-soft);
+    box-shadow: none;
+    color: var(--app-primary);
+    font-size: 19px;
+  }
+  .summary-item:hover .summary-icon { transform: none; background: var(--app-primary); color: #FFFFFF; }
+  .summary-content { display: flex; flex-direction: column; min-width: 0; }
+  .summary-label { font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--app-muted); }
+  .summary-value { margin-top: 2px; font-size: 21px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.2; color: var(--app-ink); font-variant-numeric: tabular-nums; }
+
+  // ---- Timesheet table -----------------------------------------------------
+  .table-responsive { margin: 0 -6px; }
+  .table-premium {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: none;
+    box-shadow: none;
+
+    th {
+      padding: 11px 14px;
+      background: #F5EEF9;
+      border: 0;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: nowrap;
+      color: var(--app-primary-dark);
+      i { opacity: 0.7; }
+      &:first-child { border-radius: 10px 0 0 10px; }
+      &:last-child { border-radius: 0 10px 10px 0; }
+    }
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--app-line);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: #FAF6FC; }
+    tbody tr:hover { transform: none; box-shadow: none; }
+  }
+  .badge-premium {
+    padding: 4px 10px;
+    border-radius: 999px;
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+
+    &.bg-success   { background: #DCFCE7 !important; color: #15803D !important; }
+    &.bg-danger    { background: #FEE2E2 !important; color: #B91C1C !important; }
+    &.bg-secondary { background: #F4F4F5 !important; color: #52525B !important; }
+    &.bg-light     { background: #F6F2F9 !important; color: var(--app-ink) !important; }
+  }
+  .empty-state {
+    padding: 28px 0;
+    i { font-size: 34px !important; color: #C9B8D4; opacity: 1 !important; }
+    h5 { margin: 0 0 4px; font-size: 15.5px; font-weight: 600 !important; color: var(--app-ink); }
+    p { font-size: 13.5px; color: var(--app-muted); }
+  }
+
+  // ---- Calendar ------------------------------------------------------------
+  .calendar { padding: 0; background: none; box-shadow: none; }
+  .calendar-header { gap: 6px; margin-bottom: 8px; }
+  .calendar-day {
+    padding: 8px 0;
+    background: none;
+    border-radius: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--app-muted);
+  }
+  .calendar-grid { gap: 6px; }
+  .calendar-cell {
+    aspect-ratio: 5 / 4;      // a little wider than tall, so six weeks fit beside the status card
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+    background: #FFFFFF;
+    box-shadow: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--app-ink);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::before { display: none; }
+    &:hover:not(.empty):not(.calendar-off):not(.calendar-future) { transform: translateY(-1px); border-color: var(--app-primary); box-shadow: 0 6px 14px -8px var(--app-primary-glow); }
+    &.calendar-on-time { background: #DCFCE7; border-color: #86EFAC; color: #15803D; font-weight: 600; }
+    &.calendar-late    { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; font-weight: 600; }
+    &.calendar-off     { background: #F6F2F9; border-color: transparent; color: #A69BAE; }
+    &.calendar-future  { background: #FFFFFF; border-style: dashed; color: #C4BACB; opacity: 1; }
+    &.today {
+      background: var(--app-gradient);
+      border-color: var(--app-primary);
+      color: #FFFFFF;
+      font-weight: 700;
+      box-shadow: 0 8px 18px -8px var(--app-primary-glow);
+    }
+    &.empty { background: none; border-color: transparent; }
+  }
+
+  // ---- Page load: content rises in once ------------------------------------
+  .dashboard-glass > .dashboard-header,
+  .dashboard-glass > .home-summary,
+  .dashboard-glass > .home-grid,
+  .dashboard-glass > .home-section { animation: appRise 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+  .dashboard-glass > .home-summary { animation-delay: 0.05s; }
+  .dashboard-glass > .home-grid { animation-delay: 0.10s; }
+  .dashboard-glass > .home-section { animation-delay: 0.15s; }
+}
+@keyframes appRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1099.98px) {
+  .dashboard-container {
+    .home-grid { grid-template-columns: minmax(0, 1fr); }
+    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+}
+@media (max-width: 767.98px) {
+  .dashboard-container {
+    .dashboard-header { flex-direction: column; align-items: flex-start !important; padding: 22px 20px; border-radius: 16px; text-align: left; h3 { font-size: 24px; } }
+    .dashboard-header-clock { text-align: left; }
+    .dashboard-card > .card-body { padding: 18px 16px 20px; }
+    // Two compact tiles per row; the legacy phone rule would stack and centre them.
+    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .summary-item { flex-direction: row !important; align-items: center; gap: 10px; padding: 14px; text-align: left !important; }
+    .summary-icon { flex-basis: 36px; width: 36px; height: 36px; margin: 0 !important; font-size: 16px; }
+    .summary-content { align-items: flex-start; text-align: left; }
+    .summary-value { font-size: 17px; }
+    .action-buttons .btn { flex: 1 1 100%; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-container * { animation: none !important; transition: none !important; }
+}

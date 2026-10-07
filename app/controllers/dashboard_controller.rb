@@ -12,14 +12,21 @@ class DashboardController < ApplicationController
     monday = Date.today.beginning_of_week(:monday)
     friday = monday + 4.days
 
-    @time_clocks = current_user.time_clocks
-      .where(clock_in: monday.beginning_of_day..friday.end_of_day)
-      .order(clock_in: :desc)
+    # By the day each shift started, so a clock-in after midnight lands on the
+    # right row and the right calendar cell (see TimeClock.on_shift_dates).
+    @time_clocks = current_user.time_clocks.on_shift_dates(monday..friday).sort_by(&:clock_in).reverse
     @time_clocks_current_month = current_user.time_clocks
-      .where(clock_in: Time.current.beginning_of_month..Time.current.end_of_month)
-      .order(clock_in: :desc)
+      .on_shift_dates(Date.current.beginning_of_month..Date.current.end_of_month)
+      .sort_by(&:clock_in).reverse
 
     @today_half_day_leave = current_user.leaves.where(leave_type: :half_day, start_date: Date.current).last
+
+    # "Your month" section: this month by default, ?period=last for the previous one.
+    @insights_period = params[:period] == "last" ? "last" : "this"
+    @insights = Reports::EmployeeMonth.new(
+      user: current_user,
+      month: @insights_period == "last" ? Date.current.prev_month : Date.current
+    )
     load_monthly_dept_stats if can_view?("department_stats") && current_user.direct_reports.any?
   end
 
@@ -54,8 +61,8 @@ class DashboardController < ApplicationController
     @current_month = params[:month] ? Date.parse(params[:month]) : Date.current
     @time_clocks = @employee.time_clocks
       .includes(:breaks)
-      .where(clock_in: @current_month.beginning_of_month.beginning_of_day..@current_month.end_of_month.end_of_day)
-      .order(:clock_in)
+      .on_shift_dates(@current_month.beginning_of_month..@current_month.end_of_month)
+      .sort_by(&:clock_in)
     render 'dashboard/executive_timesheets'
   end
 

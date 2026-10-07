@@ -31,5 +31,9 @@
 /config/database.yml
 /public/assets
 
+# Compiled Tailwind CSS (rebuilt by tailwindcss:build / assets:precompile).
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
 # Ignore master key for decrypting credentials and more.
 /config/master.key

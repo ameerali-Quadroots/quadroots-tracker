@@ -5,7 +5,7 @@
     </h6>
     <div id="calendar" 
          class="calendar" 
-         data-time-clocks="<%= @time_clocks_current_month.to_json %>">
+         data-time-clocks="<%= @time_clocks_current_month.map { |tc| tc.as_json.merge("shift_date" => tc.shift_date&.iso8601) }.to_json %>">
     </div>
   </div>
 </div>
@@ -163,6 +163,7 @@ function generateCalendar(year, month, timeClocks, calendarElement) {
     // Find clock entry for this date
     const clockEntry = timeClocks.find(tc => {
       if (!tc.clock_in) return false;
+      if (tc.shift_date) return tc.shift_date === dateString;
       try {
         const clockInDate = new Date(tc.clock_in);
         const clockInString = `${clockInDate.getFullYear()}-${String(clockInDate.getMonth() + 1).padStart(2, '0')}-${String(clockInDate.getDate()).padStart(2, '0')}`;

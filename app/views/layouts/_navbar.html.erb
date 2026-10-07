@@ -1,186 +1,108 @@
- <nav class="navbar navbar-expand-xl app-navbar sticky-top">
-     <div class="container-fluid px-3 px-lg-4">
-         <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
-         <%= image_tag "logo-2.png", alt: "QuadRoots Tracker", class: "me-2", height: "30" %>
-         <span>QuadRoots Tracker</span>
-         <% end %>
+<%# Top navigation for signed-in employees. The entries come from
+    NavbarHelper#primary_nav_items; styles live in _app_navbar.scss. %>
+<nav class="navbar navbar-expand-xl app-navbar sticky-top">
+  <div class="container-fluid app-navbar-inner">
+    <%= link_to root_path, class: "navbar-brand app-brand" do %>
+      <span class="app-brand-mark"><%= image_tag "logo-2.png", alt: "" %></span>
+      <span class="app-brand-name">QuadRoots Tracker</span>
+    <% end %>
 
-         <!-- Hamburger / Toggle button for mobile -->
-         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-             <span class="navbar-toggler-icon"></span>
-         </button>
+    <button class="navbar-toggler app-navbar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="fas fa-bars"></i>
+    </button>
 
-         <!-- Navbar links -->
-         <div class="collapse navbar-collapse" id="navbarNav">
-             <% if user_signed_in? %>
-             <!-- Primary navigation (pushed to the right) -->
-             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                 <li class="nav-item">
-                     <%= link_to root_path, class: "nav-link #{'active' if current_page?(root_path)}" do %>
-                     <i class="fas fa-gauge-high"></i> Dashboard
-                     <% end %>
-                 </li>
-                 <%# Admin toggle (Roles & Permissions) AND the routing rule:
-                     managers who don't report to an HOD have no feedback target. %>
-                 <% if can_view?("feedback") && current_user.can_give_feedback? %>
-                 <li class="nav-item">
-                     <%= link_to "http://10.10.30.30:5173?#{{ department: current_user.feedback_department }.to_query}", class: "nav-link", target: "_blank", rel: "noopener" do %>
-                     <i class="fas fa-comment-dots"></i> Feedback
-                     <% end %>
-                 </li>
-                 <% end %>
-                 <li class="nav-item">
-                     <%= link_to my_requests_edit_requests_path, class: "nav-link #{'active' if current_page?(my_requests_edit_requests_path)}" do %>
-                     <i class="fas fa-clock-rotate-left"></i> My Requests
-                     <% my_count = current_user.edit_requests.count %>
-                     <% if my_count > 0 %>
-                     <span class="nav-badge nav-badge-success"><%= my_count %></span>
-                     <% end %>
-                     <% end %>
-                 </li>
-                 <li class="nav-item">
-                     <%= link_to my_leaves_leaves_path, class: "nav-link #{'active' if current_page?(my_leaves_leaves_path)}" do %>
-                     <i class="fas fa-calendar-day"></i> My Leaves
-                     <% my_leaves_count = current_user.leaves.count %>
-                     <% if my_leaves_count > 0 %>
-                     <span class="nav-badge nav-badge-success"><%= my_leaves_count %></span>
-                     <% end %>
-                     <% end %>
-                 </li>
-                 <%# The Tasks module is off entirely for departments without it enabled (admin -> Settings -> Departments). %>
-                 <% if current_user.org_department&.task_manager_enabled? %>
-                 <% my_tasks_count = current_user.tasks.where(status: %w[pending in_progress paused]).count %>
-                 <li class="nav-item dropdown">
-                     <a class="nav-link dropdown-toggle <%= 'active' if current_page?(my_tasks_tasks_path) || current_page?(dashboard_tasks_path) %>" href="#" id="tasksDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                     <i class="fas fa-list-check"></i> Tasks
-                     <% if my_tasks_count > 0 %>
-                     <span class="nav-badge nav-badge-success"><%= my_tasks_count %></span>
-                     <% end %>
-                     </a>
-                     <ul class="dropdown-menu" aria-labelledby="tasksDropdown">
-                         <li>
-                             <%= link_to my_tasks_tasks_path, class: "dropdown-item" do %>
-                             <i class="fas fa-list-check me-2"></i> My Tasks
-                             <% if my_tasks_count > 0 %>
-                             <span class="nav-badge nav-badge-success ms-1"><%= my_tasks_count %></span>
-                             <% end %>
-                             <% end %>
-                         </li>
-                         <% if can_view?("task_manager") %>
-                         <li>
-                             <%= link_to dashboard_tasks_path, class: "dropdown-item" do %>
-                             <i class="fas fa-tasks me-2"></i> Task Manager
-                             <% end %>
-                         </li>
-                         <% end %>
-                     </ul>
-                 </li>
-                 <% end %>
-                 <%# Gated by the role's page permissions, not a hardcoded role name. %>
-                 <% if can_view?("edit_requests.review") %>
-                 <li class="nav-item">
-                     <%= link_to edit_requests_path, class: "nav-link #{'active' if current_page?(edit_requests_path)}" do %>
-                     <i class="fas fa-user-pen"></i> Edit Requests
-                     <% count = edit_requests_count %>
-                     <% if count > 0 %>
-                     <span class="nav-badge"><%= count %></span>
-                     <% end %>
-                     <% end %>
-                 </li>
-                 <% end %>
-                 <% if can_view?("leaves.review") %>
-                 <li class="nav-item">
-                     <%= link_to leaves_path, class: "nav-link #{'active' if current_page?(leaves_path)}" do %>
-                     <i class="fas fa-calendar-check"></i> Leave Requests
-                     <% leave_count = leaves_count %>
-                     <% if leave_count > 0 %>
-                     <span class="nav-badge"><%= leave_count %></span>
-                     <% end %>
-                     <% end %>
-                 </li>
-                 <% end %>
-                 <% if can_view?("organogram") %>
-                 <li class="nav-item">
-                     <%= link_to organogram_path, class: "nav-link #{'active' if current_page?(organogram_path)}" do %>
-                     <i class="fas fa-sitemap"></i> Organogram
-                     <% end %>
-                 </li>
-                 <% end %>
-             </ul>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav app-nav">
+        <% primary_nav_items.each do |item| %>
+          <% active = nav_item_active?(item) %>
+          <% badge = capture do %>
+            <% if item.badge.to_i.positive? %>
+              <span class="nav-badge nav-badge-<%= item.badge_tone %>"><%= item.badge %></span>
+            <% end %>
+          <% end %>
 
-             <!-- Right side: notifications + account -->
-             <ul class="navbar-nav ms-xl-3 align-items-center">
-                 <!-- Notifications -->
-                 <li class="nav-item dropdown me-lg-2">
-                     <a class="nav-link nav-icon-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                         <i class="fas fa-bell"></i>
-                     </a>
-                     <ul class="dropdown-menu dropdown-menu-end notification-menu" aria-labelledby="notificationDropdown">
-                         <li>
-                             <h6 class="dropdown-header">Notifications</h6>
-                         </li>
-                         <li><a class="dropdown-item" href="#"><i class="fas fa-edit text-info"></i> Edit request approved</a></li>
-                         <li><a class="dropdown-item" href="#"><i class="fas fa-calendar-alt text-warning"></i> Leave request pending</a></li>
-                         <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle text-success"></i> Profile updated</a></li>
-                         <li>
-                             <hr class="dropdown-divider">
-                         </li>
-                         <li><a class="dropdown-item text-center" href="#">View All</a></li>
-                     </ul>
-                 </li>
+          <% if item.dropdown? %>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle <%= 'active' if active %>" href="#" role="button"
+                 data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-<%= item.icon %>"></i> <%= item.label %> <%= badge %>
+              </a>
+              <ul class="dropdown-menu app-menu">
+                <% item.children.each do |child| %>
+                  <li>
+                    <%= link_to child.path, class: "dropdown-item #{'active' if current_page?(child.path)}" do %>
+                      <i class="fas fa-<%= child.icon %>"></i> <%= child.label %>
+                      <% if child.badge.to_i.positive? %>
+                        <span class="nav-badge nav-badge-<%= child.badge_tone %>"><%= child.badge %></span>
+                      <% end %>
+                    <% end %>
+                  </li>
+                <% end %>
+              </ul>
+            </li>
+          <% else %>
+            <li class="nav-item">
+              <%= link_to item.path, class: "nav-link #{'active' if active}",
+                          target: (item.external ? "_blank" : nil), rel: (item.external ? "noopener" : nil),
+                          aria: { current: (active ? "page" : nil) } do %>
+                <i class="fas fa-<%= item.icon %>"></i> <%= item.label %> <%= badge %>
+              <% end %>
+            </li>
+          <% end %>
+        <% end %>
+      </ul>
 
-                 <!-- User dropdown menu -->
-                 <li class="nav-item dropdown">
-                     <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                         <div class="user-avatar">
-                             <% if current_user.image.attached? %>
-                             <%= image_tag current_user.image, alt: current_user.name %>
-                             <% else %>
-                             <%= current_user.initials %>
-                             <% end %>
-                         </div>
-                         <span class="me-1 d-none d-lg-inline"><%= current_user.name %></span>
-                     </a>
-                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                         <li>
-                             <h6 class="dropdown-header">Account</h6>
-                         </li>
-                         <li>
-                             <%= link_to edit_user_path(current_user), class: "dropdown-item" do %>
-                             <i class="fas fa-user-edit"></i> Edit Profile
-                             <% end %>
-                         </li>
-                         <li>
-                             <%= link_to my_requests_edit_requests_path, class: "dropdown-item" do %>
-                             <i class="fas fa-history"></i> My Requests
-                             <% end %>
-                         </li>
-                         <li>
-                             <hr class="dropdown-divider">
-                         </li>
-                         <li>
-                             <%= button_to destroy_user_session_path, method: :delete, class: "dropdown-item text-danger" do %>
-                             <i class="fas fa-sign-out-alt"></i> Logout
-                             <% end %>
-                         </li>
-                     </ul>
-                 </li>
-             </ul>
-             <% else %>
-             <ul class="navbar-nav ms-auto align-items-center">
-                 <!-- Login/Sign up if user not logged in -->
-                 <li class="nav-item">
-                     <%= link_to new_user_session_path, class: "nav-link" do %>
-                     <i class="fas fa-sign-in-alt me-1"></i> Login
-                     <% end %>
-                 </li>
-                 <li class="nav-item">
-                     <%= link_to new_user_registration_path, class: "nav-link btn btn-signup ms-2" do %>
-                     <i class="fas fa-user-plus me-1"></i> Sign Up
-                     <% end %>
-                 </li>
-             </ul>
-             <% end %>
-         </div>
-     </div>
- </nav>
+      <ul class="navbar-nav app-nav-tools">
+        <%# NOTE: these three entries are static placeholders, not real notifications. %>
+        <li class="nav-item dropdown">
+          <a class="nav-link nav-icon-link" href="#" id="notificationDropdown" role="button"
+             data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+            <i class="fas fa-bell"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end app-menu notification-menu" aria-labelledby="notificationDropdown">
+            <li><h6 class="dropdown-header">Notifications</h6></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-edit text-info"></i> Edit request approved</a></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-calendar-alt text-warning"></i> Leave request pending</a></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle text-success"></i> Profile updated</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-center" href="#">View All</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle user-dropdown-toggle" href="#" id="userDropdown" role="button"
+             data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="user-avatar">
+              <% if current_user.image.attached? %>
+                <%= image_tag current_user.image, alt: "" %>
+              <% else %>
+                <%= current_user.initials %>
+              <% end %>
+            </span>
+            <span class="user-name"><%= current_user.name %></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end app-menu" aria-labelledby="userDropdown">
+            <li><h6 class="dropdown-header">Account</h6></li>
+            <li>
+              <%= link_to edit_user_path(current_user), class: "dropdown-item" do %>
+                <i class="fas fa-user-edit"></i> Edit Profile
+              <% end %>
+            </li>
+            <li>
+              <%= link_to my_requests_edit_requests_path, class: "dropdown-item" do %>
+                <i class="fas fa-history"></i> My Requests
+              <% end %>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <%= button_to destroy_user_session_path, method: :delete, class: "dropdown-item text-danger" do %>
+                <i class="fas fa-sign-out-alt"></i> Logout
+              <% end %>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

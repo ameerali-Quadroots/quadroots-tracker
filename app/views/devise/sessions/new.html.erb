@@ -1,32 +1,34 @@
-<div class="d-flex align-items-center justify-content-center vh-100 bg-light">
-  <div class="card shadow-lg p-4 d-flex align-items-center" style="max-width: 400px; width: 100%;">
-        <%= image_tag('quadroots.webp', alt: 'Logo', class: 'img-fluid mb-4 ', style: 'max-width: 100px;') %>
+<%# Sign-in screen; styles are the .auth-* rules in _app_shell.scss. %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-brand-mark"><%= image_tag "logo-2.png", alt: "" %></span>
+      <span class="auth-brand-name">QuadRoots Tracker</span>
+    </div>
 
-    <h2 class="text-center mb-3">Welcome Back</h2>
-    <p class="text-muted text-center">Sign in to your account</p>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to clock in, track your time and manage requests.</p>
 
-    <%= form_with scope: :user, url: session_path(:user), class: "mt-4 w-100", local: true do |f| %>
-      <div class="mb-3">
+    <%= form_with scope: :user, url: session_path(:user), class: "auth-form", local: true do |f| %>
+      <div class="auth-field">
         <%= f.label :email, class: "form-label" %>
-        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control" %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "you@company.com" %>
       </div>
 
-      <div class="mb-3">
+      <div class="auth-field">
         <%= f.label :password, class: "form-label" %>
         <%= f.password_field :password, autocomplete: "current-password", class: "form-control" %>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="auth-row">
         <div class="form-check">
           <%= f.check_box :remember_me, class: "form-check-input" %>
-          <%= f.label :remember_me, class: "form-check-label" %>
+          <%= f.label :remember_me, "Keep me signed in", class: "form-check-label" %>
         </div>
-        <%= link_to "Forgot password?", new_password_path(:user), class: "small text-decoration-none" %>
+        <%= link_to "Forgot password?", new_password_path(:user) %>
       </div>
 
-      <%= f.submit "Log In", class: "btn btn-primary w-100" %>
+      <%= f.submit "Sign in", class: "auth-submit" %>
     <% end %>
-
-    
   </div>
 </div>

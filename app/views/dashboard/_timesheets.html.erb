@@ -1,5 +1,6 @@
 <%
-  week_dates = @time_clocks.map { |tc| tc.clock_in.to_date }
+  # Rows are labelled with the day the shift started, not the calendar day of the clock-in.
+  week_dates = @time_clocks.map(&:shift_date)
   half_day_leaves = current_user.leaves
                                 .where(leave_type: :half_day, start_date: week_dates)
                                 .index_by(&:start_date)
@@ -20,14 +21,14 @@
       <% if @time_clocks.present? %>
         <% @time_clocks.each do |tc| %>
           <%
-            hd_leave = half_day_leaves[tc.clock_in.to_date]
+            hd_leave = half_day_leaves[tc.shift_date]
             non_mtg_secs = tc.breaks.reject { |b| b.break_type == "Meeting" }
                                     .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
             worked = tc.total_duration || ((tc.clock_out.present? ? (tc.clock_out - tc.clock_in).to_i : 0) - non_mtg_secs)
             is_early = tc.clock_out.present? && worked < 16200
           %>
           <tr>
-            <td class="fw-bold text-dark"><%= tc.clock_in.strftime("%a, %d %b") if tc.clock_in %></td>
+            <td class="fw-bold text-dark"><%= tc.shift_date&.strftime("%a, %d %b") %></td>
             <td><span class="text-success fw-semibold"><%= tc.clock_in.strftime("%I:%M %p") if tc.clock_in %></span></td>
             <td>
               <% if tc.clock_out.present? %>

@@ -154,7 +154,7 @@ end
 
   member_action :calendar_timesheets, method: :get do
   @employee = resource
-  @time_clocks = @employee.time_clocks.includes(:breaks).order(:clock_in)
+  @time_clocks = @employee.time_clocks.includes(:breaks, :employee).order(:clock_in) # :employee for shift_date
 
   render "admin/employees/calendar_timesheets"
 end

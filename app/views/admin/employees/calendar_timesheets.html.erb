@@ -34,7 +34,7 @@
   }
 
   # Summary counts for the displayed month
-  month_records = @time_clocks.select { |t| t.clock_in.to_date.month == current_month.month && t.clock_in.to_date.year == current_month.year }
+  month_records = @time_clocks.select { |t| t.shift_date&.month == current_month.month && t.shift_date&.year == current_month.year }
   month_statuses = month_records.map { |r| status_for.call(r) }
   count_clockins  = month_records.size
   count_late      = month_statuses.count { |s| s == "late" || s == "late-half-day" }
@@ -103,7 +103,7 @@
   <% (start_date..end_date).each_slice(7) do |week| %>
     <div class="ts-week">
       <% week.each do |day| %>
-        <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
+        <% record = @time_clocks.find { |t| t.shift_date == day } %>
         <% status_class = status_for.call(record) %>
         <% label = status_label[status_class] %>
 

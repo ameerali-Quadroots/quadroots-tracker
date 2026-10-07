@@ -1,229 +1,184 @@
-<div class="container-fluid my-5">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h1 class="card-title mb-4 text-primary text-center">Edit Requests Of Your Executives</h1>
+<%# Edit requests waiting on (or already handled by) this reviewer. Same
+    table-card layout as Leave Requests. %>
+<% filtered = params[:name].present? || params[:request_type].present? || params[:status].present? %>
+<div class="page-shell">
+  <div class="table-card">
 
-      <div class="row mb-4">
-        <!-- Filter Section -->
-        <div class="col-md-6 d-flex gap-3">
-          <%= form_with(url: edit_requests_path, method: :get, local: true, class: "d-flex gap-3 flex-wrap") do |form| %>
-            <!-- Name Filter -->
-            <div class="form-group">
-              <%= form.text_field :name, 
-                  value: params[:name],
-                  class: "form-control form-control-sm", 
-                  placeholder: "Search by Name" %>
-            </div>
-            <!-- Request Type Filter -->
-            <div class="form-group">
-              <%= form.select :request_type, 
-                  options_for_select([['All', '']] + EditRequest.distinct.pluck(:request_type).map { |type| [type, type] }, params[:request_type]),
-                  {}, 
-                  class: "form-control form-control-sm" %>
-            </div>
-            <!-- Status Filter -->
-            <div class="form-group">
-              <%= form.select :status, 
-                  options_for_select([['All', '']] + EditRequest.statuses.keys.map { |status| [status.capitalize, status] }, params[:status]),
-                  {}, 
-                  class: "form-control form-control-sm" %>
-            </div>
-            <!-- Submit Button -->
-            <%= form.submit "Filter", class: "btn btn-sm btn-outline-6A62C8" %>
-            
-            <!-- Clear Filters -->
-            <% if params[:name].present? || params[:request_type].present? || params[:status].present? %>
-              <%= link_to "Clear", edit_requests_path, class: "btn btn-secondary btn-clear" %>
+    <div class="table-card__head">
+      <h1 class="table-card__title">
+        <span class="icon"><i class="fas fa-user-pen"></i></span>
+        <span>
+          Edit Requests
+          <span class="table-card__subtitle">Review your team's clock-in and break corrections</span>
+        </span>
+      </h1>
+      <div class="table-card__stats">
+        <span class="stat-pill"><b><%= @edit_requests.pending.count %></b> Pending</span>
+        <span class="stat-pill"><b><%= @edit_requests.approved.count %></b> Approved</span>
+        <span class="stat-pill"><b><%= @edit_requests.rejected.count %></b> Rejected</span>
+      </div>
+    </div>
+
+    <%= form_with url: edit_requests_path, method: :get, local: true, class: "table-filter" do |form| %>
+      <div class="field">
+        <%= form.label :name, "Employee" %>
+        <%= form.text_field :name, value: params[:name], class: "form-control", placeholder: "Search by name" %>
+      </div>
+      <div class="field">
+        <%= form.label :request_type, "Request type" %>
+        <%= form.select :request_type,
+              options_for_select([['All', '']] + EditRequest.distinct.pluck(:request_type).map { |type| [type, type] }, params[:request_type]),
+              {}, class: "form-select" %>
+      </div>
+      <div class="field">
+        <%= form.label :status, "Status" %>
+        <%= form.select :status,
+              options_for_select([['All', '']] + EditRequest.statuses.keys.map { |status| [status.capitalize, status] }, params[:status]),
+              {}, class: "form-select" %>
+      </div>
+      <%= form.submit "Filter", class: "btn-filter" %>
+      <%= link_to "Reset", edit_requests_path, class: "btn-reset" if filtered %>
+    <% end %>
+
+    <% if @edit_requests.present? %>
+      <div class="premium-table-wrap">
+        <table class="premium-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Request type</th>
+              <th>Changing time</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Approval</th>
+              <th>Requested</th>
+              <th>Resolved</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @edit_requests.each do |request| %>
+              <tr class="status-<%= request.status %>">
+                <td>
+                  <div class="user-cell">
+                    <div class="user-cell__avatar"><%= request.user.name.to_s.split.map(&:first).join[0, 2].upcase %></div>
+                    <div>
+                      <div class="user-cell__name"><%= request.user.name %></div>
+                      <div class="user-cell__email"><%= request.user.email %></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="type-tag"><%= request.request_type %></span></td>
+                <td>
+                  <% if request.requested_clock_in %>
+                    <div class="date-cell">
+                      <div class="d"><%= request.requested_clock_in.strftime("%b %d, %Y") %></div>
+                      <div class="t"><%= request.requested_clock_in.strftime("%I:%M %p") %></div>
+                    </div>
+                  <% else %>
+                    <span class="no-action">–</span>
+                  <% end %>
+                </td>
+                <td>
+                  <div class="reason-cell" data-bs-toggle="tooltip" title="<%= request.reason %>">
+                    <%= truncate(request.reason, length: 50) %>
+                  </div>
+                </td>
+                <td><span class="pill pill--<%= request.status %>"><%= request.status.capitalize %></span></td>
+                <td>
+                  <%# Where the request sits in the configured approval chain. %>
+                  <% step = request.current_step %>
+                  <% if step.nil? %>
+                    <span class="pill pill--<%= request.status == 'rejected' ? 'rejected' : 'approved' %>">Complete</span>
+                  <% else %>
+                    <span class="pill pill--<%= request.actionable_by?(current_user) ? 'pending' : 'neutral' %>">
+                      <%= if request.actionable_by?(current_user)
+                            "Awaiting you"
+                          elsif step.admin_step?
+                            "Awaiting admin"
+                          else
+                            "Awaiting #{step}"
+                          end %>
+                    </span>
+                  <% end %>
+                  <div class="chain-trail">
+                    <% request.approvals.ordered.each_with_index do |approval, i| %>
+                      <span title="<%= approval.approver_name %>">
+                        <%= i.positive? ? "› " : "" %><%= approval.role_name %><%
+                          %><%= { "approved" => " ✓", "rejected" => " ✗", "skipped" => " –" }[approval.status] %>
+                      </span>
+                    <% end %>
+                  </div>
+                </td>
+                <td>
+                  <div class="date-cell">
+                    <div class="d"><%= request.created_at.strftime("%b %d, %Y") %></div>
+                    <div class="t"><%= request.created_at.strftime("%I:%M %p") %></div>
+                  </div>
+                </td>
+                <td>
+                  <% if request.resolved_at %>
+                    <div class="date-cell">
+                      <div class="d"><%= request.resolved_at.strftime("%b %d, %Y") %></div>
+                      <div class="t"><%= request.resolved_at.strftime("%I:%M %p") %></div>
+                    </div>
+                  <% else %>
+                    <span class="no-action">–</span>
+                  <% end %>
+                </td>
+                <td>
+                  <%# Buttons only for the person the chain is actually waiting on. %>
+                  <% if request.actionable_by?(current_user) %>
+                    <% if request.manager_actionable? %>
+                      <div class="table-actions">
+                        <%= button_to approve_edit_request_path(request),
+                            method: :patch,
+                            class: "btn-act btn-act--approve",
+                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to approve this request?" } } do %>
+                          <i class="fas fa-check"></i> Approve
+                        <% end %>
+
+                        <%= button_to reject_edit_request_path(request),
+                            method: :patch,
+                            class: "btn-act btn-act--reject",
+                            form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
+                          <i class="fas fa-times"></i> Reject
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <span class="pill pill--neutral" data-bs-toggle="tooltip" title="The one-week window to act on this request has passed.">
+                        Expired
+                      </span>
+                    <% end %>
+                  <% elsif request.current_step %>
+                    <span class="no-action">
+                      With <%= request.current_step.admin_step? ? "the admin team" : (request.current_approver&.name || request.current_step.to_s) %>
+                    </span>
+                  <% else %>
+                    <span class="no-action">–</span>
+                  <% end %>
+                </td>
+              </tr>
             <% end %>
-          <% end %>
-        </div>
-        
-        <!-- Request Stats -->
-        <div class="col-md-6 text-end">
-          <div class="d-flex justify-content-end gap-3">
-            <span class="badge bg-warning text-dark">
-              Pending: <%= @edit_requests.pending.count %>
-            </span>
-            <span class="badge bg-success">
-              Approved: <%= @edit_requests.approved.count %>
-            </span>
-            <span class="badge bg-danger">
-              Rejected: <%= @edit_requests.rejected.count %>
-            </span>
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
 
-      <!-- Table of Edit Requests -->
-      <% if @edit_requests.present? %>
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle text-center">
-            <thead class="table-dark">
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Request Type</th>
-                <th>Changing Time</th>
-                <th>Reason</th>
-                <th>Status</th>
-                <th>Approved By manager</th>
-                <th>Requested At</th>
-                <th>Resolved At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @edit_requests.each do |request| %>
-                <tr class="status-<%= request.status %>">
-                  <td data-label="Name" class="align-middle">
-                    <%= request.user.name %>
-                  </td>
-                  <td data-label="Email" class="align-middle">
-                    <%= request.user.email %>
-                  </td>
-                  <td data-label="Request Type" class="align-middle">
-                    <span class="badge bg-light text-dark">
-                      <%= request.request_type %>
-                    </span>
-                  </td>
-                  <td data-label="Changing Time" class="align-middle">
-                    <% if request.requested_clock_in %>
-                      <div class="fw-bold">
-                        <%= request.requested_clock_in.strftime("%b %d, %Y") %>
-                      </div>
-                      <div class="text-muted small">
-                        <%= request.requested_clock_in.strftime("%I:%M %p") %>
-                      </div>
-                    <% else %>
-                      <span class="text-muted">-</span>
-                    <% end %>
-                  </td>
-                  <td data-label="Reason" class="align-middle">
-                    <div class="reason-text" data-bs-toggle="tooltip" title="<%= request.reason %>">
-                      <%= truncate(request.reason, length: 50) %>
-                    </div>
-                  </td>
-
-                  <td data-label="Status" class="align-middle">
-                    <span class="status-indicator"></span>
-                    <% status_class = case request.status
-                                    when "pending" then "bg-warning text-dark"
-                                    when "approved" then "bg-success"
-                                    when "rejected" then "bg-danger"
-                                    else "bg-secondary"
-                                    end %>
-                    <span class="badge rounded-pill <%= status_class %> px-3 py-2">
-                      <%= request.status.capitalize %>
-                    </span>
-                  </td>
-                  <td data-label="Status" class="align-middle">
-                    <%# Where the request sits in the configured approval chain. %>
-                    <% step = request.current_step %>
-                    <% if step.nil? %>
-                      <span class="badge rounded-pill <%= request.status == 'rejected' ? 'bg-danger' : 'bg-success' %> px-3 py-2">
-                        Complete
-                      </span>
-                    <% else %>
-                      <span class="badge rounded-pill <%= request.actionable_by?(current_user) ? 'bg-warning text-dark' : 'bg-secondary' %> px-3 py-2">
-                        <%= if request.actionable_by?(current_user)
-                              "Awaiting you"
-                            elsif step.admin_step?
-                              "Awaiting admin"
-                            else
-                              "Awaiting #{step}"
-                            end %>
-                      </span>
-                    <% end %>
-                    <div class="text-muted small mt-1">
-                      <% request.approvals.ordered.each_with_index do |approval, i| %>
-                        <span title="<%= approval.approver_name %>">
-                          <%= i.positive? ? "› " : "" %><%= approval.role_name %><%
-                            %><%= { "approved" => " ✓", "rejected" => " ✗", "skipped" => " –" }[approval.status] %>
-                        </span>
-                      <% end %>
-                    </div>
-                  </td>
-                  <td data-label="Requested At" class="align-middle">
-                    <div class="fw-bold">
-                      <%= request.created_at.strftime("%b %d, %Y") %>
-                    </div>
-                    <div class="text-muted small">
-                      <%= request.created_at.strftime("%I:%M %p") %>
-                    </div>
-                  </td>
-                  <td data-label="Resolved At" class="align-middle">
-                    <% if request.resolved_at %>
-                      <div class="fw-bold">
-                        <%= request.resolved_at.strftime("%b %d, %Y") %>
-                      </div>
-                      <div class="text-muted small">
-                        <%= request.resolved_at.strftime("%I:%M %p") %>
-                      </div>
-                    <% else %>
-                      <span class="text-muted">-</span>
-                    <% end %>
-                  </td>
-                  <td data-label="Actions" class="align-middle">
-                    <%# Buttons only for the person the chain is actually waiting on. %>
-                    <% if request.actionable_by?(current_user) %>
-                      <% if request.manager_actionable? %>
-                        <div class="action-buttons">
-                          <%= button_to approve_edit_request_path(request),
-                              method: :patch,
-                              class: "btn btn-outline-success btn-sm",
-                              form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to approve this request?" } } do %>
-                            <i class="fas fa-check me-1"></i> Approve
-                          <% end %>
-
-                          <%= button_to reject_edit_request_path(request),
-                              method: :patch,
-                              class: "btn btn-outline-danger btn-sm",
-                              form: { class: "d-inline", data: { turbo_confirm: "Are you sure you want to reject this request?" } } do %>
-                            <i class="fas fa-times me-1"></i> Reject
-                          <% end %>
-                        </div>
-                      <% else %>
-                        <span class="badge bg-secondary" data-bs-toggle="tooltip" title="The one-week window to act on this request has passed.">
-                          <i class="fas fa-lock me-1"></i> Expired
-                        </span>
-                      <% end %>
-                    <% elsif request.current_step %>
-                      <span class="text-muted small">
-                        <i class="fas fa-hourglass-half me-1"></i>
-                        With <%= request.current_step.admin_step? ? "the admin team" : (request.current_approver&.name || request.current_step.to_s) %>
-                      </span>
-                    <% else %>
-                      <span class="text-muted small">—</span>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <% if @pagy %>
-          <div class="d-flex justify-content-center mt-4">
-            <%== pagy_bootstrap_nav(@pagy) %>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="empty-state">
-          <div class="alert alert-info text-center" role="alert">
-            <i class="fas fa-inbox fa-2x mb-3 text-primary"></i>
-            <h5 class="alert-heading">No edit requests found</h5>
-            <p class="mb-0">
-              <% if params[:name].present? || params[:request_type].present? || params[:status].present? %>
-                Try adjusting your filters to see more results.
-              <% else %>
-                There are no edit requests to display at the moment.
-              <% end %>
-            </p>
-          </div>
+      <% if @pagy %>
+        <div class="table-pager">
+          <%== pagy_bootstrap_nav(@pagy) %>
         </div>
       <% end %>
-    </div>
+    <% else %>
+      <div class="table-empty">
+        <i class="bi bi-inbox"></i>
+        <h5>No edit requests found</h5>
+        <p class="mb-0">
+          <%= filtered ? "Try adjusting your filters to see more results." : "Requests from your team will appear here." %>
+        </p>
+      </div>
+    <% end %>
+
   </div>
 </div>
 

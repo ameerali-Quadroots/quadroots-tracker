@@ -3,7 +3,7 @@ module Reports
   # headline numbers (with the previous period for comparison), a per-day
   # series, and breakdowns by department, employee, lateness and leave type.
   #
-  # A clock-in belongs to the calendar day it happened on (app time zone), and
+  # A clock-in belongs to the day its shift started (TimeClock#shift_date), and
   # "late" is whatever time_clocks.status recorded at clock-in.
   class AttendanceAnalytics
     UNASSIGNED = "Unassigned".freeze
@@ -48,7 +48,7 @@ module Reports
     # One row per day in the range, zero-filled, so a chart never skips a date.
     def daily
       @daily ||= begin
-        by_day = clocks.group_by { |tc| tc.clock_in.to_date }
+        by_day = clocks.group_by(&:shift_date)
         range.map do |date|
           day = by_day.fetch(date, [])
           lates = day.count { |tc| tc.status == "late" }
@@ -113,11 +113,10 @@ module Reports
       clocks.select { |tc| tc.status == "late" }
     end
 
-    # Preloads the employee because late_minutes reads their shift time.
+    # By the day each shift started (TimeClock.on_shift_dates), so a clock-in
+    # after midnight is counted on the right day.
     def load_clocks(dates)
-      from = Time.zone.local(dates.begin.year, dates.begin.month, dates.begin.day)
-      to   = Time.zone.local(dates.end.year, dates.end.month, dates.end.day).end_of_day
-      TimeClock.where(user_id: employees.map(&:id), clock_in: from..to).includes(:employee).to_a
+      TimeClock.where(user_id: employees.map(&:id)).on_shift_dates(dates)
     end
 
     def summarize(records)

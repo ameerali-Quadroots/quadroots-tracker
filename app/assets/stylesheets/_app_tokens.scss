@@ -1,0 +1,39 @@
+// Brand tokens for the employee app. The admin panel keeps its own copy in
+// active_admin.scss; the values match so both read as one product.
+:root {
+  --app-primary:        #6F2B8A;
+  --app-primary-light:  #8A3FA8;
+  --app-primary-dark:   #56206C;
+  --app-primary-soft:   #F4ECF8;
+  --app-primary-line:   #E3D2EC;
+  --app-primary-glow:   rgba(111, 43, 138, 0.32);
+  --app-gradient:       linear-gradient(135deg, #8A3FA8 0%, #6F2B8A 60%, #5A2172 100%);
+  --app-ink:            #1B1023;
+  --app-ink-title:      #2E1140;
+  --app-muted:          #6E6878;
+  --app-line:           #E9E1EF;
+  --app-page:           #F6F2F9;
+  --app-card:           #FFFFFF;
+  --app-radius:         14px;
+  --app-shadow:         0 1px 2px rgba(27, 16, 35, 0.04), 0 8px 24px -8px rgba(86, 32, 108, 0.14);
+  --app-font:           "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  // Bootstrap reads these, so its buttons, forms, modals and dropdowns follow.
+  --bs-body-font-family: var(--app-font);
+  --bs-font-sans-serif:  var(--app-font);
+  --bs-primary:          #6F2B8A;
+  --bs-primary-rgb:      111, 43, 138;
+  --bs-link-color:       #6F2B8A;
+  --bs-link-color-rgb:   111, 43, 138;
+  --bs-link-hover-color: #56206C;
+}
+
+body {
+  font-family: var(--app-font);
+  color: var(--app-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+// Form controls do not inherit the page font by default.
+button, input, select, textarea { font-family: inherit; }

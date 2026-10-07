@@ -1,17 +1,79 @@
-<div class="dashboard-header d-flex justify-content-between align-items-center">
-  <div>
-    <h3>Dashboard</h3>
-    <div class="greeting-text">Hello, <%= current_user.name || "Admin User" %>! 👋</div>
-  </div>
+<%# Headline band of the home page. #live-clock is ticked by the script in
+    dashboard/index, which reads data-server-time. While a shift is open the
+    band leads with a running time: time worked ([data-live-timer], mirroring
+    #clock-duration, which that script already keeps up to date), or - during
+    a break - how long the break has been running ([data-break-timer]). %>
+<% server_time = Time.zone.now # ensures the app time zone %>
+<% working = @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
+<% open_break = working ? @time_clock.open_breaks.max_by(&:break_in) : nil %>
 
-  <% server_time = Time.zone.now %> <!-- ensures correct timezone -->
-
-  <div class="text-end">
-    <div class="text-muted mb-1">Today</div>
-    <div id="live-clock"
-         data-server-time="<%= server_time.iso8601 %>"
-         class="fs-5 fw-bold">
-      <%= server_time.strftime('%d/%m/%Y %I:%M:%S %p') %>
+<div class="dashboard-header <%= 'is-working' if working %>">
+  <div class="dashboard-header-main">
+    <div class="dashboard-eyebrow">
+      <%= [current_user.access_role&.name, current_user.department.presence].compact.join(", ").presence || "Dashboard" %>
+    </div>
+    <%# No time-of-day greeting: the shift runs overnight, so "good morning" at 3am reads wrong. %>
+    <h3>Welcome back, <%= current_user.name.to_s.split.first.presence || "there" %></h3>
+    <div class="greeting-text">
+      <%= server_time.strftime("%A, %d %B %Y") %>
+      <span id="live-clock" data-server-time="<%= server_time.iso8601 %>"><%= server_time.strftime('%d/%m/%Y %I:%M:%S %p') %></span>
     </div>
   </div>
+
+  <div class="dashboard-header-clock <%= 'is-break' if open_break %>">
+    <% if open_break %>
+      <div class="live-timer-label">
+        <span class="live-dot is-paused"></span>
+        On a break: <%= open_break.break_type.to_s.sub(/\s*-\s*\d+\s*minutes?\z/i, "") %>, since <%= open_break.break_in.strftime("%I:%M %p") %>
+      </div>
+      <div class="live-timer" data-break-timer data-break-start="<%= open_break.break_in.iso8601 %>" data-server-time="<%= server_time.iso8601 %>">--</div>
+      <div class="live-timer-sub">break time so far, your working time is paused</div>
+    <% elsif working %>
+      <div class="live-timer-label">
+        <span class="live-dot"></span>
+        Working now, clocked in at <%= @time_clock.clock_in.strftime("%I:%M %p") %>
+      </div>
+      <div class="live-timer" data-live-timer aria-live="off">--</div>
+      <div class="live-timer-sub">time worked this shift</div>
+    <% else %>
+      <div class="live-timer-label">Not clocked in</div>
+      <div class="live-timer is-idle">0h 00m</div>
+      <div class="live-timer-sub">clock in below to start your shift</div>
+    <% end %>
+  </div>
 </div>
+
+<% if open_break %>
+  <script>
+    // Break timer: counts up from the moment the break started. Elapsed time
+    // is measured from the server's clock at render, so a wrong clock on the
+    // employee's machine does not skew it.
+    document.addEventListener('DOMContentLoaded', function () {
+      var el = document.querySelector('[data-break-timer]');
+      if (!el) return;
+      var startedAt = new Date(el.dataset.breakStart).getTime();
+      var serverNow = new Date(el.dataset.serverTime).getTime();
+      var loadedAt = Date.now();
+      function pad(n) { return String(n).padStart(2, '0'); }
+      function tick() {
+        var seconds = Math.max(0, Math.floor((serverNow + (Date.now() - loadedAt) - startedAt) / 1000));
+        var h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+        el.textContent = (h > 0 ? pad(h) + 'h ' : '') + pad(m) + 'm ' + pad(s) + 's';
+      }
+      tick();
+      setInterval(tick, 1000);
+    });
+  </script>
+<% elsif working %>
+  <script>
+    // Keep the band's running time in step with the summary's.
+    document.addEventListener('DOMContentLoaded', function () {
+      var source = document.getElementById('clock-duration');
+      var target = document.querySelector('[data-live-timer]');
+      if (!source || !target) return;
+      var copy = function () { var t = source.textContent.trim(); if (t && t !== 'Loading...') target.textContent = t; };
+      copy();
+      new MutationObserver(copy).observe(source, { childList: true, characterData: true, subtree: true });
+    });
+  </script>
+<% end %>

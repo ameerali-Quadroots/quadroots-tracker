@@ -1,0 +1,225 @@
+// Top navigation (app/views/layouts/_navbar.html.erb).
+// A white bar with a hairline: brand on the left, pages next to it, the bell
+// and account menu on the right. Collapses behind a menu button below 1200px.
+.app-navbar {
+  min-height: 64px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--app-line);
+  box-shadow: 0 1px 2px rgba(27, 16, 35, 0.03);
+  font-family: var(--app-font);
+  z-index: 1030;
+}
+.app-navbar-inner { gap: 8px; min-height: 64px; padding: 0 24px; }
+
+// ---- Brand ----
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 20px;
+  padding: 0;
+  color: var(--app-ink-title);
+  text-decoration: none;
+
+  &:hover, &:focus { color: var(--app-primary); }
+}
+.app-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--app-primary-soft);
+  border: 1px solid var(--app-primary-line);
+  img { width: 22px; height: auto; }
+}
+.app-brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; white-space: nowrap; }
+
+// ---- Page links ----
+.app-nav { gap: 2px; margin-right: auto; }
+.app-nav-tools { gap: 6px; align-items: center; margin-left: 12px; }
+
+.app-navbar .nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  color: #4B4453;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  i { font-size: 13.5px; opacity: 0.75; transition: opacity 0.15s ease; }
+
+  &:hover, &:focus-visible, &.show {
+    background: var(--app-primary-soft);
+    color: var(--app-primary-dark);
+    i { opacity: 1; }
+  }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--app-primary-glow); }
+
+  &.active {
+    background: var(--app-primary-soft);
+    color: var(--app-primary);
+    font-weight: 600;
+    i { opacity: 1; }
+  }
+}
+// The current page gets a short bar on the bottom edge of the navbar.
+.app-nav > .nav-item > .nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -13px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--app-gradient);
+}
+// Bootstrap's caret, drawn as a chevron.
+.app-navbar .dropdown-toggle::after {
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border: 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: 0.6;
+}
+
+// ---- Count badges ----
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+// "How many of mine": quiet. "Waiting on me": loud.
+.nav-badge-count { background: #EDE3F3; color: var(--app-primary-dark); }
+.nav-badge-alert { background: #DC2626; color: #FFFFFF; box-shadow: 0 2px 6px -1px rgba(220, 38, 38, 0.5); }
+
+// ---- Bell and account ----
+.app-navbar .nav-icon-link {
+  justify-content: center;
+  width: 38px;
+  padding: 0;
+  border: 1px solid var(--app-line);
+  background: var(--app-card);
+  i { font-size: 15px; opacity: 0.85; }
+}
+.app-navbar .user-dropdown-toggle {
+  height: 42px;
+  padding: 0 12px 0 4px;
+  gap: 10px;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: var(--app-card);
+  font-weight: 600;
+  color: var(--app-ink);
+}
+.app-navbar .user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--app-gradient);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+.app-navbar .user-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+
+// ---- Menus ----
+.app-menu {
+  min-width: 220px;
+  margin-top: 10px !important;
+  padding: 6px;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -12px rgba(27, 16, 35, 0.28);
+  font-family: var(--app-font);
+  animation: appMenuIn 0.14s ease-out;
+
+  .dropdown-header { padding: 6px 10px; font-size: 12px; font-weight: 600; color: var(--app-muted); }
+  .dropdown-divider { margin: 6px 0; border-color: var(--app-line); opacity: 1; }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--app-ink);
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    i { width: 16px; text-align: center; font-size: 13.5px; color: var(--app-muted); }
+    .nav-badge { margin-left: auto; }
+    &:hover, &:focus, &.active { background: var(--app-primary-soft); color: var(--app-primary-dark); }
+    &:hover i, &.active i { color: var(--app-primary); }
+    &.text-danger:hover { background: #FEF2F2; color: #B91C1C !important; }
+    &.text-danger i { color: currentColor; }
+  }
+  form { margin: 0; }
+}
+@keyframes appMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-navbar-toggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 10px;
+  background: var(--app-card);
+  color: var(--app-ink);
+  &:focus { box-shadow: 0 0 0 3px var(--app-primary-glow); }
+}
+
+// ---- Collapsed (below Bootstrap's xl breakpoint) ----
+@media (max-width: 1199.98px) {
+  .app-navbar-inner { padding: 0 16px; }
+  .app-navbar .navbar-collapse { padding: 8px 0 14px; border-top: 1px solid var(--app-line); }
+  .app-nav { gap: 2px; margin: 0; }
+  .app-navbar .nav-link { display: flex; width: 100%; height: 42px; }
+  .app-nav > .nav-item > .nav-link.active::before { display: none; }
+  .app-nav .nav-badge { margin-left: auto; }
+  .app-nav-tools { flex-direction: row; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--app-line); }
+  .app-navbar .nav-icon-link { width: 42px; }
+  .app-navbar .user-dropdown-toggle { width: auto; }
+  .app-menu { box-shadow: none; animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-menu { animation: none; }
+  .app-navbar .nav-link { transition: none; }
+}
+
+// Toasts open below the bar instead of on top of the bell and account menu.
+#toast-container.toast-top-right { top: 76px; right: 16px; }
+#toast-container > .toast { font-family: var(--app-font); border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(27, 16, 35, 0.35); opacity: 1; }

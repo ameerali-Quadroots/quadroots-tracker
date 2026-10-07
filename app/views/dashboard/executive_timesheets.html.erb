@@ -87,7 +87,7 @@
     <% (start_date..end_date).each_slice(7) do |week| %>
       <div class="week">
         <% week.each do |day| %>
-          <% record = @time_clocks.find { |t| t.clock_in.to_date == day } %>
+          <% record = @time_clocks.find { |t| t.shift_date == day } %>
 
           <%
             worked_secs = if record&.clock_out.present?

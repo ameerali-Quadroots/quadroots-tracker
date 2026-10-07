@@ -1,0 +1,474 @@
+// The shell every signed-in employee page shares, so they line up:
+//
+//   * one content column - the navbar's inner row and <main> use the same
+//     max-width and side padding, so the brand sits above the page's left edge
+//     and the account menu above its right edge;
+//   * one page header - the purple band (mixin app-hero), whatever markup a
+//     page family uses for its title;
+//   * one card, one table, one set of buttons and badges.
+//
+// Page families adapted here: home (.dashboard-container), the table pages
+// (.page-shell / .table-card), the Task Manager (.tm) and the sign-in screen.
+// Imported last, so these rules win over each family's own stylesheet.
+
+$shell-width: 1384px;   // 1320px of content + 2 x 32px padding
+$shell-pad: 32px;
+
+@mixin app-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin: 0 0 20px;
+  padding: 26px 32px;
+  border: 0;
+  border-radius: 20px;
+  color: #FFFFFF;
+  background: linear-gradient(120deg, #8A3FA8 0%, #6F2B8A 45%, #4E1B63 100%);
+  box-shadow: 0 20px 44px -20px rgba(78, 27, 99, 0.75);
+
+  // Two soft rings, so the band is not a flat block of colour.
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    border-radius: 50%;
+    background: none;
+    border: 42px solid rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+  }
+  &::before { width: 320px; height: 320px; right: -100px; top: -190px; }
+  &::after  { width: 200px; height: 200px; right: 200px; bottom: -150px; border-width: 30px; }
+  > * { position: relative; z-index: 1; }
+}
+@mixin app-card {
+  background: var(--app-card);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+}
+// A control that sits on the purple band.
+@mixin on-hero-chip {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #FFFFFF;
+}
+
+// ---- Content column ---------------------------------------------------------
+body { background: var(--app-page); }
+body > .container-fluid { padding: 0; > .row { margin: 0; } }
+
+.app-signed-in {
+  // <main> is a child of a Bootstrap .row, and a legacy global rule forces
+  // every row child's side padding to zero - so the gutter is taken out of the
+  // width instead of added as padding.
+  main {
+    display: block;
+    width: calc(100% - #{$shell-pad * 2});
+    max-width: $shell-width - $shell-pad * 2;
+    margin: 0 auto;
+    padding: 28px 0 72px;
+  }
+  .app-navbar-inner { max-width: $shell-width; margin: 0 auto; padding: 0 $shell-pad; }
+}
+
+// Up to eight links plus the account menu share the row: below 1500px the
+// name gives way and the avatar alone opens the menu.
+@media (min-width: 1200px) and (max-width: 1499.98px) {
+  .app-navbar .user-name { display: none; }
+  .app-navbar .user-dropdown-toggle { padding: 0 10px 0 4px; }
+  .app-navbar .nav-link { padding: 0 10px; }
+  .app-brand { margin-right: 12px; }
+}
+
+// ---- Generic page header (pages without a family of their own) --------------
+.app-pagehead { @include app-hero; }
+.app-pagehead__title { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2; color: #FFFFFF; }
+.app-pagehead__sub { margin: 6px 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.82); }
+
+// ---- Home -------------------------------------------------------------------
+.dashboard-container {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  .dashboard-glass { max-width: none; }
+}
+
+// ---- Table pages (.page-shell > .table-card) --------------------------------
+// The title bar becomes the band; the filter row and table become one card
+// underneath it.
+// (margin auto keeps a page that sets its own max-width, like Edit Profile, centred)
+.page-shell { width: 100%; max-width: none; margin: 0 auto; padding: 0; font-family: var(--app-font); }
+.table-card { background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.table-card__head { @include app-hero; }
+.table-card__title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  color: #FFFFFF;
+
+  .icon {
+    @include on-hero-chip;
+    flex: 0 0 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    box-shadow: none;
+    font-size: 19px;
+  }
+}
+.table-card__subtitle { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; letter-spacing: 0; color: rgba(255, 255, 255, 0.82); opacity: 1; }
+.table-card__stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat-pill {
+  @include on-hero-chip;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  font-size: 13px;
+  font-weight: 500;
+  b { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+}
+
+.table-filter {
+  @include app-card;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
+
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 170px; margin: 0; }
+  label { margin: 0; font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--app-muted); }
+  .form-control, .form-select {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid #D9CCE2;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(27, 16, 35, 0.04);
+    font-size: 14px;
+    color: var(--app-ink);
+    &:hover { border-color: #B79FC6; }
+    &:focus { border-color: var(--app-primary); box-shadow: 0 0 0 3px var(--app-primary-glow); }
+  }
+  .form-select { padding-right: 34px; }
+}
+.btn-filter, .btn-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: scale(0.98); }
+}
+.btn-filter {
+  border: 1px solid var(--app-primary);
+  background: var(--app-gradient);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px -1px var(--app-primary-glow);
+  &:hover { background: var(--app-gradient); color: #FFFFFF; box-shadow: 0 8px 18px -8px var(--app-primary-glow); filter: brightness(1.06); }
+}
+.btn-reset {
+  border: 1px solid #D9CCE2;
+  background: #FFFFFF;
+  color: var(--app-ink);
+  &:hover { background: var(--app-primary-soft); border-color: var(--app-primary); color: var(--app-primary-dark); }
+}
+
+.premium-table-wrap, .table-empty, .table-pager {
+  @include app-card;
+  margin: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.premium-table-wrap { overflow-x: auto; padding: 8px 12px 12px; }
+// With no filter row above, the table (or empty state) is a whole card.
+.table-card__head + .premium-table-wrap,
+.table-card__head + .table-empty {
+  border-top: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+}
+// Followed by a pager, the table hands its bottom corners on.
+.premium-table-wrap:has(+ .table-pager) { border-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: none; }
+.table-pager { display: flex; justify-content: center; padding: 14px 20px 18px; .pagination { margin: 0; } }
+
+.premium-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  thead th {
+    padding: 11px 14px;
+    background: #F5EEF9;
+    border: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    color: var(--app-primary-dark);
+    &:first-child { border-radius: 10px 0 0 10px; }
+    &:last-child { border-radius: 0 10px 10px 0; }
+  }
+  tbody td {
+    padding: 13px 14px;
+    border: 0;
+    border-bottom: 1px solid var(--app-line);
+    font-size: 14px;
+    color: var(--app-ink);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background-color 0.12s ease; }
+  tbody tr:hover { background: #FAF6FC; transform: none; box-shadow: none; }
+}
+.user-cell { display: flex; align-items: center; gap: 12px; }
+.user-cell__avatar {
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--app-primary-soft);
+  border: 1px solid var(--app-primary-line);
+  box-shadow: none;
+  color: var(--app-primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+.user-cell__name { font-size: 14px; font-weight: 600; color: var(--app-ink); }
+.user-cell__email { font-size: 12.5px; color: var(--app-muted); }
+.date-cell { font-variant-numeric: tabular-nums; white-space: nowrap; .d { font-weight: 500; color: var(--app-ink); } .t { font-size: 12.5px; color: var(--app-muted); } }
+.reason-cell { max-width: 280px; color: var(--app-muted); }
+.type-tag { display: inline-flex; padding: 4px 10px; border-radius: 8px; background: #F6F2F9; border: 1px solid var(--app-line); font-size: 12.5px; font-weight: 500; color: var(--app-ink); }
+.chain-trail { margin-top: 4px; font-size: 12px; color: var(--app-muted); }
+.no-action { font-size: 13px; color: var(--app-muted); }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  &::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+}
+.pill--pending, .pill--no { background: #FEF3C7; color: #B45309; border-color: #FCD34D; }
+.pill--approved, .pill--yes { background: #DCFCE7; color: #15803D; border-color: #86EFAC; }
+.pill--rejected { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
+.pill--neutral { background: #F4F4F5; color: #52525B; border-color: #D4D4D8; }
+
+.table-actions { display: flex; flex-wrap: wrap; gap: 8px; form { margin: 0; } }
+.btn-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  &:hover { transform: translateY(-1px); }
+}
+.btn-act--approve { background: #16A34A; border-color: #16A34A; color: #FFFFFF; &:hover { background: #15803D; border-color: #15803D; color: #FFFFFF; } }
+.btn-act--reject { background: #FFFFFF; border-color: #FCA5A5; color: #B91C1C; &:hover { background: #DC2626; border-color: #DC2626; color: #FFFFFF; } }
+
+.table-empty {
+  padding: 64px 24px;
+  text-align: center;
+  i { display: block; margin-bottom: 14px; font-size: 40px; color: #C9B8D4; opacity: 1; }
+  h5 { margin: 0 0 6px; font-size: 16.5px; font-weight: 600; color: var(--app-ink); }
+  p { font-size: 14px; color: var(--app-muted); }
+}
+
+// Edit Profile: the form under the band is its own card.
+.profile-card__body { @include app-card; }
+
+// ---- Task Manager (.tm) -----------------------------------------------------
+// The module keeps its own layout and status colours; here it takes the
+// brand's accent, sits in the shared column and uses the shared page header.
+.tm, .tm-drawer, .tm-modal {
+  --tm-accent: #6F2B8A;
+  --tm-accent-ink: #56206C;
+  --tm-accent-soft: #F4ECF8;
+  --tm-ground: var(--app-page);
+  --tm-line: #E9E1EF;
+  --tm-line-strong: #DACBE3;
+  --tm-r-panel: 14px;
+  --tm-r-control: 10px;
+  --tm-font: var(--app-font);
+}
+.tm { padding: 0; }
+.tm::before { display: none; }            // the body already paints the page
+.tm__inner { max-width: none; padding: 0; }
+
+.tm-head {
+  @include app-hero;
+  align-items: center;
+  padding-bottom: 26px;
+  border-bottom: 0;
+}
+.tm-head__title { font-size: 24px; letter-spacing: -0.4px; line-height: 1.2; color: #FFFFFF; }
+.tm-head__sub { margin-top: 6px; font-size: 14px; color: rgba(255, 255, 255, 0.82); }
+.tm-head__sub span, .tm-head__sub small, .tm-head__sub time { color: rgba(255, 255, 255, 0.72); }
+.tm-head .tm-crumb {
+  color: rgba(255, 255, 255, 0.7);
+  a { color: rgba(255, 255, 255, 0.86); &:hover { color: #FFFFFF; } }
+  span { color: rgba(255, 255, 255, 0.4); }
+}
+.tm-head .tm-btn {
+  @include on-hero-chip;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 600;
+  &:hover { background: rgba(255, 255, 255, 0.24); border-color: rgba(255, 255, 255, 0.4); color: #FFFFFF; }
+}
+.tm-head .tm-btn--primary {
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  color: var(--app-primary);
+  box-shadow: 0 6px 16px -8px rgba(27, 16, 35, 0.6);
+  &:hover { background: var(--app-primary-soft); border-color: var(--app-primary-soft); color: var(--app-primary-dark); }
+}
+.tm-btn { transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+.tm-btn:hover { transform: translateY(-1px); }
+.tm-btn:active { transform: scale(0.98); }
+.tm-panel { box-shadow: var(--app-shadow); }
+
+// ---- Sign in ----------------------------------------------------------------
+.app-signed-out { background: none; }
+.auth-page {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 32px 20px;
+  background: linear-gradient(140deg, #8A3FA8 0%, #6F2B8A 45%, #3B1450 100%);
+  font-family: var(--app-font);
+
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    border: 70px solid rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  &::before { width: 620px; height: 620px; right: -200px; top: -260px; }
+  &::after  { width: 420px; height: 420px; left: -160px; bottom: -220px; border-width: 54px; }
+}
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 36px 32px;
+  border-radius: 22px;
+  background: #FFFFFF;
+  box-shadow: 0 40px 80px -30px rgba(20, 6, 30, 0.7);
+  animation: appRise 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.auth-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--app-primary-soft);
+  border: 1px solid var(--app-primary-line);
+  img { width: 24px; height: auto; }
+}
+.auth-brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; color: var(--app-ink-title); }
+.auth-title { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.5px; color: var(--app-ink); }
+.auth-sub { margin: 8px 0 26px; font-size: 14.5px; line-height: 1.5; color: var(--app-muted); }
+.auth-field {
+  margin-bottom: 16px;
+  .form-label { margin-bottom: 6px; font-size: 13.5px; font-weight: 500; color: var(--app-ink); }
+  .form-control {
+    height: 46px;
+    padding: 0 14px;
+    border: 1px solid #D9CCE2;
+    border-radius: 12px;
+    font-size: 15px;
+    &:hover { border-color: #B79FC6; }
+    &:focus { border-color: var(--app-primary); box-shadow: 0 0 0 3px var(--app-primary-glow); }
+  }
+}
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 22px;
+  font-size: 13.5px;
+  .form-check { margin: 0; }
+  .form-check-input:checked { background-color: var(--app-primary); border-color: var(--app-primary); }
+  .form-check-label { color: var(--app-muted); }
+  a { font-weight: 500; text-decoration: none; &:hover { text-decoration: underline; } }
+}
+.auth-submit {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--app-primary);
+  border-radius: 12px;
+  background: var(--app-gradient);
+  box-shadow: 0 8px 20px -8px var(--app-primary-glow);
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  &:hover { transform: translateY(-1px); filter: brightness(1.07); box-shadow: 0 14px 26px -10px var(--app-primary-glow); }
+  &:active { transform: scale(0.99); }
+}
+
+@media (max-width: 767.98px) {
+  .app-signed-in main { width: calc(100% - 32px); padding: 16px 0 48px; }
+  .app-signed-in .app-navbar-inner { padding: 0 16px; }
+  .app-pagehead, .table-card__head, .tm-head { padding: 22px 20px; border-radius: 16px; }
+  .table-card__title, .app-pagehead__title, .tm-head__title { font-size: 21px; }
+  .table-filter .field { flex: 1 1 100%; }
+  .auth-card { padding: 28px 22px 24px; }
+}

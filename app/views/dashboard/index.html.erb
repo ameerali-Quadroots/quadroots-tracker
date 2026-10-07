@@ -1,54 +1,54 @@
+<%# Home page. Layout (styles in _app_home.scss):
+      headline band
+      today's four figures (+ today's breaks, when there are any)
+      current status | calendar
+      manager widgets (for people with direct reports)
+      your month (lates, hours, edit requests, leave), this or last month
+      this week's timesheets %>
 <div class="dashboard-container">
+  <%# Mount point for the particle script further down; hidden by the stylesheet. %>
   <div class="particles" id="particles-js"></div>
-  
+
   <div class="dashboard-glass">
-    <div class="glass-decoration glass-1"></div>
-    <div class="glass-decoration glass-2"></div>
-    <div class="glass-decoration glass-3"></div>
-    
-    <!-- Header -->
     <%= render 'dashboard/header' %>
 
-    
+    <section class="home-summary" aria-label="Today's summary">
+      <%= render 'dashboard/todays_summary' %>
+    </section>
 
-    <!-- Main Content Grid -->
-    <div class="row g-4">
-      <!-- Current Status Card -->
-      <div class="col-xl-6 add-new">
-        <div class="dashboard-card h-100">
-          <div class="card-body">
-            <h6 class="card-title">
-              <i class="bi bi-clock-history"></i>
-              Current Status
-            </h6>
-            <%= render 'dashboard/current_status' %>
-          </div>
+    <div class="home-grid">
+      <div class="dashboard-card">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-clock-history"></i>
+            Current Status
+          </h6>
+          <%= render 'dashboard/current_status' %>
         </div>
       </div>
 
-      <!-- Today's Summary -->
-      <div class="col-xl-6">
-        <div class="dashboard-card h-100">
-          <div class="card-body">
-            <h6 class="card-title">
-              <i class="bi bi-bar-chart"></i>
-              Today's Summary
-            </h6>
-            <%= render 'dashboard/todays_summary' %>
+      <div class="dashboard-card">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-calendar3"></i>
+            Calendar
+          </h6>
+          <div id="calendar"
+               class="calendar"
+               data-time-clocks="<%= @time_clocks_current_month.map { |tc| tc.as_json.merge("shift_date" => tc.shift_date&.iso8601) }.to_json %>">
           </div>
         </div>
       </div>
     </div>
 
+    <%= render 'dashboard/insights' %>
+
     <% if can_view?("manager_status") && current_user.direct_reports.any? %>
-      <!-- Manager Executives Status -->
-      <div class="row g-4 mt-2 mb-2">
-        <div class="col-12">
-          <div class="dashboard-card border-0 shadow-sm" style="border-radius: 14px; background: #ffffff; overflow: hidden;" id="manager-status-container">
-            <%= render 'dashboard/manager_executives_status' %>
-          </div>
+      <section class="home-section">
+        <div class="dashboard-card" id="manager-status-container">
+          <%= render 'dashboard/manager_executives_status' %>
         </div>
-      </div>
+      </section>
       <script>
         document.addEventListener('DOMContentLoaded', function() {
           setInterval(function() {
@@ -65,45 +65,22 @@
         });
       </script>
 
-      <!-- Monthly Department Report -->
-      <div class="row g-4 mt-1 mb-4">
-        <div class="col-12">
-          <%= render 'dashboard/monthly_department_stats' %>
-        </div>
-      </div>
+      <section class="home-section">
+        <%= render 'dashboard/monthly_department_stats' %>
+      </section>
     <% end %>
 
-    <!-- Bottom Section -->
-    <div class="row g-4 mt-4">
-      <!-- Timesheets -->
-      <div class="col-xl-6 add-new-2">
-        <div class="dashboard-card">
-          <div class="card-body">
-            <h6 class="card-title">
-              <i class="bi bi-table"></i>
-              This Week Timesheets
-            </h6>
-            <%= render 'dashboard/timesheets' %>
-          </div>
+    <section class="home-section">
+      <div class="dashboard-card">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-table"></i>
+            This Week Timesheets
+          </h6>
+          <%= render 'dashboard/timesheets' %>
         </div>
       </div>
-
-      <!-- Calendar -->
-      <div class="col-xl-6">
-        <div class="dashboard-card">
-          <div class="card-body">
-            <h6 class="card-title">
-              <i class="bi bi-calendar3"></i>
-              Calendar
-            </h6>
-            <div id="calendar" 
-                 class="calendar" 
-                 data-time-clocks="<%= @time_clocks_current_month.to_json %>">
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   </div>
 </div>
 
@@ -626,6 +603,9 @@ function generateCalendar(year, month, timeClocks, calendarElement) {
       // Find clock entry for this date
       const clockEntry = timeClocks.find(tc => {
         if (!tc.clock_in) return false;
+        // The server says which day the shift belongs to (a clock-in after
+        // midnight is still the previous day's shift).
+        if (tc.shift_date) return tc.shift_date === dateString;
         try {
           const clockInDate = new Date(tc.clock_in);
           const clockInString = `${clockInDate.getFullYear()}-${String(clockInDate.getMonth() + 1).padStart(2, '0')}-${String(clockInDate.getDate()).padStart(2, '0')}`;

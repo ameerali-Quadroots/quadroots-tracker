@@ -3,7 +3,7 @@
     <%
       early_checkout = false
       net_worked     = 0
-      if @time_clock.present? && @time_clock.clock_out.present? && @time_clock.clock_in.to_date == Date.current
+      if @time_clock.present? && @time_clock.clock_out.present? && @time_clock.shift_date == TimeClock.shift_date_at(Time.current, current_user)
         tc = @time_clock
         non_mtg_secs = tc.breaks.reject { |b| b.break_type == "Meeting" }
                                 .sum { |b| b.break_out.present? ? (b.break_out - b.break_in).to_i : 0 }
@@ -138,7 +138,8 @@
         </div>
 
         <p class="status-description text-muted mt-2">
-          Currently on <%= @time_clock.current_state.downcase %>. Ready to resume work?
+          <%# current_state is "On break", "Meeting" or "Downtime" %>
+          You are <%= @time_clock.current_state.to_s.casecmp?("On break") ? "on a break" : "in #{@time_clock.current_state.to_s.downcase}" %>. Ready to resume work?
         </p>
       </div>
 

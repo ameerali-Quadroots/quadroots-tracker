@@ -143,6 +143,30 @@ end
     candidate
   end
 
+  # The calendar day this shift belongs to: the day it was due to start. The
+  # shift runs from the evening into the early morning, so a clock-in at
+  # 00:30 belongs to the previous day. Group, chart and count by this, never by
+  # clock_in.to_date.
+  def shift_date
+    shift_start&.to_date
+  end
+
+  # The shift day a moment falls in for this user: at 01:00 it is still
+  # yesterday's shift.
+  def self.shift_date_at(time, user)
+    new(employee: user, clock_in: time).shift_date
+  end
+
+  # Shifts belonging to the given dates (a Date range), as an Array. Looks half
+  # a day past the end of the range for clock-ins after midnight, then keeps
+  # only the rows whose shift really falls inside it - which also drops the
+  # early hours of the first day, since those belong to the day before.
+  def self.on_shift_dates(dates)
+    from = dates.begin.in_time_zone.beginning_of_day
+    to   = (dates.end + 1).in_time_zone.beginning_of_day + 12.hours
+    where(clock_in: from..to).includes(:employee).select { |tc| dates.cover?(tc.shift_date) }
+  end
+
   # How many whole minutes late the employee clocked in (0 if on time / early).
   def late_minutes
     return 0 if clock_in.blank? || shift_start.blank?

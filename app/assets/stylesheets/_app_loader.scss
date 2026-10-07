@@ -1,0 +1,40 @@
+// Full-page loader (layouts/_loader.html.erb). The mark and its coin-flip are
+// the brand's own loader; this file only places it over the page.
+.app-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--app-primary);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+  // If the script never runs, do not trap the page behind the loader.
+  animation: app-loader-failsafe 0.3s ease 6s forwards;
+
+  &.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+@keyframes app-loader-failsafe { to { opacity: 0; visibility: hidden; } }
+
+// perspective makes the horizontal spin read as 3D instead of just squashing
+.qr-loader { perspective: 600px; }
+.qr-loader__icon {
+  width: 104px;
+  height: auto;
+  animation: qr-flip 1.6s linear infinite;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+// horizontal 360deg spin: the icon turns around its vertical axis, like a coin
+@keyframes qr-flip {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qr-loader__icon { animation-duration: 4s; }
+}

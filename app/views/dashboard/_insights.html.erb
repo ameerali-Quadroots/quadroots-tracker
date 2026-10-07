@@ -1,0 +1,212 @@
+<%# "Your month": the employee's own attendance, lateness against the KPI
+    limit, hours, edit requests against the monthly allowance, and leave.
+    Data: Reports::EmployeeMonth (@insights). Styles: _app_insights.scss. %>
+<%
+  report  = @insights
+  rate    = report.on_time_rate
+  late_pct = report.late_limit.positive? ? [(report.lates * 100.0 / report.late_limit).round, 100].min : 100
+  late_tone = report.kpi_deducted? ? "bad" : (report.lates_left.zero? ? "warn" : (report.lates.positive? ? "warn-soft" : "good"))
+  edit_pct = report.edit_request_limit.positive? ? [(report.edit_requests_used * 100.0 / report.edit_request_limit).round, 100].min : 100
+  daily   = report.daily
+  tallest = [daily.map { |d| d[:hours] }.max.to_f, 9.0].max
+  # Today's breaks: only while a shift is open (clocked in, not yet out).
+  shift_open = @time_clock&.clock_in.present? && @time_clock.clock_out.blank?
+  breaks = shift_open ? @time_clock.breaks.sort_by(&:break_in) : []
+  break_icons = { "meal" => "egg-fried", "second" => "cup-hot", "cigarette" => "wind", "chai" => "cup-straw", "coffee" => "cup-straw",
+                  "washroom" => "droplet", "namaz" => "moon-stars", "meeting" => "camera-video", "extra" => "plus-circle", "downtime" => "exclamation-triangle" }
+  break_minutes = breaks.sum { |b| b.duration.to_i } / 60
+%>
+
+<section class="insights" id="insights" aria-labelledby="insights-title">
+  <header class="insights-head">
+    <div>
+      <h2 class="insights-title" id="insights-title">Your month</h2>
+      <p class="insights-month"><%= report.month.strftime("%B %Y") %><%= ", so far" if report.current_month? %></p>
+    </div>
+    <nav class="insights-filter" aria-label="Period">
+      <%= link_to "This month", root_path(anchor: "insights"), aria: { current: (@insights_period == "this" ? "true" : nil) } %>
+      <%= link_to "Last month", root_path(period: "last", anchor: "insights"), aria: { current: (@insights_period == "last" ? "true" : nil) } %>
+    </nav>
+  </header>
+
+  <%# ---- Four headline figures ---- %>
+  <div class="insights-kpis">
+    <div class="insights-kpi tone-<%= late_tone %>">
+      <div class="insights-kpi-top">
+        <span class="insights-kpi-label">Late arrivals</span>
+        <span class="insights-kpi-icon"><i class="bi bi-alarm"></i></span>
+      </div>
+      <div class="insights-kpi-value"><%= report.lates %><small>of <%= report.late_limit %> allowed</small></div>
+      <div class="insights-meter" role="img" aria-label="<%= report.lates %> of <%= report.late_limit %> allowed late arrivals used"><i style="width: <%= late_pct %>%"></i></div>
+      <div class="insights-kpi-note">
+        <% if report.kpi_deducted? %>
+          Over the limit: your KPI is deducted for <%= report.current_month? ? "this month" : report.month.strftime("%B") %>.
+        <% elsif !report.current_month? %>
+          Within the limit for <%= report.month.strftime("%B") %>.
+        <% elsif report.lates_left.zero? %>
+          You are at the limit. One more late arrival affects your KPI.
+        <% else %>
+          <%= pluralize(report.lates_left, "more late arrival") %> before your KPI is affected.
+        <% end %>
+      </div>
+    </div>
+
+    <div class="insights-kpi tone-brand">
+      <div class="insights-kpi-top">
+        <span class="insights-kpi-label">On time</span>
+        <span class="insights-kpi-icon"><i class="bi bi-check2-circle"></i></span>
+      </div>
+      <div class="insights-kpi-value"><%= rate ? "#{rate.round}%" : "–" %><small><%= report.on_time %> of <%= pluralize(report.days_worked, "day") %></small></div>
+      <div class="insights-meter" role="img" aria-label="On-time rate"><i style="width: <%= rate.to_f.round %>%"></i></div>
+      <div class="insights-kpi-note">
+        <% if report.days_worked.zero? %>
+          No shifts recorded in this month.
+        <% elsif report.on_time_streak > 1 %>
+          <%= report.on_time_streak %> on-time shifts in a row.
+        <% else %>
+          Arrive before your shift start to keep this up.
+        <% end %>
+      </div>
+    </div>
+
+    <div class="insights-kpi tone-brand">
+      <div class="insights-kpi-top">
+        <span class="insights-kpi-label">Hours worked</span>
+        <span class="insights-kpi-icon"><i class="bi bi-hourglass-split"></i></span>
+      </div>
+      <div class="insights-kpi-value"><%= report.total_hours %><small>hours</small></div>
+      <div class="insights-kpi-pair">
+        <span><b><%= report.average_hours ? "#{report.average_hours} h" : "–" %></b> average shift</span>
+        <span><b><%= report.average_clock_in ? report.average_clock_in.strftime("%I:%M %p") : "–" %></b> average clock-in</span>
+      </div>
+    </div>
+
+    <div class="insights-kpi tone-<%= report.edit_requests_left.zero? ? 'warn' : 'brand' %>">
+      <div class="insights-kpi-top">
+        <span class="insights-kpi-label">Edit requests</span>
+        <span class="insights-kpi-icon"><i class="bi bi-pencil-square"></i></span>
+      </div>
+      <div class="insights-kpi-value"><%= report.edit_requests_used %><small>of <%= report.edit_request_limit %> used</small></div>
+      <div class="insights-meter" role="img" aria-label="<%= report.edit_requests_used %> of <%= report.edit_request_limit %> edit requests used"><i style="width: <%= edit_pct %>%"></i></div>
+      <div class="insights-kpi-note">
+        <% if !report.current_month? %>
+          Used in <%= report.month.strftime("%B") %>. The allowance resets each month.
+        <% elsif report.edit_requests_left.zero? %>
+          You have used all your edit requests for this month.
+        <% else %>
+          <%= pluralize(report.edit_requests_left, "request") %> left this month.
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="insights-grid">
+    <%# ---- Hours per day ---- %>
+    <div class="insights-card insights-card--wide">
+      <div class="insights-card-head">
+        <div>
+          <h3>Hours each day</h3>
+          <p>Each bar is a day you worked; red marks a late arrival.</p>
+        </div>
+        <div class="insights-legend">
+          <span><b class="dot dot-brand"></b> On time</span>
+          <span><b class="dot dot-bad"></b> Late</span>
+        </div>
+      </div>
+      <% if report.days_worked.zero? %>
+        <div class="insights-empty">No shifts recorded in <%= report.month.strftime("%B") %>.</div>
+      <% else %>
+        <div class="insights-bars" role="img" aria-label="Hours worked per day in <%= report.month.strftime('%B %Y') %>">
+          <% daily.each do |day| %>
+            <div class="insights-bar <%= "is-#{day[:status]}" if day[:status] %> <%= 'is-empty' if day[:hours].zero? && day[:status].nil? %>"
+                 title="<%= day[:date].strftime('%a %d %b') %>: <%= day[:status] ? "#{day[:hours]} h#{', late' if day[:status] == 'late'}" : 'not worked' %>">
+              <i style="height: <%= day[:status] ? [(day[:hours] * 100.0 / tallest).round, 4].max : 0 %>%"></i>
+              <span><%= day[:date].day if day[:date].day == 1 || (day[:date].day % 5).zero? %></span>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# ---- Late days ---- %>
+    <div class="insights-card">
+      <div class="insights-card-head">
+        <div>
+          <h3>Days you were late</h3>
+          <p><%= report.lates.zero? ? "None in this month." : "Newest first." %></p>
+        </div>
+      </div>
+      <% if report.late_days.any? %>
+        <ul class="insights-list">
+          <% report.late_days.each do |day| %>
+            <li>
+              <span class="insights-date"><b><%= day[:date].strftime("%d") %></b><%= day[:date].strftime("%b") %></span>
+              <span class="insights-list-main"><%= day[:date].strftime("%A") %><small>clocked in at <%= day[:clock_in].strftime("%I:%M %p") %></small></span>
+              <span class="pill pill--rejected"><%= day[:minutes] %> min late</span>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <div class="insights-empty insights-empty--good"><i class="bi bi-emoji-smile"></i>On time every day. Keep it going.</div>
+      <% end %>
+    </div>
+
+    <%# ---- Edit requests, by the day they were submitted ---- %>
+    <div class="insights-card <%= breaks.any? ? 'insights-card--wide' : 'insights-card--full' %>">
+      <div class="insights-card-head">
+        <div>
+          <h3>Edit requests you submitted</h3>
+          <p><%= report.edit_requests_used %> of <%= report.edit_request_limit %> used, listed by the day you asked.</p>
+        </div>
+        <%= link_to "See all", my_requests_edit_requests_path, class: "insights-link" %>
+      </div>
+      <% if report.edit_requests.any? %>
+        <ul class="insights-list">
+          <% report.edit_requests.each do |request| %>
+            <li>
+              <span class="insights-date"><b><%= request.created_at.strftime("%d") %></b><%= request.created_at.strftime("%b") %></span>
+              <span class="insights-list-main">
+                <%= request.request_type.presence || "Edit request" %>
+                <small>
+                  asked on <%= request.created_at.strftime("%a %d %b, %I:%M %p") %><% if request.requested_clock_in %>, for <%= request.requested_clock_in.strftime("%d %b %I:%M %p") %><% end %>
+                </small>
+              </span>
+              <span class="pill pill--<%= %w[pending approved rejected].include?(request.status) ? request.status : 'neutral' %>"><%= request.status.to_s.capitalize %></span>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <div class="insights-empty">You have not submitted an edit request in <%= report.month.strftime("%B") %>.</div>
+      <% end %>
+    </div>
+
+    <%# ---- Today's breaks: only while a shift is open and a break has been taken ---- %>
+    <% if breaks.any? %>
+      <div class="insights-card insights-breaks">
+        <div class="insights-card-head">
+          <div>
+            <h3>Breaks this shift</h3>
+            <p><%= pluralize(breaks.size, "break") %>, <%= break_minutes %> min in total.</p>
+          </div>
+        </div>
+        <ul class="insights-list">
+          <% breaks.each do |b| %>
+            <% icon = break_icons.find { |key, _| b.break_type.to_s.downcase.include?(key) }&.last || "pause-circle" %>
+            <li>
+              <span class="insights-break-icon"><i class="bi bi-<%= icon %>"></i></span>
+              <span class="insights-list-main">
+                <%= b.break_type.to_s.sub(/\s*-\s*\d+\s*minutes?\z/i, "") %>
+                <small><%= b.break_in&.strftime("%I:%M %p") %> to <%= b.break_out ? b.break_out.strftime("%I:%M %p") : "now" %></small>
+              </span>
+              <% if b.break_out %>
+                <span class="insights-break-time"><%= (b.duration / 60).round %> min</span>
+              <% else %>
+                <span class="pill pill--pending">In progress</span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+</section>
