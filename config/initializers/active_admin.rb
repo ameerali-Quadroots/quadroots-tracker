@@ -8,6 +8,13 @@ ActiveAdmin.setup do |config|
   # Quadroots brand logo in the header (and on the login screen).
   config.site_title_image = "logo-2.png"
   config.register_stylesheet 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'
+  # Date pickers (replaces jQuery UI's datepicker and the browser's native ones); set up in active_admin.js.
+  config.register_stylesheet 'https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css'
+  config.register_stylesheet 'https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css'
+  config.register_javascript 'https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js'
+  config.register_javascript 'https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js'
+  # Utility classes for the custom admin pages; loaded after active_admin.css so it wins ties.
+  config.register_stylesheet 'tailwind.css'
   config.register_javascript 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'
   # Set the link url for the title. For example, to take
   # users to your main site. Defaults to no link.
@@ -188,11 +195,21 @@ ActiveAdmin.setup do |config|
   # You can run `bin/rails runner 'puts I18n.t("date.formats")'` to see the
   # available formats in your application.
   #
-  config.localize_format = :long
+  # Compact, single-line dates for index tables (see config/locales/en.yml).
+  config.localize_format = :admin
 
   # == Setting a Favicon
   #
   # config.favicon = 'favicon.ico'
+  # Same icons as the employee app (app/views/layouts/application.html.erb).
+  # config.favicon reaches every admin page including the login screen, but
+  # only takes one file, so the SVG and touch icons are added via config.head
+  # (which the signed-in layout renders).
+  config.favicon = '/favicon.ico'
+  config.head = <<~HTML.html_safe
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  HTML
 
   # == Meta Tags
   #

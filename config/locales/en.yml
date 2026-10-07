@@ -2,3 +2,7 @@ en:
   time:
     formats:
       long: "%B %d, %Y %H:%M"   # Example: October 04, 2025 14:30
+      admin: "%d %b %Y, %-l:%M %p"   # Admin panel tables: 04 Oct 2025, 2:30 PM
+  date:
+    formats:
+      admin: "%d %b %Y"

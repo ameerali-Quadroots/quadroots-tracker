@@ -53,7 +53,8 @@ ActiveAdmin.register_page "KPI" do
   content title: "KPI" do
     render partial: "admin/kpi/report",
            locals: { report: kpi_report, month: kpi_month, department_options: kpi_department_options,
-                     employee_rows: kpi_employee_rows, show_all: kpi_show_all? }
+                     employee_rows: kpi_employee_rows, show_all: kpi_show_all?,
+                     open_employees: authorized?(:read, User) }
   end
 
   # Export the month being viewed as XLSX: department summary + per-employee sheet.

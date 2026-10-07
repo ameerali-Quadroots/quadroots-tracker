@@ -4,12 +4,10 @@ ActiveAdmin.register_page "Dashboard" do
   menu priority: 1
 
   content do
+    # Icons used by the dashboard partials. (Charts are drawn by active_admin.js.)
     div do
-      raw "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
-      raw "<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css' rel='stylesheet'>"
-      raw "<script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'></script>"
+      raw "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css'>"
     end
-  
 
     if current_admin_user.super_admin? || current_admin_user.qa_admin?
       div class: "height-class2" do

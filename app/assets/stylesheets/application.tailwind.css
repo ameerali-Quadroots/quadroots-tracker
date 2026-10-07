@@ -1,0 +1,21 @@
+/*
+ * Tailwind entry point for the admin panel. Compiled by tailwindcss-rails to
+ * app/assets/builds/tailwind.css (not by Sprockets). Config: config/tailwind.config.js.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Preflight is off (see the config), so borders have no style by default and
+ * `border` alone draws nothing. Wrap a custom admin page in .tw to get the two
+ * resets the utilities rely on, without touching ActiveAdmin's own screens.
+ */
+@layer base {
+  .tw, .tw *, .tw ::before, .tw ::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--border);
+  }
+}

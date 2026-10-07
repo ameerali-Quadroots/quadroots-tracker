@@ -1,0 +1,217 @@
+<%#
+  Attendance analytics.
+  Written in Tailwind (.tw opts in to the scoped reset). Each [data-chart]
+  element carries a JSON description that active_admin.js turns into an
+  ApexCharts chart; the chart library is only downloaded on pages that have one.
+
+  Chart colours: purple is the brand series, red is reserved for "late", and the
+  leave types use a fixed four-colour order checked for colour-blind separation.
+%>
+<%
+  summary  = report.summary
+  previous = report.previous_summary
+  daily    = report.daily
+  days     = daily.size
+  any_data = summary[:clock_ins].positive?
+  day_labels = daily.map { |d| d[:date].strftime("%d %b") }
+  # Trend lines skip days nobody worked (weekends, holidays): a drop to zero
+  # there is the calendar, not a change in attendance.
+  worked        = daily.select { |d| (d[:on_time] + d[:late]).positive? }
+  worked_labels = worked.map { |d| d[:date].strftime("%d %b") }
+
+  purple, red = "#6F2B8A", "#E5484D"
+  leave_colors = { "casual" => "#6F2B8A", "medical" => "#0E9F6E", "half_day" => "#E3A008", "emergency" => "#3F83F8" }
+
+  card  = "rounded-xl border bg-card shadow-card"
+  title = "text-[14.5px] font-semibold text-foreground"
+  hint  = "mt-0.5 text-[12.5px] text-muted-foreground"
+  field = "h-9 rounded-md border border-input bg-background px-3 font-sans text-sm text-foreground shadow-xs " \
+          "focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-ring"
+
+  # Change against the previous period. `good` says which direction is good news.
+  delta = lambda do |now, before, good:, unit: :percent|
+    next nil if now.nil? || before.nil? || (unit == :percent && before.zero?)
+
+    change = unit == :points ? (now - before).round(1) : ((now - before) * 100.0 / before).round(1)
+    next { text: "No change", tone: :flat, arrow: "" } if change.zero?
+
+    improved = good == :up ? change.positive? : change.negative?
+    { text: "#{change.abs}#{unit == :points ? ' pts' : '%'}", tone: improved ? :good : :bad, arrow: change.positive? ? "▲" : "▼" }
+  end
+  tone_class = { good: "bg-emerald-50 text-emerald-700", bad: "bg-red-50 text-red-700", flat: "bg-muted text-muted-foreground" }
+
+  tiles = [
+    { label: "Clock-ins", value: number_with_delimiter(summary[:clock_ins]), note: "by #{pluralize(report.employee_count, 'employee')}",
+      delta: delta.(summary[:clock_ins], previous[:clock_ins], good: :up),
+      spark: worked.map { |d| d[:on_time] + d[:late] }, color: purple },
+    { label: "Late arrivals", value: number_with_delimiter(summary[:lates]), note: "clocked in after shift start",
+      delta: delta.(summary[:lates], previous[:lates], good: :down),
+      spark: worked.map { |d| d[:late] }, color: red },
+    { label: "Average shift", value: summary[:avg_hours] ? "#{summary[:avg_hours]} h" : "–", note: "hours worked per completed shift",
+      delta: delta.(summary[:avg_hours], previous[:avg_hours], good: :up, unit: :percent),
+      spark: worked.map { |d| d[:avg_hours] }, color: purple }
+  ]
+  rate_delta = delta.(summary[:on_time_rate], previous[:on_time_rate], good: :up, unit: :points)
+  preset_params = ->(p) { { period: p, department: params[:department].presence } }
+%>
+
+<div class="tw an-report font-sans">
+  <%# ---- Filters: one row, above everything they affect ---- %>
+  <div class="mb-5 flex flex-wrap items-end gap-3">
+    <div class="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Period">
+      <% { "7" => "7 days", "30" => "30 days", "90" => "90 days" }.each do |key, label| %>
+        <%= link_to label, admin_analytics_path(preset_params.(key)),
+              class: "inline-flex h-[30px] items-center rounded-md px-3 text-[13px] font-medium no-underline transition " +
+                     (period == key ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground") %>
+      <% end %>
+    </div>
+
+    <%= form_tag admin_analytics_path, method: :get, class: "flex flex-wrap items-end gap-3" do %>
+      <div>
+        <label for="an_from" class="mb-1.5 block text-[13px] font-medium text-foreground">From</label>
+        <%= text_field_tag :from, range.begin.iso8601, id: "an_from", class: "datepicker #{field} w-[150px]" %>
+      </div>
+      <div>
+        <label for="an_to" class="mb-1.5 block text-[13px] font-medium text-foreground">To</label>
+        <%= text_field_tag :to, range.end.iso8601, id: "an_to", class: "datepicker #{field} w-[150px]" %>
+      </div>
+      <div>
+        <label for="an_department" class="mb-1.5 block text-[13px] font-medium text-foreground">Department</label>
+        <%= select_tag :department, options_for_select(department_options, params[:department]),
+              include_blank: "All departments", id: "an_department",
+              class: "#{field} min-w-[180px] cursor-pointer appearance-none bg-chevron bg-[right_12px_center] bg-no-repeat pr-8" %>
+      </div>
+      <%= submit_tag "Apply", name: nil %>
+    <% end %>
+  </div>
+
+  <% unless any_data %>
+    <div class="<%= card %> px-6 py-16 text-center">
+      <div class="text-base font-semibold text-foreground">No attendance recorded in this period</div>
+      <div class="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
+        Nobody clocked in between <%= range.begin.strftime("%d %b %Y") %> and <%= range.end.strftime("%d %b %Y") %>.
+        Pick a longer period or different dates above.
+      </div>
+    </div>
+  <% else %>
+    <%# ---- Headline: on-time rate ---- %>
+    <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div class="an-hero relative overflow-hidden rounded-xl p-6 text-white shadow-card xl:col-span-1">
+        <div class="text-[13px] font-medium text-white/80">On-time rate</div>
+        <div class="mt-2 flex items-end gap-3">
+          <div class="text-[44px] font-semibold leading-none tracking-tight tabular-nums"><%= summary[:on_time_rate] %>%</div>
+          <% if rate_delta %>
+            <span class="mb-1 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+              <%= rate_delta[:arrow] %> <%= rate_delta[:text] %>
+            </span>
+          <% end %>
+        </div>
+        <div class="mt-2 text-[13px] text-white/80">
+          <%= number_with_delimiter(summary[:on_time]) %> of <%= number_with_delimiter(summary[:clock_ins]) %> clock-ins were on time,
+          <%= range.begin.strftime("%d %b") %> to <%= range.end.strftime("%d %b %Y") %>.
+          <%= "Compared with the #{days} days before." if rate_delta %>
+        </div>
+        <div class="-mx-2 mt-4" data-chart="<%= { kind: "spark", height: 64, colors: ["#FFFFFF"], categories: worked_labels, unit: "%",
+              series: [{ name: "On-time rate", data: worked.map { |d| (d[:on_time] * 100.0 / (d[:on_time] + d[:late])).round(1) } }] }.to_json %>"></div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:col-span-2">
+        <% tiles.each do |tile| %>
+          <div class="<%= card %> flex flex-col p-5 transition hover:-translate-y-0.5 hover:border-primary">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-[13px] font-medium text-muted-foreground"><%= tile[:label] %></div>
+              <% if tile[:delta] %>
+                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold <%= tone_class[tile[:delta][:tone]] %>">
+                  <%= tile[:delta][:arrow] %> <%= tile[:delta][:text] %>
+                </span>
+              <% end %>
+            </div>
+            <div class="mt-2 text-[28px] font-semibold leading-none tracking-tight tabular-nums text-foreground"><%= tile[:value] %></div>
+            <div class="mt-1.5 text-xs text-muted-foreground"><%= tile[:note] %></div>
+            <div class="-mx-2 mt-auto pt-3" data-chart="<%= { kind: "spark", height: 52, colors: [tile[:color]], categories: worked_labels,
+                  series: [{ name: tile[:label], data: tile[:spark] }] }.to_json %>"></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div class="<%= card %> p-5 xl:col-span-2">
+        <div class="<%= title %>">Attendance by day</div>
+        <div class="<%= hint %>">Clock-ins each day, split into on time and late</div>
+        <div class="mt-2" role="img" aria-label="Stacked columns of on-time and late clock-ins per day"
+             data-chart="<%= { kind: "columns", stacked: true, height: 300, colors: [purple, red], categories: day_labels,
+                  series: [{ name: "On time", data: daily.map { |d| d[:on_time] } }, { name: "Late", data: daily.map { |d| d[:late] } }] }.to_json %>"></div>
+      </div>
+
+      <div class="<%= card %> p-5">
+        <div class="<%= title %>">Leave taken</div>
+        <div class="<%= hint %>">Requests starting in this period, by type</div>
+        <% leaves = report.leaves_by_type %>
+        <% if leaves.any? %>
+          <div class="mt-2" role="img" aria-label="Leave requests by type"
+               data-chart="<%= { kind: "donut", height: 300, categories: leaves.keys.map { |k| k.to_s.humanize },
+                    colors: leaves.keys.map { |k| leave_colors[k.to_s] || "#A1A1AA" }, values: leaves.values, total_label: "Requests" }.to_json %>"></div>
+        <% else %>
+          <div class="flex h-[300px] items-center justify-center text-sm text-muted-foreground">No leave requested in this period.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <% departments = report.by_department.select { |row| row[:clock_ins].positive? } %>
+      <div class="<%= card %> p-5">
+        <div class="<%= title %>">Late rate by department</div>
+        <div class="<%= hint %>">Share of each department's clock-ins that were late</div>
+        <div class="mt-2" role="img" aria-label="Late rate by department"
+             data-chart="<%= { kind: "hbar", height: [departments.size * 34 + 60, 220].max, colors: [purple], unit: "%",
+                  categories: departments.map { |row| row[:department] },
+                  series: [{ name: "Late rate", data: departments.map { |row| row[:late_rate] } }] }.to_json %>"></div>
+      </div>
+
+      <div class="<%= card %> p-5">
+        <div class="<%= title %>">How late people arrive</div>
+        <div class="<%= hint %>">Late arrivals grouped by minutes after shift start</div>
+        <% buckets = report.lateness_buckets %>
+        <div class="mt-2" role="img" aria-label="Late arrivals by minutes late"
+             data-chart="<%= { kind: "columns", height: [departments.size * 34 + 60, 220].max, colors: [red], categories: buckets.keys,
+                  series: [{ name: "Late arrivals", data: buckets.values }] }.to_json %>"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div class="<%= card %> p-5 xl:col-span-2">
+        <div class="<%= title %>">Hours worked</div>
+        <div class="<%= hint %>">Average length of a completed shift, on days people worked</div>
+        <div class="mt-2" role="img" aria-label="Average hours worked per day"
+             data-chart="<%= { kind: "area", height: 280, colors: [purple], categories: worked_labels, unit: " h",
+                  series: [{ name: "Average shift", data: worked.map { |d| d[:avg_hours] } }] }.to_json %>"></div>
+      </div>
+
+      <div class="<%= card %> an-top-late p-5">
+        <div class="<%= title %>">Most late arrivals</div>
+        <div class="<%= hint %>">Employees late most often in this period</div>
+        <% top = report.top_late %>
+        <% if top.any? %>
+          <ol class="m-0 mt-4 list-none space-y-3 p-0">
+            <% top.each do |row| %>
+              <%= tag.li class: "m-0 p-0", data: { href: (admin_employee_path(row[:id]) if open_employees) } do %>
+                <div class="flex items-baseline justify-between gap-3">
+                  <div class="min-w-0 truncate text-[13.5px] font-medium text-foreground">
+                    <span class="an-name"><%= row[:name] %></span> <span class="font-normal text-muted-foreground"><%= row[:department] %></span>
+                  </div>
+                  <div class="text-[13.5px] font-semibold tabular-nums text-foreground"><%= row[:lates] %></div>
+                </div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div class="an-bar h-full rounded-full bg-[#E5484D]" style="width: <%= (row[:lates] * 100.0 / top.first[:lates]).round %>%"></div>
+                </div>
+              <% end %>
+            <% end %>
+          </ol>
+        <% else %>
+          <div class="flex h-[240px] items-center justify-center text-sm text-muted-foreground">Nobody was late in this period.</div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

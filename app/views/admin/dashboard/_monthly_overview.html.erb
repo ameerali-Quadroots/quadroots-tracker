@@ -10,6 +10,11 @@
     all_year_clocks = TimeClock.where(clock_in: year_start..year_end).select(:user_id, :status, :clock_in, :clock_out, :total_duration).to_a
     active_users = User.where(employeed: true).order(:name).to_a
     
+    # An employee over the KPI late limit for the month is flagged, using the
+    # same setting as the KPI page.
+    late_limit = AppSetting.instance.late_kpi_monthly_limit
+    initials = ->(name) { name.to_s.split.first(2).map { |part| part[0] }.join.upcase.presence || "?" }
+
     months = (1..12).to_a
     monthly_stats = months.map do |month_number|
       month_start = Time.new(year, month_number).beginning_of_month
@@ -66,191 +71,148 @@
     end
   %>
 
-  <div style="background:#fff;border-radius:16px;border:1px solid #E8ECF0;box-shadow:0 1px 4px rgba(0,0,0,0.04);overflow:hidden;">
-    <div style="padding:20px 24px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Monthly Overview</h3>
-        <select id="analytics-year-select" style="padding:4px 12px; border-radius:8px; border:1px solid #CBD5E1; background:#fff; font-size:0.8rem; font-weight:700; color:#334155; outline:none; cursor:pointer;">
-          <option value="2026" <%= 'selected' if year == 2026 %>>2026</option>
-          <option value="2025" <%= 'selected' if year == 2025 %>>2025</option>
-          <option value="2024" <%= 'selected' if year == 2024 %>>2024</option>
-        </select>
+  <%# Styled by the DASHBOARD section of active_admin.scss (.db-*). Script hooks
+      (see _super_admin_dashboard): #analytics-year-select, .dash-tab / #tab-N,
+      .dash-tab-panel / #panel-N, #container-N, .monthly-row-item (+ data-*),
+      .monthly-search-input, .monthly-dept-filter, .monthly-sort-select, #empty-N. %>
+  <div class="db-card db-monthly">
+    <div class="db-monthly-head">
+      <div>
+        <div class="db-card-title">Monthly overview</div>
+        <div class="db-card-hint">On-time and late clock-ins for each month, with every employee's record</div>
       </div>
-      <span style="font-size:0.75rem;background:#E2E8F0;padding:4px 10px;border-radius:20px;font-weight:700;color:#475569;">Interactive Leaderboard</span>
+      <select id="analytics-year-select" aria-label="Year">
+        <% current_year.downto(current_year - 2).each do |y| %>
+          <option value="<%= y %>" <%= 'selected' if year == y %>><%= y %></option>
+        <% end %>
+      </select>
     </div>
 
-    <div style="padding:24px;">
-      
-      <!-- Tab Controls -->
-      <div class="tablist" role="tablist" aria-label="Monthly Attendance Tabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;">
-        <% monthly_stats.each_with_index do |data, index| %>
-          <button 
-            class="dash-tab <%= 'active' if index == active_index %>" 
-            role="tab"
-            aria-selected="<%= index == active_index %>"
-            aria-controls="panel-<%= index %>"
-            id="tab-<%= index %>"
-            tabindex="<%= index == active_index ? 0 : -1 %>">
-            <%= data[:month_name] %>
-          </button>
-        <% end %>
-      </div>
+    <% if monthly_stats.any? { |m| (m[:on_time] + m[:late]).positive? } %>
+      <div class="db-monthly-chart" role="img" aria-label="On-time and late clock-ins per month in <%= year %>"
+           data-chart="<%= { kind: "columns", stacked: true, height: 240, colors: ["#6F2B8A", "#E5484D"],
+                categories: monthly_stats.map { |m| m[:month_name].first(3) },
+                series: [{ name: "On time", data: monthly_stats.map { |m| m[:on_time] } },
+                         { name: "Late", data: monthly_stats.map { |m| m[:late] } }] }.to_json %>"></div>
+    <% end %>
 
-      <!-- Tab Panels -->
-      <div class="tab-panels">
-        <% monthly_stats.each_with_index do |data, index| %>
-          <section 
-            id="panel-<%= index %>" 
-            class="dash-tab-panel" 
-            role="tabpanel" 
-            aria-labelledby="tab-<%= index %>"
-            aria-hidden="<%= index != active_index %>"
-            <%= 'hidden' if index != active_index %>>
-            
-            <!-- Summary stats -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-              <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <div style="font-size:0.7rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;">On Time Total</div>
-                  <div style="font-size:1.8rem;font-weight:900;color:#16A34A;line-height:1;margin-top:4px;"><%= data[:on_time] %></div>
-                </div>
-                <i class="bi bi-check-circle-fill" style="font-size:2rem;color:#16A34A;opacity:0.8;"></i>
-              </div>
-              <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <div style="font-size:0.7rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;">Late Total</div>
-                  <div style="font-size:1.8rem;font-weight:900;color:#E11D48;line-height:1;margin-top:4px;"><%= data[:late] %></div>
-                </div>
-                <i class="bi bi-clock-fill" style="font-size:2rem;color:#E11D48;opacity:0.8;"></i>
-              </div>
+    <div class="db-months tablist" role="tablist" aria-label="Month">
+      <% monthly_stats.each_with_index do |data, index| %>
+        <button type="button"
+          class="dash-tab <%= 'active' if index == active_index %>"
+          role="tab"
+          aria-selected="<%= index == active_index %>"
+          aria-controls="panel-<%= index %>"
+          id="tab-<%= index %>"
+          tabindex="<%= index == active_index ? 0 : -1 %>">
+          <%= data[:month_name].first(3) %>
+        </button>
+      <% end %>
+    </div>
+
+    <div class="tab-panels">
+      <% monthly_stats.each_with_index do |data, index| %>
+        <section
+          id="panel-<%= index %>"
+          class="dash-tab-panel"
+          role="tabpanel"
+          aria-labelledby="tab-<%= index %>"
+          aria-hidden="<%= index != active_index %>"
+          <%= 'hidden' if index != active_index %>>
+
+          <% month_total = data[:on_time] + data[:late] %>
+          <div class="db-month-summary">
+            <div class="db-month-stat">
+              <span class="db-tile-icon db-tone-good"><i class="bi bi-check-circle-fill"></i></span>
+              <div><strong><%= data[:on_time] %></strong><span>on time in <%= data[:month_name] %></span></div>
             </div>
-
-            <!-- Interactive Search & Sort Bar -->
-            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:12px 16px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
-              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; flex:1;">
-                <!-- Search -->
-                <div style="position:relative; flex:1; max-width:280px; min-width:180px;">
-                  <input type="text" class="monthly-search-input" data-month-index="<%= index %>" placeholder="Search by employee name..." style="width:100%; padding:8px 12px 8px 32px; border-radius:10px; border:1px solid #E2E8F0; font-size:0.85rem; font-weight:600; outline:none; background:#fff;">
-                  <i class="bi bi-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:0.85rem;"></i>
-                </div>
-                <!-- Dept Filter -->
-                <select class="monthly-dept-filter" data-month-index="<%= index %>" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer;">
-                  <option value="all">All Departments</option>
-                  <% departments = data[:users_data].map { |s| s[:user].department }.compact.uniq.sort %>
-                  <% departments.each do |dept| %>
-                    <option value="<%= dept %>"><%= dept.upcase %></option>
-                  <% end %>
-                </select>
-              </div>
-              
-              <!-- Sort Selector -->
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:0.8rem; font-weight:750; color:#475569;">Sort:</span>
-                <select class="monthly-sort-select" data-month-index="<%= index %>" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer;">
-                  <option value="late-desc">Most Lates</option>
-                  <option value="late-asc">Least Lates</option>
-                  <option value="ratio-desc">Highest Late Ratio</option>
-                  <option value="hours-desc">Most Hours Worked</option>
-                  <option value="on-time-desc">Most On-Time</option>
-                  <option value="name">Employee Name</option>
-                </select>
-              </div>
+            <div class="db-month-stat">
+              <span class="db-tile-icon db-tone-bad"><i class="bi bi-clock-fill"></i></span>
+              <div><strong><%= data[:late] %></strong><span>late in <%= data[:month_name] %></span></div>
             </div>
+            <div class="db-month-stat">
+              <span class="db-tile-icon db-tone-brand"><i class="bi bi-percent"></i></span>
+              <div><strong><%= month_total.positive? ? "#{((data[:on_time] * 100.0) / month_total).round}%" : "–" %></strong><span>on-time rate</span></div>
+            </div>
+          </div>
 
-            <!-- List of rows -->
-            <div class="monthly-rows-container" id="container-<%= index %>" style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
-              <% data[:users_data].each do |ud| %>
-                <% 
-                  user = ud[:user]
-                  late = ud[:late]
-                  on_time = ud[:on_time]
-                  late_ratio = ud[:late_ratio]
-                  total = ud[:total]
-                  total_hours = ud[:total_hours]
-                  avg_in = ud[:avg_in]
-                %>
-                <a href="<%= admin_employee_path(user) %>" class="monthly-row-item" data-name="<%= user.name.downcase %>" data-dept="<%= user.department %>" data-late="<%= late %>" data-on-time="<%= on_time %>" data-ratio="<%= late_ratio %>" data-hours="<%= total_hours %>" style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #E2E8F0; padding:12px 18px; border-radius:12px; margin-bottom:10px; transition:all 0.2s; gap: 12px; flex-wrap: wrap; text-decoration:none; color:inherit;">
-                  
-                  <!-- Profile -->
-                  <div style="display:flex; align-items:center; gap:12px; width:220px; flex-shrink:0;">
-                    <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:0.9rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 0 1px #E2E8F0; flex-shrink:0;">
-                      <%= user.name&.first&.upcase || "?" %>
-                    </div>
-                    <div style="min-width:0;">
-                      <div style="font-size:0.85rem; font-weight:700; color:#0F172A;" class="emp-name-link"><%= user.name %></div>
-                      <span style="font-size:0.7rem; font-weight:700; color:#64748B; text-transform:uppercase;"><%= user.department.presence || 'NO DEPT' %></span>
-                    </div>
-                  </div>
-
-                  <!-- Clock stats (Shift Count) -->
-                  <div style="display:flex; align-items:center; gap:16px; width:140px; justify-content:center; flex-shrink:0;">
-                    <div style="text-align:center; min-width:45px;">
-                      <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">On Time</div>
-                      <span style="display:inline-block; margin-top:2px; background:#ECFDF5; color:#059669; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:6px;"><%= on_time %></span>
-                    </div>
-                    <div style="text-align:center; min-width:45px;">
-                      <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.3px;">Late</div>
-                      <span style="display:inline-block; margin-top:2px; background:#FEF2F2; color:#DC2626; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:6px;"><%= late %></span>
-                    </div>
-                  </div>
-
-                  <!-- Productivity Info: Hours Worked & Average Clock-In -->
-                  <div style="display:flex; align-items:center; gap:20px; width:220px; flex-shrink:0;">
-                    <div style="display:flex; align-items:center; gap:6px;">
-                      <i class="bi bi-clock-history" style="font-size:0.95rem; color:#2563EB;"></i>
-                      <div>
-                        <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase;">Time Tracked</div>
-                        <div style="font-size:0.8rem; font-weight:750; color:#1E293B;"><%= total_hours %> hrs</div>
-                      </div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                      <i class="bi bi-box-arrow-in-right" style="font-size:0.95rem; color:#059669;"></i>
-                      <div>
-                        <div style="font-size:0.55rem; font-weight:800; color:#64748B; text-transform:uppercase;">Avg In</div>
-                        <div style="font-size:0.8rem; font-weight:750; color:#1E293B;"><%= avg_in %></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Ratio Visual Progress -->
-                  <div style="flex:1; display:flex; align-items:center; gap:12px; min-width:150px; justify-content: flex-start;">
-                    <div style="flex:1; height:6px; background:#F1F5F9; border-radius:10px; overflow:hidden; position:relative; max-width:120px;">
-                      <div style="position:absolute; top:0; left:0; bottom:0; width:<%= late_ratio %>%; background:linear-gradient(90deg, #EF4444, #F59E0B); border-radius:10px;"></div>
-                    </div>
-                    <span style="font-size:0.75rem; font-weight:700; color:#475569; text-align:right;"><%= late_ratio %>% ratio</span>
-                  </div>
-
-                  <!-- Status Badge -->
-                  <div style="width:130px; display:flex; justify-content:flex-end; flex-shrink:0;">
-                    <% if late > 3 %>
-                      <span style="background:#FEF2F2; border:1px solid #FEE2E2; color:#DC2626; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
-                        <i class="bi bi-exclamation-triangle-fill"></i> Chronic Late
-                      </span>
-                    <% elsif total == 0 %>
-                      <span style="background:#F8FAFC; border:1px solid #E2E8F0; color:#64748B; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
-                        No Shifts
-                      </span>
-                    <% else %>
-                      <span style="background:#F0FDF4; border:1px solid #DCFCE7; color:#15803D; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:850; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px;">
-                        <i class="bi bi-check-circle-fill"></i> Standing OK
-                      </span>
-                    <% end %>
-                  </div>
-
-                </a>
+          <div class="db-toolbar">
+            <div class="db-search">
+              <i class="bi bi-search"></i>
+              <input type="text" class="monthly-search-input" data-month-index="<%= index %>" placeholder="Search employees" aria-label="Search employees">
+            </div>
+            <select class="monthly-dept-filter" data-month-index="<%= index %>" aria-label="Department">
+              <option value="all">All departments</option>
+              <% departments = data[:users_data].map { |s| s[:user].department }.compact.uniq.sort %>
+              <% departments.each do |dept| %>
+                <option value="<%= dept %>"><%= dept.upcase %></option>
               <% end %>
-            </div>
+            </select>
+            <select class="monthly-sort-select" data-month-index="<%= index %>" aria-label="Sort by">
+              <option value="late-desc">Most lates</option>
+              <option value="late-asc">Fewest lates</option>
+              <option value="ratio-desc">Highest late rate</option>
+              <option value="hours-desc">Most hours worked</option>
+              <option value="on-time-desc">Most on time</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
 
-            <!-- Empty State -->
-            <div id="empty-<%= index %>" style="display:none; background:#F8FAFC; border:2px dashed #E2E8F0; border-radius:12px; padding:40px; text-align:center; color:#64748B;">
-              <i class="bi bi-search" style="font-size:2rem;color:#CBD5E1;display:block;margin-bottom:12px;"></i>
-              <div style="font-weight:600;font-size:0.95rem;">No employees match filters</div>
-              <div style="font-size:0.8rem;margin-top:4px;">Try updating your search query or department filter.</div>
-            </div>
+          <div class="db-rows-head" aria-hidden="true">
+            <span class="db-col-who">Employee</span>
+            <span class="db-col-num">On time</span>
+            <span class="db-col-num">Late</span>
+            <span class="db-col-num">Hours</span>
+            <span class="db-col-num">Average in</span>
+            <span class="db-col-rate">Late rate</span>
+            <span class="db-col-flag">Standing</span>
+          </div>
 
-          </section>
-        <% end %>
-      </div>
+          <div class="monthly-rows-container db-rows" id="container-<%= index %>">
+            <% data[:users_data].each do |ud| %>
+              <%
+                user = ud[:user]
+                late = ud[:late]
+                on_time = ud[:on_time]
+                late_ratio = ud[:late_ratio]
+                total = ud[:total]
+                total_hours = ud[:total_hours]
+                avg_in = ud[:avg_in]
+              %>
+              <a href="<%= admin_employee_path(user) %>" class="monthly-row-item db-row" data-name="<%= user.name.to_s.downcase %>" data-dept="<%= user.department %>" data-late="<%= late %>" data-on-time="<%= on_time %>" data-ratio="<%= late_ratio %>" data-hours="<%= total_hours %>">
+                <span class="db-col-who">
+                  <span class="db-avatar db-avatar-sm"><%= initials.(user.name) %></span>
+                  <span class="db-emp-id">
+                    <span class="db-emp-name emp-name-link"><%= user.name %></span>
+                    <span class="db-emp-meta"><%= user.department.presence || "No department" %></span>
+                  </span>
+                </span>
+                <span class="db-col-num"><%= on_time %></span>
+                <span class="db-col-num <%= 'db-num-bad' if late.positive? %>"><%= late %></span>
+                <span class="db-col-num"><%= total_hours %> h</span>
+                <span class="db-col-num"><%= avg_in == "N/A" ? "–" : avg_in %></span>
+                <span class="db-col-rate">
+                  <span class="db-rate-track"><i style="width: <%= late_ratio %>%"></i></span>
+                  <span class="db-rate-text"><%= late_ratio %>%</span>
+                </span>
+                <span class="db-col-flag">
+                  <% if late > late_limit %>
+                    <span class="status_tag late">KPI deducted</span>
+                  <% elsif total == 0 %>
+                    <span class="status_tag off">No shifts</span>
+                  <% else %>
+                    <span class="status_tag ok">Good standing</span>
+                  <% end %>
+                </span>
+              </a>
+            <% end %>
+          </div>
 
+          <div id="empty-<%= index %>" class="db-rows-empty" style="display:none;">
+            <strong>No employees match these filters</strong>
+            Try a different name or department.
+          </div>
+        </section>
+      <% end %>
     </div>
   </div>

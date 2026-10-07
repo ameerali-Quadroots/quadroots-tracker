@@ -37,8 +37,15 @@ ActiveAdmin.register User, as: "Employee" do
   index do
     selectable_column
 
-    column :name
-    column :email
+    column "Employee", sortable: :name do |e|
+      div class: "cell-user" do
+        span e.name.to_s.split.first(2).map { |part| part[0] }.join.upcase, class: "cell-user-avatar"
+        div class: "cell-user-text" do
+          span e.name, class: "cell-user-name"
+          span e.email, class: "cell-user-sub"
+        end
+      end
+    end
     column("Department") { |e| e.org_department&.name || e[:department] }
     column("Role") do |e|
       if e.access_role

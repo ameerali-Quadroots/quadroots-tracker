@@ -1,8 +1,6 @@
 <!-- 1. LIVE STATE & COMMAND CENTER -->
 <%= render partial: "admin/dashboard/live_state_auto", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
 
-<hr style="border:none;border-top:1px solid #E8ECF0;margin:40px 0;">
-
 <%
   # === Define today's range (3 AM cutoff) ===
   now = Time.zone.now
@@ -26,46 +24,39 @@
   @unique_late_users_today = @late_time_clocks.select(:user_id).distinct.count
 %>
 
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<div class="db db-history">
 
-  <!-- 2. HISTORICAL ATTENDANCE & WORKFORCE SUMMARY -->
-  <div style="margin-bottom: 24px;">
-    <h2 style="font-size: 1.5rem; font-weight: 900; color: #0F172A; margin: 0;">Attendance Analytics</h2>
-    <p style="font-size: 0.85rem; color: #64748B; margin-top: 4px;">Historical tracking and workforce statistics &middot; Shift Day: <%= start_time.strftime('%b %d, %Y') %></p>
+  <div class="db-section-head">
+    <h2 class="db-section-title">Attendance history</h2>
+    <p class="db-section-sub">Today's shift day is <%= start_time.strftime('%d %b %Y') %>. Each card opens the matching list.</p>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-bottom:40px;">
-    
-    <!-- Users Late Today -->
-    <a href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'late'}, commit: 'Filter', order: 'id_desc') %>" 
-       style="text-decoration:none;display:block;background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-      <div style="font-size:0.75rem;font-weight:800;color:#9F1239;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Late Today</div>
-      <div style="font-size:2rem;font-weight:900;color:#E11D48;line-height:1;"><%= @unique_late_users_today %></div>
+  <div class="db-links">
+    <a class="db-link db-tone-bad" href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'late'}, commit: 'Filter', order: 'id_desc') %>">
+      <span class="db-tile-icon"><i class="bi bi-clock-history"></i></span>
+      <span class="db-link-text"><strong><%= @unique_late_users_today %></strong><span>Late today</span></span>
+      <i class="bi bi-arrow-up-right db-link-go"></i>
     </a>
-
-    <!-- Users On Time Today -->
-    <a href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'on_time'}, commit: 'Filter', order: 'id_desc') %>" 
-       style="text-decoration:none;display:block;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-      <div style="font-size:0.75rem;font-weight:800;color:#166534;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">On Time Today</div>
-      <div style="font-size:2rem;font-weight:900;color:#16A34A;line-height:1;"><%= @on_time_count %></div>
+    <a class="db-link db-tone-good" href="<%= admin_time_clocks_url(q: {clock_in_gteq: start_time, clock_in_lteq: end_time, status_eq: 'on_time'}, commit: 'Filter', order: 'id_desc') %>">
+      <span class="db-tile-icon"><i class="bi bi-check-circle-fill"></i></span>
+      <span class="db-link-text"><strong><%= @on_time_count %></strong><span>On time today</span></span>
+      <i class="bi bi-arrow-up-right db-link-go"></i>
     </a>
-
-    <!-- Total Employed -->
-    <a href="<%= admin_employees_url(scope: 'employed') %>" 
-       style="text-decoration:none;display:block;background:#fff;border:1px solid #E8ECF0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-      <div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:#3B82F6;"></div>
-      <div style="font-size:0.75rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Total Employed</div>
-      <div style="font-size:2rem;font-weight:900;color:#2563EB;line-height:1;"><%= User.where(employeed: true).count %></div>
+    <a class="db-link db-tone-brand" href="<%= admin_employees_url(scope: 'employed') %>">
+      <span class="db-tile-icon"><i class="bi bi-person-check-fill"></i></span>
+      <span class="db-link-text"><strong><%= User.where(employeed: true).count %></strong><span>Employed</span></span>
+      <i class="bi bi-arrow-up-right db-link-go"></i>
     </a>
-
-    <!-- Total Unemployed -->
-    <a href="<%= admin_employees_url(scope: 'unemployed') %>" 
-       style="text-decoration:none;display:block;background:#fff;border:1px solid #E8ECF0;border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-      <div style="position:absolute;top:0;left:0;bottom:0;width:4px;background:#94A3B8;"></div>
-      <div style="font-size:0.75rem;font-weight:800;color:#64748B;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Unemployed</div>
-      <div style="font-size:2rem;font-weight:900;color:#64748B;line-height:1;"><%= User.where(employeed: [false, nil]).count %></div>
+    <a class="db-link db-tone-mute" href="<%= admin_employees_url(scope: 'unemployed') %>">
+      <span class="db-tile-icon"><i class="bi bi-person-dash-fill"></i></span>
+      <span class="db-link-text"><strong><%= User.where(employeed: [false, nil]).count %></strong><span>No longer employed</span></span>
+      <i class="bi bi-arrow-up-right db-link-go"></i>
     </a>
-
+    <a class="db-link db-tone-brand" href="<%= admin_analytics_path %>">
+      <span class="db-tile-icon"><i class="bi bi-graph-up-arrow"></i></span>
+      <span class="db-link-text"><strong>Analytics</strong><span>Trends and breakdowns</span></span>
+      <i class="bi bi-arrow-up-right db-link-go"></i>
+    </a>
   </div>
 
   <!-- 3. MONTHLY ATTENDANCE TABS -->
@@ -73,58 +64,6 @@
     <%= render partial: "admin/dashboard/monthly_overview", locals: { year: params[:analytics_year] } %>
   </div>
 
-  <style>
-    .dash-tab {
-      border: 1px solid #E2E8F0;
-      padding: 8px 16px;
-      border-radius: 999px;
-      background: #fff;
-      color: #64748B;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 0.8rem;
-      transition: all 0.2s;
-    }
-    .dash-tab:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
-    }
-    .dash-tab.active {
-      background: #3B82F6;
-      border-color: #3B82F6;
-      color: #fff;
-      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-    }
-    .dash-tab-panel {
-      display: none;
-      animation: dashFadeIn 0.3s ease;
-    }
-    .dash-tab-panel[aria-hidden="false"] {
-      display: block;
-    }
-    @keyframes dashFadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .monthly-row-item:hover {
-      border-color: #CBD5E1 !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
-      transform: translateY(-1px);
-    }
-    .monthly-rows-container::-webkit-scrollbar {
-      width: 6px;
-    }
-    .monthly-rows-container::-webkit-scrollbar-track {
-      background: #F1F5F9;
-      border-radius: 8px;
-    }
-    .monthly-rows-container::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 8px;
-    }
-  </style>
 
   <script>
     function initMonthlyOverview() {
@@ -202,6 +141,8 @@
             return parseInt(a.getAttribute('data-late')) - parseInt(b.getAttribute('data-late'));
           } else if (sortVal === 'ratio-desc') {
             return parseInt(b.getAttribute('data-ratio')) - parseInt(a.getAttribute('data-ratio'));
+          } else if (sortVal === 'hours-desc') {
+            return parseFloat(b.getAttribute('data-hours')) - parseFloat(a.getAttribute('data-hours'));
           } else if (sortVal === 'on-time-desc') {
             return parseInt(b.getAttribute('data-on-time')) - parseInt(a.getAttribute('data-on-time'));
           }
@@ -269,6 +210,7 @@
               container.style.opacity = "";
               container.style.pointerEvents = "";
               initMonthlyOverview(); // re-bind tabs / filters / year select on new markup
+              if (window.qrRenderCharts) window.qrRenderCharts(); // the year chart in the new markup
             })
             .catch(() => {
               container.style.opacity = "";
@@ -291,7 +233,5 @@
       initMonthlyOverview();
     }
   </script>
-
-</div> 
 
 </div>

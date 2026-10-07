@@ -1,143 +1,166 @@
 <%#
   Late-arrival KPI report.
-  Self-styled: the admin panel runs a custom ActiveAdmin theme with no Bootstrap.
+  Written in Tailwind (config/tailwind.config.js); .tw opts in to the scoped
+  reset. The kpi-* class names are hooks for the tests, not styling.
 %>
 <%
   month_param = month.strftime("%Y-%m")
   flagged     = report.rows.count(&:kpi_deducted)
+  total_lates = report.rows.sum(&:late_count)
+  field       = "h-9 rounded-md border border-input bg-background px-3 font-sans text-sm text-foreground shadow-xs " \
+                "focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-ring"
+  select      = "#{field} min-w-[180px] cursor-pointer appearance-none bg-chevron bg-[right_12px_center] bg-no-repeat pr-8"
+  th          = "border-b bg-primary-soft px-4 py-2.5 text-left text-[12.5px] font-semibold text-primary-soft-foreground"
+  td          = "border-b px-4 py-2.5 align-middle text-sm text-foreground"
+  num         = "text-right tabular-nums"
 %>
 
-<style>
-  .kpi-report .kpi-bar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-bottom:18px; }
-  .kpi-report .kpi-bar label { display:block; font-size:0.72rem; font-weight:700; text-transform:uppercase;
-    letter-spacing:0.5px; color:var(--qr-muted); margin-bottom:4px; }
-  .kpi-report .kpi-bar input, .kpi-report .kpi-bar select { padding:8px 10px; border:1px solid #D4D0E0;
-    border-radius:8px; background:#fff; font-size:0.88rem; min-width:170px; }
-  .kpi-report .kpi-bar .kpi-export { margin-left:auto; }
-  .kpi-report .kpi-rule { background:var(--qr-purple-50); border:1px solid var(--qr-line);
-    border-left:4px solid var(--qr-purple); border-radius:8px; padding:10px 14px; font-size:0.86rem;
-    color:var(--qr-ink); margin-bottom:18px; }
-  .kpi-report table { width:100%; border-collapse:collapse; }
-  .kpi-report th, .kpi-report td { padding:10px 14px; text-align:left; font-size:0.87rem;
-    border-bottom:1px solid var(--qr-line); }
-  .kpi-report thead th { background:var(--qr-purple-50); color:var(--qr-purple-darker); font-size:0.72rem;
-    font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
-  .kpi-report .kpi-num { text-align:right; font-variant-numeric:tabular-nums; }
-  .kpi-report tfoot td { font-weight:700; border-bottom:0; }
-  .kpi-report tr.kpi-flagged td { background:#FEF2F2; }
-  .kpi-report .kpi-empty { padding:18px; color:var(--qr-muted); }
-  .kpi-report .table-wrap { overflow-x:auto; }
-</style>
-
-<div class="kpi-report">
-  <%= form_tag admin_kpi_path, method: :get, class: "kpi-bar" do %>
+<div class="tw kpi-report font-sans">
+  <%= form_tag admin_kpi_path, method: :get, class: "mb-5 flex flex-wrap items-end gap-3" do %>
     <div>
-      <label for="kpi_month">Month</label>
-      <%= month_field_tag :month, month_param, id: "kpi_month" %>
+      <label for="kpi_month" class="mb-1.5 block text-[13px] font-medium text-foreground">Month</label>
+      <%= month_field_tag :month, month_param, id: "kpi_month", class: field %>
     </div>
     <div>
-      <label for="kpi_department">Department</label>
+      <label for="kpi_department" class="mb-1.5 block text-[13px] font-medium text-foreground">Department</label>
       <%= select_tag :department,
                      options_for_select(department_options, params[:department]),
-                     include_blank: "All departments", id: "kpi_department" %>
+                     include_blank: "All departments", id: "kpi_department", class: select %>
     </div>
     <div>
-      <label for="kpi_show">Show</label>
+      <label for="kpi_show" class="mb-1.5 block text-[13px] font-medium text-foreground">Show</label>
       <%= select_tag :show,
                      options_for_select([["KPI deducted only", "flagged"], ["All employees", "all"]],
                                         show_all ? "all" : "flagged"),
-                     id: "kpi_show" %>
+                     id: "kpi_show", class: select %>
     </div>
-    <%= submit_tag "Apply", name: nil, class: "button" %>
+    <%= submit_tag "Apply", name: nil %>
     <%= link_to "Export Excel",
                 admin_kpi_export_path(month: month_param, department: params[:department].presence,
                                       show: ("all" if show_all)),
-                class: "button kpi-export" %>
+                class: "ml-auto inline-flex h-9 items-center rounded-md border bg-background px-3.5 text-[13.5px] " \
+                       "font-medium text-foreground no-underline shadow-xs transition hover:-translate-y-px hover:border-primary " \
+                       "hover:bg-primary-soft hover:text-primary-soft-foreground active:scale-[0.97]" %>
   <% end %>
 
-  <div class="kpi-rule">
-    <strong><%= month.strftime("%B %Y") %>:</strong>
-    KPI is deducted for anyone with more than <strong><%= report.limit %></strong> late
-    <%= "arrival".pluralize(report.limit) %> in the month.
-    <strong><%= flagged %></strong> of <%= report.rows.size %> <%= "employee".pluralize(report.rows.size) %> flagged.
+  <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-lg border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+      <div class="text-[13px] font-medium text-muted-foreground">Employees</div>
+      <div class="mt-1 text-2xl font-semibold tabular-nums text-foreground"><%= report.rows.size %></div>
+      <div class="mt-1 text-xs text-muted-foreground"><%= month.strftime("%B %Y") %></div>
+    </div>
+    <div class="rounded-lg border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+      <div class="text-[13px] font-medium text-muted-foreground">Total lates</div>
+      <div class="mt-1 text-2xl font-semibold tabular-nums text-foreground"><%= total_lates %></div>
+      <div class="mt-1 text-xs text-muted-foreground">Late arrivals in the month</div>
+    </div>
+    <div class="rounded-lg border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+      <div class="text-[13px] font-medium text-muted-foreground">KPI deducted</div>
+      <div class="mt-1 text-2xl font-semibold tabular-nums <%= flagged.positive? ? 'text-destructive' : 'text-foreground' %>"><%= flagged %></div>
+      <div class="mt-1 text-xs text-muted-foreground">
+        More than <%= report.limit %> late <%= "arrival".pluralize(report.limit) %> in the month
+      </div>
+    </div>
   </div>
 
-  <div class="panel">
-    <h3>Department summary</h3>
-    <div class="table-wrap">
-      <table class="kpi-summary">
+  <% charted = report.department_summary.select { |summary| summary.total_lates.positive? } %>
+  <% if charted.any? %>
+    <div class="mb-5 rounded-lg border bg-card p-5 shadow-card">
+      <div class="text-[14.5px] font-semibold text-foreground">Late arrivals by department</div>
+      <div class="mt-0.5 text-[12.5px] text-muted-foreground"><%= month.strftime("%B %Y") %></div>
+      <div class="mt-2" role="img" aria-label="Late arrivals by department"
+           data-chart="<%= { kind: "hbar", height: [charted.size * 34 + 60, 180].max, colors: ["#6F2B8A"],
+                categories: charted.map(&:department), series: [{ name: "Late arrivals", data: charted.map(&:total_lates) }] }.to_json %>"></div>
+    </div>
+  <% end %>
+
+  <div class="mb-5 overflow-hidden rounded-lg border bg-card">
+    <div class="border-b px-5 py-3.5 text-[14.5px] font-semibold text-foreground">Department summary</div>
+    <div class="overflow-x-auto">
+      <table class="kpi-summary m-0 w-full border-separate border-spacing-0">
         <thead>
           <tr>
-            <th>Department</th>
-            <th class="kpi-num">Total employees</th>
-            <th class="kpi-num">Total lates</th>
-            <th class="kpi-num">KPI deducted employees</th>
+            <th class="<%= th %>">Department</th>
+            <th class="<%= th %> <%= num %>">Total employees</th>
+            <th class="<%= th %> <%= num %>">Total lates</th>
+            <th class="<%= th %> <%= num %>">KPI deducted employees</th>
           </tr>
         </thead>
         <tbody>
           <% report.department_summary.each do |summary| %>
             <tr>
-              <td><%= summary.department %></td>
-              <td class="kpi-num"><%= summary.total_employees %></td>
-              <td class="kpi-num"><%= summary.total_lates %></td>
-              <td class="kpi-num"><%= summary.flagged_count %></td>
+              <td class="<%= td %> font-medium"><%= summary.department %></td>
+              <td class="<%= td %> <%= num %>"><%= summary.total_employees %></td>
+              <td class="<%= td %> <%= num %>"><%= summary.total_lates %></td>
+              <td class="<%= td %> <%= num %> <%= 'font-semibold text-destructive' if summary.flagged_count.positive? %>"><%= summary.flagged_count %></td>
             </tr>
           <% end %>
         </tbody>
         <% if report.department_summary.any? %>
           <tfoot>
             <tr>
-              <td>Total</td>
-              <td class="kpi-num"><%= report.rows.size %></td>
-              <td class="kpi-num"><%= report.rows.sum(&:late_count) %></td>
-              <td class="kpi-num"><%= flagged %></td>
+              <td class="bg-page px-4 py-2.5 text-sm font-semibold text-foreground">Total</td>
+              <td class="bg-page px-4 py-2.5 text-sm font-semibold text-foreground <%= num %>"><%= report.rows.size %></td>
+              <td class="bg-page px-4 py-2.5 text-sm font-semibold text-foreground <%= num %>"><%= total_lates %></td>
+              <td class="bg-page px-4 py-2.5 text-sm font-semibold text-foreground <%= num %>"><%= flagged %></td>
             </tr>
           </tfoot>
         <% end %>
       </table>
     </div>
     <% if report.department_summary.empty? %>
-      <div class="kpi-empty">No employees in the departments you can view.</div>
+      <div class="px-5 py-8 text-center text-sm text-muted-foreground">No employees in the departments you can view.</div>
     <% end %>
   </div>
 
-  <div class="panel">
-    <h3><%= show_all ? "All employees" : "KPI deducted employees" %></h3>
-    <div class="table-wrap">
-      <table class="kpi-employees">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Department</th>
-            <th>Shift time</th>
-            <th class="kpi-num">Lates</th>
-            <th class="kpi-num">Allowed</th>
-            <th>KPI deducted</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% employee_rows.each do |row| %>
-            <tr class="<%= 'kpi-flagged' if row.kpi_deducted %>">
-              <td><%= row.user.name %></td>
-              <td><%= row.department %></td>
-              <td><%= row.user.shift_time&.strftime("%I:%M %p") %></td>
-              <td class="kpi-num"><%= row.late_count %></td>
-              <td class="kpi-num"><%= report.limit %></td>
-              <td>
-                <% if row.kpi_deducted %>
-                  <span class="status_tag status-error">True</span>
-                <% else %>
-                  <span class="status_tag status-ok">False</span>
-                <% end %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+  <div class="overflow-hidden rounded-lg border bg-card">
+    <div class="border-b px-5 py-3.5 text-[14.5px] font-semibold text-foreground">
+      <%= show_all ? "All employees" : "KPI deducted employees" %>
     </div>
-    <% if employee_rows.empty? %>
-      <div class="kpi-empty">
-        <%= show_all ? "No employees in the departments you can view." : "No one is over the late limit for this month." %>
+    <% if employee_rows.any? %>
+      <div class="overflow-x-auto">
+        <table class="kpi-employees m-0 w-full border-separate border-spacing-0">
+          <thead>
+            <tr>
+              <th class="<%= th %>">Employee</th>
+              <th class="<%= th %>">Department</th>
+              <th class="<%= th %>">Shift time</th>
+              <th class="<%= th %> <%= num %>">Lates</th>
+              <th class="<%= th %> <%= num %>">Allowed</th>
+              <th class="<%= th %>">KPI deducted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% employee_rows.each do |row| %>
+              <%# Opens the employee's profile, for admins allowed to view employees. %>
+              <%= tag.tr class: ("kpi-flagged" if row.kpi_deducted),
+                         data: { href: (admin_employee_path(row.user) if open_employees) } do %>
+                <td class="<%= td %> font-medium"><%= row.user.name %></td>
+                <td class="<%= td %>"><%= row.department %></td>
+                <td class="<%= td %> tabular-nums"><%= row.user.shift_time&.strftime("%I:%M %p") %></td>
+                <td class="<%= td %> <%= num %> <%= 'font-semibold text-destructive' if row.kpi_deducted %>"><%= row.late_count %></td>
+                <td class="<%= td %> <%= num %> text-muted-foreground"><%= report.limit %></td>
+                <td class="<%= td %>">
+                  <% if row.kpi_deducted %>
+                    <span class="status_tag status-error">True</span>
+                  <% else %>
+                    <span class="status_tag status-ok">False</span>
+                  <% end %>
+                </td>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="px-5 py-10 text-center">
+        <div class="text-sm font-medium text-foreground">
+          <%= show_all ? "No employees to show" : "No one is over the late limit" %>
+        </div>
+        <div class="mt-1 text-[13px] text-muted-foreground">
+          <%= show_all ? "There are no employees in the departments you can view." :
+                         "Nobody has more than #{report.limit} late #{'arrival'.pluralize(report.limit)} in #{month.strftime('%B %Y')}." %>
+        </div>
       </div>
     <% end %>
   </div>

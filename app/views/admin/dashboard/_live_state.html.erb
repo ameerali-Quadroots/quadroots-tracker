@@ -1,5 +1,3 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
 <%# --- Per-employee shift windows -------------------------------------------
     Each employee has their own shift_time (mostly 18:00, a few 18:18 / 19:00)
     and may clock in up to 30 minutes early, so a single global 18:30 window
@@ -16,9 +14,14 @@
   win_ends   = []
 %>
 
+
+<%# Markup is styled by the DASHBOARD section of active_admin.scss (.db-*).
+    Hooks the scripts rely on, here and in _live_state_auto: #filter-dept,
+    #filter-status, #employee-grid, #visible-count, .emp-card (+ data-*),
+    .kpi-card[data-filter-status]. %>
 <% if departments.empty? %>
-  <div style="padding:40px;text-align:center;color:#64748B;background:#F8FAFC;border-radius:16px;border:2px dashed #E2E8F0;">
-    <i class="bi bi-diagram-3" style="font-size:2rem;margin-bottom:12px;display:block;color:#CBD5E1;"></i>
+  <div class="db-empty">
+    <i class="bi bi-diagram-3"></i>
     No departments found to display.
   </div>
 <% else %>
@@ -82,393 +85,198 @@
     shift_end   = win_ends.max   || (shift_start + 9.hours)
   %>
 
-  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAFBFD; padding: 12px; border-radius: 20px;">
-    
-    <!-- HEADER -->
-    <div style="margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-      <div>
-        <h2 style="font-size: 1.6rem; font-weight: 850; color: #0F172A; margin: 0; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
-          <span style="width: 8px; height: 8px; background: #10B981; border-radius: 50%; display: inline-block; animation: pulse 1.8s infinite;"></span>
-          Live Command Center
-        </h2>
-        <p style="font-size: 0.85rem; color: #64748B; margin: 4px 0 0 16px; font-weight: 500;">
-          Real-time tracking &middot; Shift Window: <%= shift_start.strftime("%I:%M %p") %> - <%= shift_end.strftime("%I:%M %p") %>
+  <%
+    pct = ->(part, whole) { whole > 0 ? ((part.to_f / whole) * 100).round : 0 }
+    initials = ->(name) { name.to_s.split.first(2).map { |part| part[0] }.join.upcase.presence || "?" }
+    tiles = [
+      { status: "all",      label: "Total team",    value: total_users,         icon: "people-fill",              tone: "brand" },
+      { status: "working",  label: "Working now",   value: count_working,       icon: "briefcase-fill",           tone: "good" },
+      { status: "on_time",  label: "On time today", value: today_on_time_count, icon: "check-circle-fill",        tone: "good" },
+      { status: "late",     label: "Late today",    value: today_late_count,    icon: "clock-history",            tone: "bad" },
+      { status: "on_break", label: "On break",      value: count_break,         icon: "cup-hot-fill",             tone: "warn" },
+      { status: "meeting",  label: "In meeting",    value: count_meeting,       icon: "camera-video-fill",        tone: "info" },
+      { status: "downtime", label: "Downtime",      value: count_downtime,      icon: "exclamation-triangle-fill", tone: "bad" },
+      { status: "off",      label: "Offline",       value: count_off,           icon: "moon-stars-fill",          tone: "mute" }
+    ]
+    state_labels = { "working" => "Working", "on_break" => "On break", "meeting" => "Meeting", "downtime" => "Downtime", "off" => "Offline" }
+  %>
+
+  <div class="db">
+    <%# ---- Headline: the floor right now ---- %>
+    <section class="db-hero">
+      <div class="db-hero-main">
+        <div class="db-hero-live"><span class="db-live-dot"></span> Live, refreshes every 15 seconds</div>
+        <h2 class="db-hero-title">Live Command Center</h2>
+        <p class="db-hero-sub">
+          <%= Time.zone.now.strftime("%A, %d %B") %>. Shift window <%= shift_start.strftime("%I:%M %p") %> to <%= shift_end.strftime("%I:%M %p") %>.
         </p>
       </div>
-      <div style="background: #FFF; border: 1px solid #E2E8F0; padding: 6px 14px; border-radius: 30px; font-size: 0.8rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-        <i class="bi bi-calendar3" style="color: #3B82F6;"></i> <%= Time.zone.now.strftime("%A, %d %B") %>
+      <div class="db-hero-stats">
+        <div class="db-hero-stat">
+          <div class="db-hero-num"><%= count_working %><span>/ <%= total_users %></span></div>
+          <div class="db-hero-label">working now</div>
+          <div class="db-hero-meter"><i style="width: <%= pct.(count_working, total_users) %>%"></i></div>
+        </div>
+        <div class="db-hero-stat">
+          <div class="db-hero-num"><%= on_time_ratio %><span>%</span></div>
+          <div class="db-hero-label">on time today (<%= today_on_time_count %> of <%= total_today_attendances %>)</div>
+          <div class="db-hero-meter"><i style="width: <%= on_time_ratio %>%"></i></div>
+        </div>
+        <div class="db-hero-stat">
+          <div class="db-hero-num"><%= today_late_count %></div>
+          <div class="db-hero-label">late today</div>
+          <div class="db-hero-meter"><i style="width: <%= late_ratio %>%"></i></div>
+        </div>
       </div>
+    </section>
+
+    <%# ---- Status tiles: each one filters the team list below ---- %>
+    <div class="db-tiles">
+      <% tiles.each do |tile| %>
+        <div class="kpi-card db-tile db-tone-<%= tile[:tone] %>" data-filter-status="<%= tile[:status] %>" role="button" tabindex="0"
+             title="Show <%= tile[:label].downcase %> in the list below">
+          <span class="db-tile-icon"><i class="bi bi-<%= tile[:icon] %>"></i></span>
+          <span class="db-tile-text">
+            <span class="db-tile-value"><%= tile[:value] %></span>
+            <span class="db-tile-label"><%= tile[:label] %></span>
+          </span>
+        </div>
+      <% end %>
     </div>
 
-    <!-- TOP KPI CARDS -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px;">
-      
-      <!-- Card: Total Team -->
-      <div class="kpi-card" data-filter-status="all" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Total Team</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#0F172A; margin-top:4px; line-height:1;"><%= total_users %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#EFF6FF; color:#3B82F6; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-people-fill"></i>
-        </div>
-      </div>
-
-      <!-- Card: Active Now -->
-      <div class="kpi-card" data-filter-status="working" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Working Now</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#10B981; margin-top:4px; line-height:1;"><%= count_working %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#ECFDF5; color:#10B981; display:flex; align-items:center; justify-content:center; font-size:1.2rem; position:relative;">
-          <i class="bi bi-briefcase-fill"></i>
-          <span style="position:absolute; top:2px; right:2px; width:8px; height:8px; background:#10B981; border-radius:50%; display:inline-block; animation: pulse 1.5s infinite;"></span>
-        </div>
-      </div>
-
-      <!-- Card: On-Time Today -->
-      <div class="kpi-card" data-filter-status="on_time" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">On Time Today</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#10B981; margin-top:4px; line-height:1;"><%= today_on_time_count %></div>
-          <div style="font-size:0.7rem; color:#059669; font-weight:600; margin-top:6px;"><%= on_time_ratio %>% ratio</div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#ECFDF5; color:#10B981; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-check-circle-fill"></i>
-        </div>
-      </div>
-
-      <!-- Card: Late Today -->
-      <div class="kpi-card" data-filter-status="late" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Late Today</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#EF4444; margin-top:4px; line-height:1;"><%= today_late_count %></div>
-          <div style="font-size:0.7rem; color:#DC2626; font-weight:600; margin-top:6px;"><%= late_ratio %>% ratio</div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#FEF2F2; color:#EF4444; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-clock-history"></i>
-        </div>
-      </div>
-
-      <!-- Card: On Break -->
-      <div class="kpi-card" data-filter-status="on_break" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">On Break</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#F59E0B; margin-top:4px; line-height:1;"><%= count_break %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#FFFBEB; color:#F59E0B; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-cup-hot-fill"></i>
-        </div>
-      </div>
-
-      <!-- Card: In Meeting -->
-      <div class="kpi-card" data-filter-status="meeting" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">In Meeting</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#0EA5E9; margin-top:4px; line-height:1;"><%= count_meeting %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#F0F9FF; color:#0EA5E9; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-camera-video-fill"></i>
-        </div>
-      </div>
-
-      <!-- Card: Downtime -->
-      <div class="kpi-card" data-filter-status="downtime" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Downtime</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#EF4444; margin-top:4px; line-height:1;"><%= count_downtime %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#FEF2F2; color:#EF4444; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-        </div>
-      </div>
-
-      <!-- Card: Offline -->
-      <div class="kpi-card" data-filter-status="off" style="background:#fff; border-radius:16px; padding:20px; border:1px solid #E2E8F0; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; transition: all 0.2s; cursor:pointer;">
-        <div>
-          <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Offline</div>
-          <div style="font-size:1.8rem; font-weight:800; color:#64748B; margin-top:4px; line-height:1;"><%= count_off %></div>
-        </div>
-        <div style="width:42px; height:42px; border-radius:12px; background:#F8FAFC; color:#64748B; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-          <i class="bi bi-moon-stars-fill"></i>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- MAIN BODY SECTION -->
-    <div style="display:flex; flex-wrap:wrap; gap:24px; align-items: flex-start; justify-content: stretch;">
-      
-      <!-- LEFT SIDEBAR: Chart & Summary -->
-      <div style="width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:20px;">
-        
-        <!-- Doughnut Chart Card -->
-        <div style="background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03); display:flex; flex-direction:column; align-items:center; text-align:center;">
-          <h3 style="font-size:0.95rem; font-weight:800; color:#0F172A; margin:0 0 20px 0; align-self: flex-start;">Status Distribution</h3>
-          <div style="position:relative; width:200px; height:200px; display:flex; align-items:center; justify-content:center;">
-            <canvas id="liveStatusChart" width="200" height="200" style="max-height:200px; max-width:200px;"></canvas>
-          </div>
+    <div class="db-body">
+      <aside class="db-side">
+        <div class="db-card">
+          <div class="db-card-title">Status right now</div>
+          <div class="db-card-hint">Where the team is at this moment</div>
+          <div role="img" aria-label="Team status breakdown"
+               data-chart="<%= { kind: "donut", height: 270, total_label: "Team",
+                    categories: ["Working", "On break", "Meeting", "Downtime", "Offline"],
+                    colors: ["#16A34A", "#F59E0B", "#3B82F6", "#DC2626", "#A1A1AA"],
+                    values: [count_working, count_break, count_meeting, count_downtime, count_off] }.to_json %>"></div>
         </div>
 
-        <!-- Department Legend/Quick view -->
-        <div style="background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:20px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03);">
-          <h3 style="font-size:0.95rem; font-weight:800; color:#0F172A; margin:0 0 14px 0;">Shift Integrity</h3>
-          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.8rem; font-weight:600; color:#475569;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="display:flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:50%; background:#10B981;"></span>Active Workforce</span>
-              <span style="color:#0F172A; font-weight:700;"><%= total_users > 0 ? ((count_working.to_f / total_users) * 100).round : 0 %>%</span>
+        <div class="db-card">
+          <div class="db-card-title">Attendance today</div>
+          <% if total_today_attendances.zero? %>
+            <div class="db-card-empty">Nobody has clocked in for this shift yet.</div>
+          <% else %>
+            <div class="db-card-hint"><%= total_today_attendances %> clocked in for this shift</div>
+            <div class="db-split" role="img" aria-label="<%= today_on_time_count %> on time, <%= today_late_count %> late">
+              <i class="db-split-good" style="flex-grow: <%= today_on_time_count %>"></i>
+              <i class="db-split-bad" style="flex-grow: <%= today_late_count %>"></i>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #F1F5F9; padding-top:10px;">
-              <span style="display:flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span>Break Ratio</span>
-              <span style="color:#0F172A; font-weight:700;"><%= total_users > 0 ? (((count_break + count_meeting).to_f / total_users) * 100).round : 0 %>%</span>
+            <div class="db-split-legend">
+              <span><b class="db-dot db-dot-good"></b> On time <strong><%= today_on_time_count %></strong> <em><%= on_time_ratio %>%</em></span>
+              <span><b class="db-dot db-dot-bad"></b> Late <strong><%= today_late_count %></strong> <em><%= late_ratio %>%</em></span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #F1F5F9; padding-top:10px;">
-              <span style="display:flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:50%; background:#EF4444;"></span>Downtime Alert</span>
-              <span style="color:#EF4444; font-weight:700;"><%= count_downtime %> active</span>
-            </div>
-          </div>
+          <% end %>
         </div>
 
-        <!-- Attendance Ratio Chart Card -->
-        <div style="background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03); display:flex; flex-direction:column; align-items:center; text-align:center;">
-          <h3 style="font-size:0.95rem; font-weight:800; color:#0F172A; margin:0 0 20px 0; align-self: flex-start;">Attendance Ratio</h3>
-          <div style="position:relative; width:200px; height:200px; display:flex; align-items:center; justify-content:center;">
-            <% if total_today_attendances == 0 %>
-              <div style="font-size: 0.85rem; color: #64748B; font-weight: 600;">No attendance records today</div>
-            <% else %>
-              <canvas id="attendanceRatioChart" width="200" height="200" style="max-height:200px; max-width:200px;"></canvas>
+        <div class="db-card">
+          <div class="db-card-title">Shift integrity</div>
+          <div class="db-meters">
+            <% [["Active workforce", pct.(count_working, total_users), "good", "#{pct.(count_working, total_users)}%"],
+                ["On break or in a meeting", pct.(count_break + count_meeting, total_users), "warn", "#{pct.(count_break + count_meeting, total_users)}%"],
+                ["Downtime", pct.(count_downtime, total_users), "bad", "#{count_downtime} active"]].each do |label, width, tone, text| %>
+              <div class="db-meter">
+                <div class="db-meter-row"><span><%= label %></span><strong><%= text %></strong></div>
+                <div class="db-meter-track"><i class="db-fill-<%= tone %>" style="width: <%= width %>%"></i></div>
+              </div>
             <% end %>
           </div>
         </div>
+      </aside>
 
-      </div>
-
-      <!-- RIGHT SIDE: Filters & Employee Grid -->
-      <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:20px;">
-        
-        <!-- Filter Controls -->
-        <div style="background:#fff; border-radius:16px; border:1px solid #E2E8F0; padding:16px 20px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <div style="font-size:0.85rem; font-weight:750; color:#475569;"><i class="bi bi-funnel-fill" style="color: #64748B;"></i> Filter:</div>
-            
-            <select id="filter-dept" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-              <option value="all">All Departments</option>
+      <div class="db-main">
+        <div class="db-card db-filters">
+          <div class="db-filters-fields">
+            <select id="filter-dept" aria-label="Department">
+              <option value="all">All departments</option>
               <% departments.each do |d| %>
                 <option value="<%= d %>"><%= d.upcase %></option>
               <% end %>
             </select>
 
-            <select id="filter-status" style="padding:8px 16px; border-radius:10px; border:1px solid #E2E8F0; background:#FFF; font-size:0.85rem; font-weight:600; color:#334155; outline:none; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-              <option value="all">All Statuses</option>
+            <select id="filter-status" aria-label="Status">
+              <option value="all">All statuses</option>
               <option value="working">Working</option>
-              <option value="on_time">On Time (Today)</option>
-              <option value="late">Late (Today)</option>
-              <option value="on_break">On Break</option>
+              <option value="on_time">On time (today)</option>
+              <option value="late">Late (today)</option>
+              <option value="on_break">On break</option>
               <option value="meeting">Meeting</option>
               <option value="downtime">Downtime</option>
               <option value="off">Offline</option>
             </select>
           </div>
-          
-          <div style="font-size:0.8rem; color:#64748B; font-weight:600; background:#F1F5F9; padding:6px 14px; border-radius:30px;">
-            Showing <span id="visible-count" style="color:#0F172A; font-weight:750;"><%= total_users %></span> / <%= total_users %> users
-          </div>
+          <div class="db-count">Showing <strong id="visible-count"><%= total_users %></strong> of <%= total_users %></div>
         </div>
 
-        <!-- Grid of Employee Cards -->
-        <div id="employee-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:16px; max-height:600px; overflow-y:auto; padding:4px; align-content:start;">
+        <div id="employee-grid" class="db-grid">
           <% all_states.sort_by { |s| [s[:state] == 'off' ? 1 : 0, s[:user].name] }.each do |item| %>
-            <% 
+            <%
               user = item[:user]
               dept = item[:dept]
               state = item[:state]
               last_clock = item[:last_clock]
               last_break = item[:last_break]
-              
+
               is_on_time = last_clock.present? && last_clock.status == 'on_time'
               is_late = last_clock.present? && last_clock.status == 'late'
 
-              style = case state
-                when "working"  then { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0", dot: "#10B981", label: "Working" }
-                when "on_break" then { bg: "#FFFBEB", color: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "On Break" }
-                when "meeting"  then { bg: "#F0F9FF", color: "#075985", border: "#BAE6FD", dot: "#0EA5E9", label: "Meeting" }
-                when "downtime" then { bg: "#FEF2F2", color: "#991B1B", border: "#FECDD3", dot: "#EF4444", label: "Downtime" }
-                else                 { bg: "#F8FAFC", color: "#475569", border: "#E2E8F0", dot: "#CBD5E1", label: "Offline" }
-              end
-
-              # Determine time detail string
               time_detail = case state
                 when "working"
-                  "In: #{last_clock.clock_in.strftime('%I:%M %p')}"
+                  "In #{last_clock.clock_in.strftime('%I:%M %p')}"
                 when "on_break", "meeting", "downtime"
-                  "Since: #{last_break&.break_in&.strftime('%I:%M %p') || 'N/A'}"
+                  "Since #{last_break&.break_in&.strftime('%I:%M %p') || 'N/A'}"
                 else
-                  if last_clock&.clock_out.present?
-                    "Out: #{last_clock.clock_out.strftime('%I:%M %p')}"
-                  else
-                    "Offline"
-                  end
+                  last_clock&.clock_out.present? ? "Out #{last_clock.clock_out.strftime('%I:%M %p')}" : "Not clocked in"
                 end
             %>
-            
-            <a href="<%= admin_employee_path(user) %>" class="emp-card" data-dept="<%= dept %>" data-status="<%= state %>" data-on-time="<%= is_on_time %>" data-late="<%= is_late %>" style="text-decoration:none; color:inherit; background:#fff; border-radius:14px; border:1px solid #E2E8F0; padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; overflow:hidden;">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <!-- Avatar -->
-                 <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #F1F5F9, #E2E8F0); color:#475569; font-size:1.05rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; border: 2px solid #fff; box-shadow: 0 0 0 1px #E2E8F0;">
-                  <%= user.name&.first&.upcase || "?" %>
-                  <span style="position:absolute; bottom:-1px; right:-1px; width:12px; height:12px; border-radius:50%; background:<%= style[:dot] %>; border:2px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); <%= 'animation: pulse 1.5s infinite;' if state == 'working' %>"></span>
-                </div>
-                <!-- Info -->
-                <div style="flex:1; min-width:0;">
-                  <div style="font-size:0.9rem; font-weight:700; color:#0F172A; text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition: color 0.15s;" class="emp-name-link"><%= user.name %></div>
-                  <div style="font-size:0.75rem; color:#64748B; margin-top:2px; font-weight:600;"><%= dept.upcase %> &middot; <%= user.role || "Executive" %></div>
-                </div>
-              </div>
-              
-              <!-- Divider and details -->
-              <div style="display:flex; align-items:center; justify-content:space-between; border-top: 1px solid #F1F5F9; padding-top:10px; font-size:0.75rem; color:#64748B; font-weight:600;">
-                <div style="display:flex; align-items:center; gap:4px;">
-                  <i class="bi bi-clock" style="font-size:0.8rem; color:#94A3B8;"></i>
-                  <span><%= time_detail %></span>
-                </div>
-                <span style="background:<%= style[:bg] %>; color:<%= style[:color] %>; border:1px solid <%= style[:border] %>; padding:3px 8px; border-radius:8px; font-size:0.65rem; font-weight:750; letter-spacing:0.3px; text-transform:uppercase;">
-                  <%= style[:label] %>
+
+            <a href="<%= admin_employee_path(user) %>" class="emp-card db-emp db-state-<%= state %>" data-dept="<%= dept %>" data-status="<%= state %>" data-on-time="<%= is_on_time %>" data-late="<%= is_late %>">
+              <div class="db-emp-top">
+                <span class="db-avatar"><%= initials.(user.name) %><b class="db-avatar-dot"></b></span>
+                <span class="db-emp-id">
+                  <span class="db-emp-name emp-name-link"><%= user.name %></span>
+                  <span class="db-emp-meta"><%= dept.upcase %>, <%= user.role || "Executive" %></span>
                 </span>
               </div>
+              <div class="db-emp-foot">
+                <span class="db-emp-time">
+                  <i class="bi bi-clock"></i> <%= time_detail %>
+                  <% if is_late %><span class="db-late-flag">late</span><% end %>
+                </span>
+                <span class="status_tag <%= state %>"><%= state_labels[state] %></span>
+              </div>
             </a>
-            
           <% end %>
+          <div id="employee-empty" class="db-grid-empty" hidden>No one matches these filters.</div>
         </div>
-
       </div>
-
     </div>
 
-    <!-- SCRIPT FOR CHART & INTERACTION -->
     <script>
-      (function() {
-        function initChart() {
-          const ctx = document.getElementById('liveStatusChart');
-          if (!ctx) return;
-          
-          if (window.myLiveChart) {
-            window.myLiveChart.destroy();
-          }
+      (function () {
+        // Draw (or redraw after a live refresh) the charts in this partial.
+        if (window.qrRenderCharts) window.qrRenderCharts();
 
-          window.myLiveChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: ['Working', 'Break', 'Meeting', 'Downtime', 'Offline'],
-              datasets: [{
-                data: [<%= count_working %>, <%= count_break %>, <%= count_meeting %>, <%= count_downtime %>, <%= count_off %>],
-                backgroundColor: ['#10B981', '#F59E0B', '#0EA5E9', '#EF4444', '#94A3B8'],
-                borderWidth: 2,
-                borderColor: '#ffffff',
-                hoverOffset: 4
-              }]
-            },
-            options: {
-              cutout: '72%',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                  labels: {
-                    usePointStyle: true,
-                    padding: 12,
-                    font: {
-                      family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      size: 10,
-                      weight: '600'
-                    },
-                    color: '#475569'
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        function initAttendanceChart() {
-          const ctx = document.getElementById('attendanceRatioChart');
-          if (!ctx) return;
-          
-          if (window.myAttendanceChart) {
-            window.myAttendanceChart.destroy();
-          }
-
-          window.myAttendanceChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: ['On Time', 'Late'],
-              datasets: [{
-                data: [<%= today_on_time_count %>, <%= today_late_count %>],
-                backgroundColor: ['#10B981', '#EF4444'],
-                borderWidth: 2,
-                borderColor: '#ffffff',
-                hoverOffset: 4
-              }]
-            },
-            options: {
-              cutout: '72%',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                  labels: {
-                    usePointStyle: true,
-                    padding: 12,
-                    font: {
-                      family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      size: 10,
-                      weight: '600'
-                    },
-                    color: '#475569'
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        function loadAndInit() {
-          if (window.Chart) {
-            initChart();
-            initAttendanceChart();
-          } else {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-            script.onload = () => {
-              initChart();
-              initAttendanceChart();
-            };
-            document.head.appendChild(script);
-          }
-        }
-
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          loadAndInit();
-        } else {
-          document.addEventListener('DOMContentLoaded', loadAndInit);
-        }
-
-        // Live filtration logic
-        const deptFilter = document.getElementById("filter-dept");
-        const statusFilter = document.getElementById("filter-status");
-        const cards = document.querySelectorAll(".emp-card");
-        const visibleCount = document.getElementById("visible-count");
+        var deptFilter = document.getElementById("filter-dept");
+        var statusFilter = document.getElementById("filter-status");
+        var cards = document.querySelectorAll(".emp-card");
+        var visibleCount = document.getElementById("visible-count");
+        var empty = document.getElementById("employee-empty");
+        var tiles = document.querySelectorAll("[data-filter-status]");
 
         function filterCards() {
-          const dVal = deptFilter ? deptFilter.value : 'all';
-          const sVal = statusFilter ? statusFilter.value : 'all';
-          let count = 0;
+          var dVal = deptFilter ? deptFilter.value : "all";
+          var sVal = statusFilter ? statusFilter.value : "all";
+          var count = 0;
 
-          cards.forEach(card => {
-            const matchDept = (dVal === "all" || card.getAttribute("data-dept") === dVal);
-            
-            let matchStatus = false;
+          cards.forEach(function (card) {
+            var matchDept = (dVal === "all" || card.getAttribute("data-dept") === dVal);
+
+            var matchStatus;
             if (sVal === "all") {
               matchStatus = true;
             } else if (sVal === "on_time") {
@@ -487,71 +295,34 @@
             }
           });
 
-          if(visibleCount) visibleCount.textContent = count;
+          if (visibleCount) visibleCount.textContent = count;
+          if (empty) empty.hidden = count !== 0;
+          // The tile matching the status filter stays lit, so it is clear what is being shown.
+          tiles.forEach(function (tile) {
+            tile.classList.toggle("is-active", tile.getAttribute("data-filter-status") === sVal);
+          });
         }
 
-        if(deptFilter && statusFilter) {
+        if (deptFilter && statusFilter) {
           deptFilter.addEventListener("change", filterCards);
           statusFilter.addEventListener("change", filterCards);
         }
 
-        // Click handler for KPI cards to trigger filters
-        document.querySelectorAll("[data-filter-status]").forEach(kpiCard => {
-          kpiCard.addEventListener("click", () => {
-            const statusVal = kpiCard.getAttribute("data-filter-status");
-            if (statusFilter) {
-              statusFilter.value = statusVal;
-              filterCards();
-            }
+        // Clicking a status tile filters the list to that status.
+        tiles.forEach(function (tile) {
+          function pick() {
+            if (!statusFilter) return;
+            statusFilter.value = tile.getAttribute("data-filter-status");
+            filterCards();
+          }
+          tile.addEventListener("click", pick);
+          tile.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
           });
         });
+
+        filterCards();
       })();
     </script>
-
-    <!-- STYLE INJECTIONS -->
-    <style>
-      .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.04) !important;
-        border-color: #CBD5E1 !important;
-      }
-      .emp-card:hover {
-        border-color: #3B82F6 !important;
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.08) !important;
-        transform: translateY(-2px);
-      }
-      .emp-card:hover .emp-name-link {
-        color: #3B82F6 !important;
-      }
-      #employee-grid::-webkit-scrollbar {
-        width: 6px;
-      }
-      #employee-grid::-webkit-scrollbar-track {
-        background: #F1F5F9;
-        border-radius: 8px;
-      }
-      #employee-grid::-webkit-scrollbar-thumb {
-        background: #CBD5E1;
-        border-radius: 8px;
-      }
-      #employee-grid::-webkit-scrollbar-thumb:hover {
-        background: #94A3B8;
-      }
-
-      @keyframes pulse {
-        0% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
-        }
-        70% {
-          transform: scale(1);
-          box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
-        }
-        100% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-        }
-      }
-    </style>
   </div>
 <% end %>

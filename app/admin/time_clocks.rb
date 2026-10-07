@@ -232,7 +232,11 @@ end
   index do
     selectable_column
     column "User", sortable: 'users.name' do |tc|
-      tc.employee&.name
+      name = tc.employee&.name.to_s
+      div class: "cell-user" do
+        span name.split.first(2).map { |part| part[0] }.join.upcase, class: "cell-user-avatar"
+        span name, class: "cell-user-name"
+      end
     end
     column "Department" do |tc|
       tc.employee&.department&.upcase || "N/A"
@@ -240,11 +244,11 @@ end
     column :current_state do |tc|
       case tc.current_state
       when "on_break"
-        span "On Break", style: "background-color: #ffff00; color: black; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag "On Break", class: "on_break"
       when "working"
-        span "Working", style: "background-color: #2ecc71; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag "Working", class: "working"
       else
-        span tc.current_state || "N/A", style: "background-color: #bdc3c7; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag tc.current_state || "N/A", class: "status-default"
       end
     end
     column :clock_in
@@ -274,23 +278,27 @@ end
     column :status do |tc|
       case tc.status
       when "late"
-        span "Late", style: "background-color: #e74c3c; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag "Late", class: "late"
       when "on_time"
-        span "On Time", style: "background-color: #2ecc71; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag "On Time", class: "on_time"
       else
-        span tc.status || "N/A", style: "background-color: #bdc3c7; color: white; padding: 4px 8px; border-radius: 5px; font-weight: bold;"
+        status_tag tc.status || "N/A", class: "status-default"
       end
     end
 
     column "Breaks" do |tc|
       if tc.breaks.any?
-        ul do
-          tc.breaks.each do |br|
-            li "#{br.break_in&.strftime('%H:%M:%S')} - #{br.break_out&.strftime('%H:%M:%S') || 'Ongoing'}"
+        # Collapsed to a count so a day with many breaks doesn't stretch the row.
+        details class: "cell-details" do
+          summary pluralize(tc.breaks.size, "break")
+          ul do
+            tc.breaks.each do |br|
+              li "#{br.break_in&.strftime('%H:%M:%S')} - #{br.break_out&.strftime('%H:%M:%S') || 'Ongoing'}"
+            end
           end
         end
       else
-        status_tag("No Breaks", class: "status_tag warning")
+        span "None", class: "empty"
       end
     end
 

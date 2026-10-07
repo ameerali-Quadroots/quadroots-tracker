@@ -45,11 +45,14 @@ ActiveAdmin.register EditRequest do
   # ✅ Index table view
   index title: "Edit Requests" do
     selectable_column
-    column :name do |name|
-      name.user.name
-    end
-    column :email do |name|
-      name.user.email
+    column "Employee" do |r|
+      div class: "cell-user" do
+        span r.user.name.to_s.split.first(2).map { |part| part[0] }.join.upcase, class: "cell-user-avatar"
+        div class: "cell-user-text" do
+          span r.user.name, class: "cell-user-name"
+          span r.user.email, class: "cell-user-sub"
+        end
+      end
     end
     column :department do |dep|
       dep.user.department

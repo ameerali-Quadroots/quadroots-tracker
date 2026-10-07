@@ -10,6 +10,9 @@
 class Ability
   include CanCan::Ability
 
+  # ActiveAdmin page name => subject in Permission::RESOURCES.
+  GATED_PAGES = { "KPI" => "Kpi", "Analytics" => "Analytics" }.freeze
+
   def initialize(user)
     return if user.blank?
 
@@ -43,12 +46,14 @@ class Ability
     can :live_state, ActiveAdmin::Page
     can :monthly_overview, ActiveAdmin::Page
 
-    # The KPI page is the exception: it is gated by its own "Read KPI" box in
-    # the matrix, which also covers its Excel export page_action.
-    if role.can?(:read, "Kpi")
-      can :export, ActiveAdmin::Page, name: "KPI"
-    else
-      cannot :read, ActiveAdmin::Page, name: "KPI"
+    # These pages are the exception: each is gated by its own "Read ..." box
+    # in the matrix, which also covers the KPI page's Excel export page_action.
+    GATED_PAGES.each do |page_name, subject|
+      if role.can?(:read, subject)
+        can :export, ActiveAdmin::Page, name: page_name
+      else
+        cannot :read, ActiveAdmin::Page, name: page_name
+      end
     end
   end
 

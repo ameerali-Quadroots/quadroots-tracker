@@ -24,6 +24,10 @@ module ClockInClockOut
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
     config.time_zone = 'Karachi'        # Pakistan Standard Time
+
+    # tailwindcss-rails switches scaffold templates to Tailwind; only the admin
+    # panel uses Tailwind, so keep the generators on plain ERB.
+    config.generators.template_engine = :erb
     config.active_record.default_timezone = :local  # save in local (Pakistan) time
 
   end
