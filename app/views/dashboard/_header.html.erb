@@ -16,7 +16,7 @@
     <h3>Welcome back, <%= current_user.name.to_s.split.first.presence || "there" %></h3>
     <div class="greeting-text">
       <%= server_time.strftime("%A, %d %B %Y") %>
-      <span id="live-clock" data-server-time="<%= server_time.iso8601 %>"><%= server_time.strftime('%d/%m/%Y %I:%M:%S %p') %></span>
+      <span id="live-clock" data-server-time="<%= server_time.iso8601 %>"><%= server_time.strftime('%I:%M:%S %p') %></span>
     </div>
   </div>
 

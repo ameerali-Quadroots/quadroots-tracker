@@ -1,0 +1,140 @@
+<%# Who has what, and which client it is for: one row per executive and one per
+    client. Counts cover every task in the department; "Logged" is for the
+    period selected in the summary above. Data: Reports::TaskDashboard. %>
+<%
+  executives = @report.executive_breakdown
+  clients    = @report.client_breakdown
+  period     = @period == "month" ? "this month" : "this week"
+  exec_max   = [executives.map { |row| row[:total] }.max.to_i, 1].max
+  client_max = [clients.map { |row| row[:total] }.max.to_i, 1].max
+%>
+
+<div class="tm-breakdowns">
+  <section class="tm-panel tm-breakdown tm-breakdown--executives">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Tasks by executive</h2>
+        <p class="tm-panel__sub">Everything assigned to each person; hours are those logged <%= period %>. Click a name to see their tasks, or a column heading to sort.</p>
+      </div>
+      <span class="tm-breakdown__count"><%= pluralize(executives.size, "executive") %></span>
+    </div>
+
+    <% if executives.empty? %>
+      <div class="tm-empty"><p class="tm-empty__title">No executives in this department yet</p></div>
+    <% else %>
+      <div class="tm-scroll">
+        <table class="tm-table tm-table--sticky" data-tm-sortable>
+          <thead>
+            <tr>
+              <th scope="col" data-tm-sort="text" tabindex="0" title="Sort A to Z">Executive</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Total">Total</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Not started">Not started</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Running">Running</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Paused">Paused</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Done">Done</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Over budget">Over budget</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by On time">On time</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Logged">Logged</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% executives.each do |row| %>
+              <tr>
+                <td data-sort-value="<%= row[:name].to_s.strip.downcase %>">
+                  <button type="button" class="tm-linkrow" data-tm-filter='<%= { executive_id: row[:id], tab: "tasks" }.to_json %>' data-tm-regions="tasks" data-tm-goto="tasks">
+                    <span class="tm-avatar"><%= row[:name].to_s.split.first(2).map { |part| part[0] }.join.upcase %></span>
+                    <span class="tm-linkrow__name"><%= row[:name] %></span>
+                  </button>
+                </td>
+                <td class="tm-num" data-sort-value="<%= row[:total] %>">
+                  <span class="tm-share"><i style="width: <%= (row[:total] * 100.0 / exec_max).round %>%"></i></span>
+                  <b><%= row[:total] %></b>
+                </td>
+                <td class="tm-num <%= 'tm-zero' if row[:pending].zero? %>" data-sort-value="<%= row[:pending] %>"><%= row[:pending] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:in_progress].zero? %>" data-sort-value="<%= row[:in_progress] %>"><%= row[:in_progress] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:paused].zero? %>" data-sort-value="<%= row[:paused] %>"><%= row[:paused] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:completed].zero? %>" data-sort-value="<%= row[:completed] %>"><%= row[:completed] %></td>
+                <td class="tm-num <%= row[:over_sla].zero? ? 'tm-zero' : 'tm-over' %>" data-sort-value="<%= row[:over_sla] %>"><%= row[:over_sla] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:on_time_rate].nil? %>" data-sort-value="<%= row[:on_time_rate] || -1 %>"><%= row[:on_time_rate] ? "#{row[:on_time_rate]}%" : "–" %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:logged_seconds].zero? %>" data-sort-value="<%= row[:logged_seconds] %>"><%= hours_label(row[:logged_seconds], blank: "–") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td class="tm-num"><b><%= executives.sum { |row| row[:total] } %></b></td>
+              <% %i[pending in_progress paused completed over_sla].each do |key| %>
+                <td class="tm-num"><%= executives.sum { |row| row[key] } %></td>
+              <% end %>
+              <td class="tm-num"><%= (rate = @report.on_time_rate) ? "#{rate}%" : "–" %></td>
+              <td class="tm-num"><%= hours_label(executives.sum { |row| row[:logged_seconds] }, blank: "–") %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="tm-panel tm-breakdown tm-breakdown--clients">
+    <div class="tm-panel__head">
+      <div>
+        <h2 class="tm-panel__title">Tasks by client</h2>
+        <p class="tm-panel__sub">Open and finished work per client; hours logged <%= period %>.</p>
+      </div>
+      <span class="tm-breakdown__count"><%= pluralize(clients.count { |row| row[:id] }, "client") %></span>
+    </div>
+
+    <% if clients.empty? %>
+      <div class="tm-empty"><p class="tm-empty__title">No tasks yet</p></div>
+    <% else %>
+      <div class="tm-scroll">
+        <table class="tm-table tm-table--sticky" data-tm-sortable>
+          <thead>
+            <tr>
+              <th scope="col" data-tm-sort="text" tabindex="0" title="Sort A to Z">Client</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Total">Total</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Open">Open</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Done">Done</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Over budget">Over budget</th>
+              <th scope="col" class="tm-num" data-tm-sort="number" tabindex="0" title="Sort by Logged">Logged</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% clients.each do |row| %>
+              <tr>
+                <td data-sort-value="<%= row[:name].to_s.strip.downcase %>">
+                  <% if row[:id] %>
+                    <button type="button" class="tm-linkrow" data-tm-filter='<%= { client_id: row[:id], tab: "tasks" }.to_json %>' data-tm-regions="tasks" data-tm-goto="tasks">
+                      <span class="tm-linkrow__name"><%= row[:name] %></span>
+                    </button>
+                  <% else %>
+                    <span class="tm-linkrow__name tm-muted"><%= row[:name] %></span>
+                  <% end %>
+                </td>
+                <td class="tm-num" data-sort-value="<%= row[:total] %>">
+                  <span class="tm-share"><i style="width: <%= (row[:total] * 100.0 / client_max).round %>%"></i></span>
+                  <b><%= row[:total] %></b>
+                </td>
+                <td class="tm-num <%= 'tm-zero' if row[:open].zero? %>" data-sort-value="<%= row[:open] %>"><%= row[:open] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:completed].zero? %>" data-sort-value="<%= row[:completed] %>"><%= row[:completed] %></td>
+                <td class="tm-num <%= row[:over_sla].zero? ? 'tm-zero' : 'tm-over' %>" data-sort-value="<%= row[:over_sla] %>"><%= row[:over_sla] %></td>
+                <td class="tm-num <%= 'tm-zero' if row[:logged_seconds].zero? %>" data-sort-value="<%= row[:logged_seconds] %>"><%= hours_label(row[:logged_seconds], blank: "–") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td class="tm-num"><b><%= clients.sum { |row| row[:total] } %></b></td>
+              <% %i[open completed over_sla].each do |key| %>
+                <td class="tm-num"><%= clients.sum { |row| row[key] } %></td>
+              <% end %>
+              <td class="tm-num"><%= hours_label(clients.sum { |row| row[:logged_seconds] }, blank: "–") %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% end %>
+  </section>
+</div>

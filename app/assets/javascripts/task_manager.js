@@ -771,11 +771,51 @@
     return $("[data-tm-view]") ? $("[data-tm-view]").getAttribute("data-tm-view") : null;
   }
 
+  /* --- sortable tables ---------------------------------------------------
+     Click a column heading to sort the rows already on the page; click again
+     to flip. Text columns start A to Z, figures start with the biggest. Each
+     cell carries the plain value to compare in data-sort-value, so "10h 30m"
+     sorts as seconds and a name sorts without its avatar initials. The totals
+     row lives in <tfoot> and is never moved. */
+  function sortTable(th) {
+    var table = th.closest("table");
+    var body = table && table.tBodies[0];
+    if (!body) { return; }
+
+    var column = Array.prototype.indexOf.call(th.parentNode.children, th);
+    var numeric = th.getAttribute("data-tm-sort") === "number";
+    var current = th.getAttribute("aria-sort");
+    var direction = current ? (current === "ascending" ? "descending" : "ascending")
+                            : (numeric ? "descending" : "ascending");
+
+    function value(row) {
+      var cell = row.children[column];
+      var raw = cell ? (cell.getAttribute("data-sort-value") || cell.textContent.trim()) : "";
+      return numeric ? (parseFloat(raw) || 0) : raw.toLowerCase();
+    }
+    function label(row) { return (row.children[0].getAttribute("data-sort-value") || "").toLowerCase(); }
+
+    var rows = Array.prototype.slice.call(body.rows);
+    rows.sort(function (a, b) {
+      var x = value(a), y = value(b);
+      var order = numeric ? x - y : x.localeCompare(y);
+      if (direction === "descending") { order = -order; }
+      return order !== 0 ? order : label(a).localeCompare(label(b));   // ties stay A to Z
+    });
+    rows.forEach(function (row) { body.appendChild(row); });
+
+    $$("th[aria-sort]", table).forEach(function (other) { other.removeAttribute("aria-sort"); });
+    th.setAttribute("aria-sort", direction);
+  }
+
   function loadFilters(params, regions) {
     var view = currentView();
     if (!view) { return; }
 
     var url = new URL(window.location.href);
+    // Changing any filter (or the page size) starts again from the first page;
+    // only the pager itself sends a page number.
+    if (!("page" in params)) { url.searchParams.delete("page"); }
     Object.keys(params).forEach(function (key) {
       if (params[key] === null || params[key] === "") { url.searchParams.delete(key); }
       else { url.searchParams.set(key, params[key]); }
@@ -1016,11 +1056,26 @@
       return;
     }
 
+    var sortHead = target.closest(".tm-table[data-tm-sortable] thead th[data-tm-sort]");
+    if (sortHead) {
+      event.preventDefault();
+      sortTable(sortHead);
+      return;
+    }
+
     var seg = target.closest("[data-tm-filter]");
     if (seg) {
       event.preventDefault();
       var params = JSON.parse(seg.getAttribute("data-tm-filter"));
       loadFilters(params, seg.getAttribute("data-tm-regions"));
+      // A breakdown row filters the task list: open that tab and bring it into view.
+      var goTo = seg.getAttribute("data-tm-goto");
+      if (goTo) {
+        var tabButton = document.querySelector('[data-tm-tab="' + goTo + '"]');
+        if (tabButton && tabButton.getAttribute("aria-selected") !== "true") { tabButton.click(); }
+        var tabPanel = document.querySelector('[data-tm-panel="' + goTo + '"]');
+        if (tabPanel) { tabPanel.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      }
       return;
     }
 
@@ -1127,6 +1182,10 @@
   /* Cmd/Ctrl+Enter posts a comment — the convention everywhere else a thread
      lives in a panel. Escape closes the drawer. */
   document.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && event.target.matches && event.target.matches(".tm-table[data-tm-sortable] thead th[data-tm-sort]")) {
+      sortTable(event.target);
+      return;
+    }
     if (event.key === "Escape" && drawer.isOpen()) {
       drawer.close();
       return;

@@ -291,6 +291,9 @@
     background: none;
     box-shadow: none;
 
+    // Headers and cells share one left edge per column (the legacy rule
+    // centred both, which left the badges and figures visibly off the labels).
+    th, td:not([colspan]) { text-align: left !important; }   // (the empty-state row spans the table and stays centred)
     th {
       padding: 11px 14px;
       background: #F5EEF9;

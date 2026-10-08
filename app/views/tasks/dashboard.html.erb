@@ -12,6 +12,10 @@
         </p>
       </div>
       <div class="tm-head__actions">
+        <%= link_to export_tasks_path(report: "summary", format: :pdf, period: @period, week_start: @week_start),
+                    class: "tm-btn", title: "Download this report as a PDF" do %>
+          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF report
+        <% end %>
         <button type="button" class="tm-btn" data-bs-toggle="modal" data-bs-target="#tm-import-modal">
           <i class="fa-solid fa-file-csv" aria-hidden="true"></i>Import CSV
         </button>
@@ -23,6 +27,7 @@
 
     <div id="tm-region-summary"><%= render "tasks/manager_summary" %></div>
     <div id="tm-region-charts"><%= render "tasks/manager_charts" %></div>
+    <div id="tm-region-breakdown"><%= render "tasks/manager_breakdown" %></div>
 
     <% active_tab = params[:tab].presence_in(%w[tasks team_hours sprints]) || "tasks" %>
 
@@ -30,7 +35,7 @@
       <div class="tm-seg" role="tablist" aria-label="Task Manager sections">
         <button type="button" class="tm-seg__item" role="tab" data-tm-tab="tasks"
                 aria-selected="<%= active_tab == 'tasks' %>">
-          Tasks <span class="tm-seg__count"><%= @tasks.size %></span>
+          Tasks <span class="tm-seg__count"><%= @tasks_total %></span>
         </button>
         <button type="button" class="tm-seg__item" role="tab" data-tm-tab="team_hours"
                 aria-selected="<%= active_tab == 'team_hours' %>">

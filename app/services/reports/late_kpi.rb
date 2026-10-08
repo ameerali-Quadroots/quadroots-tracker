@@ -12,6 +12,33 @@ module Reports
 
     attr_reader :month, :limit
 
+    # Sort keys the KPI page offers. Names compare case-insensitively and
+    # ignore stray spaces (a few are stored with a leading or trailing one).
+    ROW_SORTS = {
+      "name" => ->(row) { row.user.name.to_s.strip.downcase },
+      "department" => ->(row) { row.department.to_s.strip.downcase },
+      "lates" => ->(row) { row.late_count }
+    }.freeze
+    SUMMARY_SORTS = {
+      "department" => ->(row) { row.department.to_s.downcase },
+      "employees" => ->(row) { row.total_employees },
+      "lates" => ->(row) { row.total_lates },
+      "flagged" => ->(row) { row.flagged_count }
+    }.freeze
+
+    # rows sorted by one of ROW_SORTS / SUMMARY_SORTS; an unknown key returns
+    # them untouched (the default order). Ties always fall back to A-Z, in
+    # either direction, so "most lates first" does not also reverse the names.
+    def self.sort(rows, sorts, by, direction)
+      key = sorts[by] or return rows
+      label = ->(row) { (row.respond_to?(:user) ? row.user.name : row.department).to_s.strip.downcase }
+
+      rows.sort do |a, b|
+        order = direction == "desc" ? key.call(b) <=> key.call(a) : key.call(a) <=> key.call(b)
+        order.zero? ? label.call(a) <=> label.call(b) : order
+      end
+    end
+
     # departments: nil means every department, otherwise an array of names.
     def initialize(month:, limit: AppSetting.instance.late_kpi_monthly_limit, departments: nil)
       @month = month.beginning_of_month
@@ -25,7 +52,7 @@ module Reports
         lates = late_counts[user.id].to_i
         Row.new(user: user, department: user.department.presence || UNASSIGNED,
                 late_count: lates, kpi_deducted: lates > limit)
-      end.sort_by { |row| [row.kpi_deducted ? 0 : 1, row.department, row.user.name.to_s] }
+      end.sort_by { |row| [row.kpi_deducted ? 0 : 1, row.department.to_s.strip.downcase, row.user.name.to_s.strip.downcase] }
     end
 
     def flagged_rows

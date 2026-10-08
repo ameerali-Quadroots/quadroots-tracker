@@ -132,6 +132,64 @@ module Reports
       end
     end
 
+    # ---- Breakdown tables ----------------------------------------------------
+    # One row per executive, including anyone with nothing assigned, busiest
+    # first. Counts are all-time (the department's whole backlog and history);
+    # logged_seconds is for the selected range. over_sla is finished work that
+    # went past its budget, and on_time_rate the share that did not - nil with
+    # nothing finished, for the same reason as #on_time_rate above.
+    def executive_breakdown
+      @executive_breakdown ||= begin
+        counts = @scope.group(:assigned_to_id, :status).count
+        over   = @scope.where(status: "completed", over_sla: true).group(:assigned_to_id).count
+        logged = if executive_ids.empty?
+                   {}
+                 else
+                   TaskWorkSession.where(user_id: executive_ids, started_at: @range).group(:user_id).sum(:duration_seconds)
+                 end
+
+        @executives.map do |user|
+          by_status = STATUS_ORDER.to_h { |status| [status.to_sym, counts[[user.id, status]].to_i] }
+          completed = by_status[:completed]
+          over_sla  = over[user.id].to_i
+          by_status.merge(
+            id: user.id, name: user.name, total: by_status.values.sum, over_sla: over_sla,
+            on_time_rate: (completed.zero? ? nil : ((completed - over_sla) * 100.0 / completed).round),
+            logged_seconds: logged[user.id].to_i
+          )
+        end.sort_by { |row| [-row[:total], row[:name].to_s.strip.downcase] }
+      end
+    end
+
+    INTERNAL = "Internal work".freeze
+
+    # One row per client that has tasks, most tasks first, plus "Internal work"
+    # for tasks that belong to no client sprint. Counts are all-time,
+    # logged_seconds is for the selected range.
+    def client_breakdown
+      @client_breakdown ||= begin
+        by_client = @scope.left_joins(sprint: { project: :client })
+        counts = by_client.group("clients.id", "clients.name", "tasks.status").count
+        over   = by_client.where(status: "completed", over_sla: true).group("clients.id").count
+        logged = if executive_ids.empty?
+                   {}
+                 else
+                   TaskWorkSession.joins(task: { sprint: { project: :client } })
+                                  .where(user_id: executive_ids, started_at: @range)
+                                  .group("clients.id").sum(:duration_seconds)
+                 end
+        logged[nil] = [logged_seconds - logged.values.sum, 0].max   # time on work with no client
+
+        counts.group_by { |(id, name, _status), _count| [id, name] }.map do |(id, name), entries|
+          statuses  = entries.to_h { |(_id, _name, status), count| [status, count] }
+          completed = statuses["completed"].to_i
+          total     = statuses.values.sum
+          { id: id, name: name || INTERNAL, total: total, open: total - completed, completed: completed,
+            over_sla: over[id].to_i, logged_seconds: logged[id].to_i }
+        end.sort_by { |row| [row[:id] ? 0 : 1, -row[:total], row[:name].to_s.strip.downcase] }
+      end
+    end
+
     def previous_logged_seconds
       @previous_logged_seconds ||= @previous_range ? seconds_in(@previous_range) : 0
     end

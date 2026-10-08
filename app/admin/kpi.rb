@@ -2,7 +2,8 @@ ActiveAdmin.register_page "KPI" do
   menu label: "KPI", priority: 6
 
   controller do
-    helper_method :kpi_report, :kpi_month, :kpi_department_options, :kpi_show_all?, :kpi_employee_rows
+    helper_method :kpi_report, :kpi_month, :kpi_department_options, :kpi_show_all?, :kpi_employee_rows,
+                  :kpi_summary_rows, :kpi_paging
 
     private
 
@@ -30,8 +31,31 @@ ActiveAdmin.register_page "KPI" do
       params[:show] == "all"
     end
 
+    # Every employee in the current view, in the chosen order (?sort=name|department|lates,
+    # ?dir=asc|desc). Not paged: the exports use this, the screen pages it.
     def kpi_employee_rows
-      kpi_show_all? ? kpi_report.rows : kpi_report.flagged_rows
+      @kpi_employee_rows ||= Reports::LateKpi.sort(
+        kpi_show_all? ? kpi_report.rows : kpi_report.flagged_rows,
+        Reports::LateKpi::ROW_SORTS, params[:sort].to_s, params[:dir].to_s
+      )
+    end
+
+    # The department summary, sorted by ?dsort=department|employees|lates|flagged.
+    def kpi_summary_rows
+      @kpi_summary_rows ||= Reports::LateKpi.sort(
+        kpi_report.department_summary, Reports::LateKpi::SUMMARY_SORTS, params[:dsort].to_s, params[:ddir].to_s
+      )
+    end
+
+    # One page of kpi_employee_rows. A page past the end shows the last page.
+    def kpi_paging
+      @kpi_paging ||= begin
+        per   = [25, 50, 100].include?(params[:per].to_i) ? params[:per].to_i : 25
+        total = kpi_employee_rows.size
+        pages = [(total / per.to_f).ceil, 1].max
+        page  = params[:page].to_i.clamp(1, pages)
+        { per: per, total: total, pages: pages, page: page, rows: kpi_employee_rows[(page - 1) * per, per] || [] }
+      end
     end
 
     def kpi_report
@@ -53,22 +77,32 @@ ActiveAdmin.register_page "KPI" do
   content title: "KPI" do
     render partial: "admin/kpi/report",
            locals: { report: kpi_report, month: kpi_month, department_options: kpi_department_options,
-                     employee_rows: kpi_employee_rows, show_all: kpi_show_all?,
+                     paging: kpi_paging, summary_rows: kpi_summary_rows, show_all: kpi_show_all?,
                      open_employees: authorized?(:read, User) }
   end
 
-  # Export the month being viewed as XLSX: department summary + per-employee sheet.
-  # The employee sheet follows the same flagged-only / all filter as the screen.
+  # Export the month being viewed: XLSX by default, PDF with ?as=pdf. Both
+  # follow the screen's filter and sort, and include every row, not one page.
   page_action :export, method: :get do
+    report = kpi_report
+
+    if params[:as] == "pdf"
+      scope = [params[:department].presence || "All departments",
+               kpi_show_all? ? "all employees" : "KPI deducted only"].join(", ")
+      pdf = LateKpiPdf.new(report: report, summary_rows: kpi_summary_rows, employee_rows: kpi_employee_rows,
+                           scope_label: scope, generated_by: current_admin_user.email)
+      next send_data(pdf.render, filename: "late_kpi_#{kpi_month.strftime('%Y-%m')}.pdf",
+                                 type: "application/pdf", disposition: "attachment")
+    end
+
     require 'caxlsx'
 
-    report   = kpi_report
     package  = Axlsx::Package.new
     workbook = package.workbook
 
     workbook.add_worksheet(name: "Department Summary") do |sheet|
       sheet.add_row ["Department", "Total Employees", "Total Lates", "KPI Deducted Employees"]
-      report.department_summary.each do |summary|
+      kpi_summary_rows.each do |summary|
         sheet.add_row [summary.department, summary.total_employees, summary.total_lates, summary.flagged_count]
       end
       sheet.add_row ["Total",

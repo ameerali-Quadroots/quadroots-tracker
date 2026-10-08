@@ -474,10 +474,8 @@ function initializeLiveClock() {
     let currentTime = new Date(serverTime.getTime());
 
     function updateClock() {
+      // Time only: the date is already written out next to this chip.
       const options = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',

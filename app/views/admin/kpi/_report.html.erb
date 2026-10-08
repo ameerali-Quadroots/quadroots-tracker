@@ -13,6 +13,33 @@
   th          = "border-b bg-primary-soft px-4 py-2.5 text-left text-[12.5px] font-semibold text-primary-soft-foreground"
   td          = "border-b px-4 py-2.5 align-middle text-sm text-foreground"
   num         = "text-right tabular-nums"
+  button      = "inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3.5 text-[13.5px] font-medium text-foreground " \
+                "no-underline shadow-xs transition hover:-translate-y-px hover:border-primary hover:bg-primary-soft " \
+                "hover:text-primary-soft-foreground active:scale-[0.97]"
+  employee_rows = paging[:rows]
+  first_row     = paging[:total].zero? ? 0 : (paging[:page] - 1) * paging[:per] + 1
+  last_row      = [paging[:page] * paging[:per], paging[:total]].min
+
+  # Everything that defines the current view; links change one or two of these.
+  view = { month: month_param, department: params[:department].presence, show: ("all" if show_all),
+           sort: params[:sort].presence, dir: params[:dir].presence, dsort: params[:dsort].presence, ddir: params[:ddir].presence,
+           per: (paging[:per] unless paging[:per] == 25) }
+
+  # A sortable column header. Text columns start A to Z, figures start with
+  # the biggest; clicking the active column flips it. Sorting returns to page 1.
+  sort_th = lambda do |label, key, sort_param:, dir_param:, numeric: false|
+    active    = params[sort_param] == key
+    current   = params[dir_param] == "desc" ? "desc" : "asc"
+    next_dir  = active ? (current == "asc" ? "desc" : "asc") : (numeric ? "desc" : "asc")
+    arrow     = active ? (current == "asc" ? "▲" : "▼") : "↕"
+    content_tag(:th, class: "#{th} #{num if numeric}", aria: { sort: (active ? (current == "asc" ? "ascending" : "descending") : nil) }) do
+      link_to admin_kpi_path(view.merge(sort_param => key, dir_param => next_dir, page: nil)),
+              class: "inline-flex items-center gap-1.5 text-primary-soft-foreground no-underline hover:text-primary",
+              title: "Sort by #{label.downcase}" do
+        safe_join([label, content_tag(:span, arrow, class: "text-[10px] #{active ? 'text-primary' : 'opacity-40'}", aria: { hidden: true })])
+      end
+    end
+  end
 %>
 
 <div class="tw kpi-report font-sans">
@@ -35,12 +62,10 @@
                      id: "kpi_show", class: select %>
     </div>
     <%= submit_tag "Apply", name: nil %>
-    <%= link_to "Export Excel",
-                admin_kpi_export_path(month: month_param, department: params[:department].presence,
-                                      show: ("all" if show_all)),
-                class: "ml-auto inline-flex h-9 items-center rounded-md border bg-background px-3.5 text-[13.5px] " \
-                       "font-medium text-foreground no-underline shadow-xs transition hover:-translate-y-px hover:border-primary " \
-                       "hover:bg-primary-soft hover:text-primary-soft-foreground active:scale-[0.97]" %>
+    <div class="ml-auto flex flex-wrap gap-2">
+      <%= link_to "Export Excel", admin_kpi_export_path(view.except(:per)), class: button %>
+      <%= link_to "Export PDF", admin_kpi_export_path(view.except(:per).merge(as: "pdf")), class: button %>
+    </div>
   <% end %>
 
   <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -80,14 +105,14 @@
       <table class="kpi-summary m-0 w-full border-separate border-spacing-0">
         <thead>
           <tr>
-            <th class="<%= th %>">Department</th>
-            <th class="<%= th %> <%= num %>">Total employees</th>
-            <th class="<%= th %> <%= num %>">Total lates</th>
-            <th class="<%= th %> <%= num %>">KPI deducted employees</th>
+            <%= sort_th.("Department", "department", sort_param: :dsort, dir_param: :ddir) %>
+            <%= sort_th.("Total employees", "employees", sort_param: :dsort, dir_param: :ddir, numeric: true) %>
+            <%= sort_th.("Total lates", "lates", sort_param: :dsort, dir_param: :ddir, numeric: true) %>
+            <%= sort_th.("KPI deducted employees", "flagged", sort_param: :dsort, dir_param: :ddir, numeric: true) %>
           </tr>
         </thead>
         <tbody>
-          <% report.department_summary.each do |summary| %>
+          <% summary_rows.each do |summary| %>
             <tr>
               <td class="<%= td %> font-medium"><%= summary.department %></td>
               <td class="<%= td %> <%= num %>"><%= summary.total_employees %></td>
@@ -122,10 +147,10 @@
         <table class="kpi-employees m-0 w-full border-separate border-spacing-0">
           <thead>
             <tr>
-              <th class="<%= th %>">Employee</th>
-              <th class="<%= th %>">Department</th>
+              <%= sort_th.("Employee", "name", sort_param: :sort, dir_param: :dir) %>
+              <%= sort_th.("Department", "department", sort_param: :sort, dir_param: :dir) %>
               <th class="<%= th %>">Shift time</th>
-              <th class="<%= th %> <%= num %>">Lates</th>
+              <%= sort_th.("Lates", "lates", sort_param: :sort, dir_param: :dir, numeric: true) %>
               <th class="<%= th %> <%= num %>">Allowed</th>
               <th class="<%= th %>">KPI deducted</th>
             </tr>
@@ -151,6 +176,39 @@
             <% end %>
           </tbody>
         </table>
+      </div>
+
+      <%# Pager: count, rows per page, then first / last and the pages around the current one. %>
+      <div class="kpi-pager flex flex-wrap items-center gap-x-5 gap-y-3 border-t px-5 py-3 text-[13px] text-muted-foreground">
+        <span>Showing <b class="font-semibold text-foreground tabular-nums"><%= first_row %> to <%= last_row %> of <%= paging[:total] %></b></span>
+
+        <%= form_tag admin_kpi_path, method: :get, class: "m-0 flex items-center gap-2" do %>
+          <% view.except(:per).compact.each do |key, value| %><%= hidden_field_tag key, value, id: nil %><% end %>
+          <label for="kpi_per" class="m-0">Rows per page</label>
+          <%= select_tag :per, options_for_select([25, 50, 100], paging[:per]), id: "kpi_per", onchange: "this.form.submit()",
+                         class: "h-8 cursor-pointer appearance-none rounded-md border border-input bg-background bg-chevron bg-[right_8px_center] bg-no-repeat pl-2.5 pr-7 font-sans text-[13px] text-foreground" %>
+        <% end %>
+
+        <% if paging[:pages] > 1 %>
+          <% numbers = ([1, paging[:pages]] + ((paging[:page] - 1)..(paging[:page] + 1)).to_a).select { |n| n.between?(1, paging[:pages]) }.uniq.sort %>
+          <% page_link = "inline-flex h-8 min-w-[32px] items-center justify-center rounded-md border px-2 text-[13px] font-medium no-underline tabular-nums transition" %>
+          <nav class="ml-auto flex items-center gap-1" aria-label="Pages">
+            <% if paging[:page] > 1 %>
+              <%= link_to "‹", admin_kpi_path(view.merge(page: paging[:page] - 1)), class: "#{page_link} bg-background text-foreground hover:border-primary hover:bg-primary-soft", aria: { label: "Previous page" } %>
+            <% end %>
+            <% numbers.each_with_index do |number, index| %>
+              <% if index.positive? && number - numbers[index - 1] > 1 %><span class="px-1">…</span><% end %>
+              <% if number == paging[:page] %>
+                <span class="<%= page_link %> border-primary bg-primary text-white" aria-current="page"><%= number %></span>
+              <% else %>
+                <%= link_to number, admin_kpi_path(view.merge(page: number)), class: "#{page_link} bg-background text-foreground hover:border-primary hover:bg-primary-soft" %>
+              <% end %>
+            <% end %>
+            <% if paging[:page] < paging[:pages] %>
+              <%= link_to "›", admin_kpi_path(view.merge(page: paging[:page] + 1)), class: "#{page_link} bg-background text-foreground hover:border-primary hover:bg-primary-soft", aria: { label: "Next page" } %>
+            <% end %>
+          </nav>
+        <% end %>
       </div>
     <% else %>
       <div class="px-5 py-10 text-center">

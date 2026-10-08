@@ -17,6 +17,7 @@ class TasksController < ApplicationController
   before_action :set_task, only: %i[start pause resume complete]
 
   REPORTS = %w[weekly_timing monthly_stats task_list].freeze
+  PER_PAGE_OPTIONS = [20, 50, 100].freeze
 
   def index
     redirect_to manager_task_manager? ? dashboard_tasks_path : my_tasks_tasks_path
@@ -101,6 +102,7 @@ class TasksController < ApplicationController
 
   def export
     report_name = params[:report].to_s
+    return send_pdf_report if report_name == "summary" && params[:format].to_s == "pdf"
     return redirect_to(dashboard_tasks_path, alert: "Unknown report.") unless REPORTS.include?(report_name)
 
     exporter = TaskReportExporter.new(
@@ -267,7 +269,7 @@ class TasksController < ApplicationController
     @sprints = department_sprints.includes(project: :client).ordered
     @clients = department_clients
     @selected_sprint = @sprints.detect { |s| s.id.to_s == params[:sprint_id].to_s }
-    @tasks = filtered_tasks
+    paginate_tasks(filtered_tasks)
     @report = Reports::TaskDashboard.new(scope: department_tasks, executives: @executives,
                                          range: hours_range, previous_range: previous_hours_range)
     @hours_report = Reports::ExecutiveHours.new(department: current_user.org_department, range: hours_range)
@@ -293,6 +295,31 @@ class TasksController < ApplicationController
     @report = Reports::ExecutiveDashboard.new(user: current_user, tasks: @tasks)
   end
 
+  # One page of the filtered list. A page number past the end (a filter just
+  # shrank the list) falls back to the last page rather than an empty table.
+  def paginate_tasks(scope)
+    @per_page = PER_PAGE_OPTIONS.include?(params[:per].to_i) ? params[:per].to_i : PER_PAGE_OPTIONS.first
+    @tasks_total = scope.count
+    @total_pages = [(@tasks_total / @per_page.to_f).ceil, 1].max
+    @page = params[:page].to_i.clamp(1, @total_pages)
+    @tasks = scope.offset((@page - 1) * @per_page).limit(@per_page)
+  end
+
+  def send_pdf_report
+    report = Reports::TaskDashboard.new(scope: department_tasks, executives: department_executives,
+                                        range: hours_range, previous_range: previous_hours_range)
+    label = if @period == "month"
+              @week_start.strftime("%B %Y")
+            else
+              "Week of #{@week_start.strftime('%d %b %Y')}"
+            end
+    pdf = TaskReportPdf.new(report: report, tasks: department_tasks, department: current_user.org_department,
+                            period_label: label, generated_by: current_user)
+
+    send_data pdf.render, filename: "task-report-#{Date.current.strftime('%Y%m%d')}.pdf",
+              type: "application/pdf", disposition: "attachment"
+  end
+
   def filtered_tasks
     scope = department_tasks.top_level
                             .includes(:assigned_to, :task_type, { sprint: { project: :client } },
@@ -302,7 +329,11 @@ class TasksController < ApplicationController
     scope = scope.where(assigned_to_id: params[:executive_id]) if params[:executive_id].present?
     scope = scope.in_sprint(params[:sprint_id]) if params[:sprint_id].present?
     scope = scope.where(assigned_by_id: current_user.id) if params[:mine] == "1"
-    scope = scope.where(priority: "urgent") if params[:priority] == "urgent"
+    scope = scope.where(priority: params[:priority]) if Task::PRIORITIES.include?(params[:priority])
+    scope = scope.where(task_type_id: params[:task_type_id]) if params[:task_type_id].present?
+    if params[:client_id].present?
+      scope = scope.where(sprint_id: Sprint.joins(:project).where(projects: { client_id: params[:client_id] }).select(:id))
+    end
 
     if params[:q].present?
       term = "%#{params[:q].to_s.strip.downcase}%"
@@ -336,6 +367,7 @@ class TasksController < ApplicationController
   DASHBOARD_REGIONS = {
     "summary" => "tasks/manager_summary",
     "charts" => "tasks/manager_charts",
+    "breakdown" => "tasks/manager_breakdown",
     "tasks" => "tasks/panel_tasks",
     "team_hours" => "tasks/panel_team_hours",
     "sprints" => "tasks/panel_sprints"
@@ -358,7 +390,7 @@ class TasksController < ApplicationController
   # the team-hours matrix and the sprint list too — work nobody asked for, on
   # panels that are not even on screen. The heavy tabs refresh when the person
   # actually opens them.
-  MUTATION_REGIONS = %w[summary charts tasks].freeze
+  MUTATION_REGIONS = %w[summary charts breakdown tasks].freeze
   MY_TASKS_MUTATION_REGIONS = %w[focus summary tasks].freeze
 
   def dashboard_regions(requested = nil)

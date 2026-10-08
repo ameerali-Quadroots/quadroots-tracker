@@ -79,6 +79,10 @@ gem 'caxlsx', '~> 3.1'
 # Held on Tailwind 3: the v4 binaries ship as linux-gnu/musl gems, which RubyGems < 3.3.22 cannot install.
 gem 'tailwindcss-rails', '~> 3.3'
 gem 'tailwindcss-ruby', '~> 3.4'
+
+# PDF reports for the Task Manager (app/services/task_report_pdf.rb). Pure Ruby, no system packages.
+gem 'prawn', '~> 2.5'
+gem 'prawn-table', '~> 0.2'
 gem 'pusher', '~> 2.0'
 gem 'web-push', '~> 3.1'
 gem 'dotenv-rails', '~> 3.0', groups: [:development, :test]
