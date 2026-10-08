@@ -110,21 +110,24 @@
     <% end %>
 
 
-  <% elsif @time_clock.breaks.any? && @time_clock.breaks.last.break_out.blank? %>
+  <%# "On a break" means any break is open (TimeClock#on_break?), never "the last row is open". %>
+  <% elsif @time_clock.on_break? %>
 
     <!-- On Break State -->
     <%
-      end_text = case @time_clock.current_state
-        when "Downtime" then "End Downtime"
-        when "Meeting" then "End Meeting"
-        else "End Break"
-      end
-
-      status_icon = case @time_clock.current_state
-        when "Downtime" then "fa-solid fa-pause"
-        when "Meeting" then "fa-solid fa-video"
-        else "fa-solid fa-mug-hot"
-      end
+      # Everything on this card comes from the break that is actually open, not
+      # from the shift's current_state: the two can disagree (the state is reset
+      # to "working" whenever any break ends), and the card must still offer a
+      # way out.
+      current_break = @time_clock.current_break
+      kind = if current_break.break_type.to_s.casecmp?("Downtime") then :downtime
+             elsif current_break.meeting? then :meeting
+             else :break
+             end
+      end_text    = { downtime: "End Downtime", meeting: "End Meeting", break: "End Break" }[kind]
+      status_icon = { downtime: "fa-solid fa-pause", meeting: "fa-solid fa-video", break: "fa-solid fa-mug-hot" }[kind]
+      badge_text  = { downtime: "Downtime", meeting: "Meeting", break: "On break" }[kind]
+      sentence    = { downtime: "You are in downtime", meeting: "You are in a meeting", break: "You are on a break" }[kind]
     %>
 
     <div class="status-state text-center">
@@ -134,17 +137,16 @@
         </div>
 
         <div class="status-badge badge bg-warning text-dark">
-          <%= @time_clock.current_state %>
+          <%= badge_text %>
         </div>
 
         <p class="status-description text-muted mt-2">
-          <%# current_state is "On break", "Meeting" or "Downtime" %>
-          You are <%= @time_clock.current_state.to_s.casecmp?("On break") ? "on a break" : "in #{@time_clock.current_state.to_s.downcase}" %>. Ready to resume work?
+          <%= sentence %> since <%= current_break.break_in.strftime("%I:%M %p") %>. Ready to resume work?
         </p>
       </div>
 
       <div class="action-buttons d-flex gap-3 justify-content-center flex-wrap">
-        <%= button_to break_out_time_clock_break_path(@time_clock, @time_clock.breaks.last),
+        <%= button_to break_out_time_clock_break_path(@time_clock, current_break),
               method: :post, class: "btn btn-primary btn-premium btn-action", data: { turbo: false } do %>
           <i class="fa-solid fa-play me-2"></i><%= end_text %>
         <% end %>

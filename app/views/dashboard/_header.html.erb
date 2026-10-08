@@ -5,7 +5,7 @@
     a break - how long the break has been running ([data-break-timer]). %>
 <% server_time = Time.zone.now # ensures the app time zone %>
 <% working = @time_clock&.clock_in.present? && @time_clock.clock_out.blank? %>
-<% open_break = working ? @time_clock.open_breaks.max_by(&:break_in) : nil %>
+<% open_break = working ? @time_clock.current_break : nil %>
 
 <div class="dashboard-header <%= 'is-working' if working %>">
   <div class="dashboard-header-main">

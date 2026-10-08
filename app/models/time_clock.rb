@@ -1,6 +1,9 @@
 class TimeClock < ApplicationRecord
   belongs_to :employee, class_name: "User", foreign_key: "user_id"
-  has_many :breaks, dependent: :destroy
+  # Always in the order they were taken. Without an explicit order, "last" on
+  # an already-loaded association is whatever order the database happened to
+  # return - which is how an open break once went unnoticed (see #on_break?).
+  has_many :breaks, -> { order(:break_in, :id) }, dependent: :destroy
   has_many :edit_requests
 
   accepts_nested_attributes_for :breaks, allow_destroy: true
@@ -38,8 +41,18 @@ end
     "#{hours}h #{minutes}m"
   end
 
+  # On a break whenever ANY break is still open - not "when the newest row is
+  # open". The two differ as soon as the rows are not in the order you expect,
+  # and getting it wrong shows "Take Break" to someone already on a break, who
+  # then starts another.
   def on_break?
-    breaks.any? && breaks.last.break_out.blank?
+    open_breaks.any?
+  end
+
+  # The break that is running now (the most recently started, if a bad state
+  # left more than one open).
+  def current_break
+    open_breaks.max_by { |b| [b.break_in, b.id] }
   end
 
   # Breaks the employee started but never ended. Iterate the loaded association
@@ -77,12 +90,25 @@ end
   # Completed break seconds, excluding meetings (paid time).
   # Iterate the loaded association (no extra query) instead of breaks.where(...)
   def total_break_seconds
-    breaks.sum do |b|
-      next 0 if b.break_type.blank? || b.meeting?
-      next 0 if b.break_in.blank? || b.break_out.blank?
+    intervals = breaks.filter_map do |b|
+      next if b.break_type.blank? || b.meeting?
+      next if b.break_in.blank? || b.break_out.blank? || b.break_out <= b.break_in
 
-      [(b.break_out - b.break_in).to_i, 0].max
+      [b.break_in, b.break_out]
+    end.sort
+
+    # Overlapping breaks are one stretch of time away from work, so they are
+    # merged before being measured. Two breaks covering the same half hour are
+    # half an hour off, not an hour.
+    merged = intervals.each_with_object([]) do |(from, to), spans|
+      if spans.any? && from <= spans.last[1]
+        spans.last[1] = [spans.last[1], to].max
+      else
+        spans << [from, to]
+      end
     end
+
+    merged.sum { |from, to| (to - from).to_i }
   end
 
 
