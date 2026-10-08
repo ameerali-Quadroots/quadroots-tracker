@@ -31,3 +31,18 @@ namespace :breaks do
     puts dry_run ? "DRY RUN - #{fixed} shifts would be repaired" : "Repaired #{fixed} shifts"
   end
 end
+
+namespace :breaks do
+  desc "Repair shifts damaged by duplicate breaks (preview by default; DRY_RUN=false to apply; SINCE=YYYY-MM-DD, default 7 days ago)"
+  task repair_duplicates: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    since = ENV["SINCE"].present? ? Time.zone.parse(ENV["SINCE"]) : 7.days.ago.beginning_of_day
+    report = Breaks::DuplicateRepair.new(since: since, dry_run: dry_run).call
+
+    puts report.lines
+    puts "#{dry_run ? 'Would remove' : 'Removed'} #{report.duplicates_removed} duplicate open break(s), " \
+         "#{dry_run ? 'would correct' : 'corrected'} #{report.states_corrected} state(s), " \
+         "#{dry_run ? 'would recalculate' : 'recalculated'} #{report.shifts_recalculated} finished shift(s), since #{since.to_date}."
+    puts "Nothing was changed. Run again with DRY_RUN=false to apply." if dry_run
+  end
+end
