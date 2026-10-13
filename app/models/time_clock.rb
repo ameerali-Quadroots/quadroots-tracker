@@ -1,4 +1,7 @@
 class TimeClock < ApplicationRecord
+  # How long a shift runs from its start: 8 PM to 5 AM, 8:30 PM to 5:30 AM.
+  SHIFT_LENGTH = 9.hours
+
   belongs_to :employee, class_name: "User", foreign_key: "user_id"
   # Always in the order they were taken. Without an explicit order, "last" on
   # an already-loaded association is whatever order the database happened to
@@ -66,7 +69,7 @@ end
   # Ends the shift. Any break the employee forgot to end is closed at the same
   # moment - otherwise the break row stays open forever, on_break? never flips
   # back and every later duration calculation ignores that break entirely.
-  # Used by manual clock out and by AutoClockJob at 4am.
+  # Used by manual clock out and by AutoClockJob at the end of the shift.
   #
   # Task timers stop here too, and outside the transaction: the shift is closed
   # either way, so a task that refuses to pause is logged rather than allowed to
@@ -185,6 +188,14 @@ end
   # brand new row takes the employee's current shift_time.
   def store_shift_start
     self.shift_start_at = shift_start_for(shift_start_at || employee&.shift_time)
+  end
+
+  # When this shift is due to end: the employee's current shift_time plus
+  # SHIFT_LENGTH. The current shift_time, not the stored shift_start_at, because
+  # only open shifts need it and a shift moved tonight should end at the new time.
+  def scheduled_clock_out
+    start = shift_start_for(employee&.shift_time)
+    start && start + SHIFT_LENGTH
   end
 
   # The calendar day this shift belongs to: the day it was due to start. The
