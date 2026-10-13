@@ -1,0 +1,148 @@
+<%#
+  Bulk shift timings.
+  Written in Tailwind (config/tailwind.config.js); .tw opts in to the scoped
+  reset. The shift-timings-* class names are hooks for the tests and the script
+  at the bottom, not styling.
+%>
+<%
+  field  = "h-9 rounded-md border border-input bg-background px-3 font-sans text-sm text-foreground shadow-xs " \
+           "focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-ring"
+  card   = "rounded-lg border bg-background p-5 shadow-card"
+  label  = "mb-1.5 block text-[13px] font-medium text-foreground"
+  th     = "border-b bg-primary-soft px-4 py-2.5 text-left text-[12.5px] font-semibold text-primary-soft-foreground"
+  td     = "border-b px-4 py-2.5 align-middle text-sm text-foreground"
+  option = "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm text-foreground hover:border-primary"
+  time_label = ->(time) { time ? time.strftime("%I:%M %p") : "Not set (06:00 PM)" }
+%>
+
+<div class="tw shift-timings font-sans">
+  <%= form_tag admin_shift_timings_apply_path, method: :post, class: "#{card} shift-timings-form mb-6" do %>
+    <h3 class="m-0 mb-1 text-base font-semibold text-foreground">Change shift start time</h3>
+    <p class="m-0 mb-4 text-sm text-muted-foreground">
+      Applies from each employee's next clock-in. Attendance already recorded keeps the shift time it had.
+      A single employee can still be given a different time from their own edit screen afterwards.
+    </p>
+
+    <div class="mb-4">
+      <span class="<%= label %>">Apply to</span>
+      <div class="flex flex-wrap gap-2">
+        <% if all_allowed %>
+          <label class="<%= option %>">
+            <%= radio_button_tag :scope, "all", false, data: { count: all_count } %>
+            All employees <span class="text-muted-foreground">(<%= all_count %>)</span>
+          </label>
+          <label class="<%= option %>">
+            <%= radio_button_tag :scope, "departments", true %>
+            Selected departments
+          </label>
+        <% else %>
+          <%= hidden_field_tag :scope, "departments" %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="shift-timings-departments mb-4">
+      <span class="<%= label %>">Departments</span>
+      <% if departments.empty? %>
+        <p class="m-0 text-sm text-muted-foreground">You have no departments assigned.</p>
+      <% else %>
+        <div class="flex flex-wrap gap-2">
+          <% rows.each do |row| %>
+            <label class="<%= option %>">
+              <%= check_box_tag "department_ids[]", row[:department].id, false,
+                                id: "shift_department_#{row[:department].id}", data: { count: row[:total] } %>
+              <%= row[:department].name %> <span class="text-muted-foreground">(<%= row[:total] %>)</span>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3">
+      <div>
+        <label for="shift_time" class="<%= label %>">New shift start</label>
+        <%= time_field_tag :shift_time, nil, id: "shift_time", required: true, class: field, style: "min-width: 150px" %>
+      </div>
+      <%= submit_tag "Apply to employees", name: nil, class: "shift-timings-submit" %>
+      <p class="shift-timings-preview m-0 pb-2 text-sm text-muted-foreground" aria-live="polite"></p>
+    </div>
+  <% end %>
+
+  <div class="<%= card %> !p-0 overflow-hidden">
+    <h3 class="m-0 px-5 py-4 text-base font-semibold text-foreground">Current timings</h3>
+    <table class="shift-timings-current w-full border-collapse">
+      <thead>
+        <tr>
+          <th class="<%= th %>">Department</th>
+          <th class="<%= th %> text-right">Employees</th>
+          <th class="<%= th %>">Shift start</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.each do |row| %>
+          <tr>
+            <td class="<%= td %> font-medium"><%= row[:department].name %></td>
+            <td class="<%= td %> text-right tabular-nums"><%= row[:total] %></td>
+            <td class="<%= td %>">
+              <% if row[:timings].empty? %>
+                <span class="text-muted-foreground">No employees</span>
+              <% else %>
+                <div class="flex flex-wrap gap-1.5">
+                  <% row[:timings].each do |time, count| %>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12.5px] tabular-nums">
+                      <strong class="font-semibold"><%= time_label.call(time) %></strong>
+                      <span class="text-muted-foreground"><%= count %></span>
+                    </span>
+                  <% end %>
+                </div>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+        <% if rows.empty? %>
+          <tr><td class="<%= td %> text-muted-foreground" colspan="3">No departments to show.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Live "N employees will change" line, and a last check before submitting.
+  (function () {
+    var form = document.querySelector(".shift-timings-form");
+    if (!form) return;
+
+    var preview = form.querySelector(".shift-timings-preview");
+    var departments = form.querySelector(".shift-timings-departments");
+    var boxes = form.querySelectorAll("input[name='department_ids[]']");
+    var allRadio = form.querySelector("input[name='scope'][value='all']");
+
+    function everyone() { return !!(allRadio && allRadio.checked); }
+
+    function count() {
+      if (everyone()) return Number(allRadio.dataset.count);
+      var total = 0;
+      boxes.forEach(function (box) { if (box.checked) total += Number(box.dataset.count); });
+      return total;
+    }
+
+    function refresh() {
+      departments.style.display = everyone() ? "none" : "";
+      var n = count();
+      preview.textContent = n === 0 ? "No employees selected yet."
+        : "This will change " + n + (n === 1 ? " employee." : " employees.");
+    }
+
+    form.addEventListener("change", refresh);
+    form.addEventListener("submit", function (event) {
+      var n = count();
+      var time = form.querySelector("#shift_time").value;
+      if (n === 0) { event.preventDefault(); preview.textContent = "Choose who to apply this to first."; return; }
+      if (!window.confirm("Set the shift start to " + time + " for " + n + (n === 1 ? " employee?" : " employees?"))) {
+        event.preventDefault();
+      }
+    });
+    refresh();
+  })();
+</script>

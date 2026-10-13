@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_07_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_13_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -142,6 +142,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_07_120000) do
     t.datetime "updated_at", null: false
     t.string "break_type"
     t.index ["time_clock_id"], name: "index_breaks_on_time_clock_id"
+  end
+
+  create_table "bulk_corrections", force: :cascade do |t|
+    t.bigint "admin_user_id", null: false
+    t.date "shift_date", null: false
+    t.string "reason", null: false
+    t.string "scope_label", null: false
+    t.jsonb "time_clock_ids", default: [], null: false
+    t.datetime "undone_at"
+    t.bigint "undone_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_user_id"], name: "index_bulk_corrections_on_admin_user_id"
+    t.index ["undone_by_id"], name: "index_bulk_corrections_on_undone_by_id"
   end
 
   create_table "clients", force: :cascade do |t|
@@ -367,6 +381,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_07_120000) do
     t.integer "break_duration"
     t.string "current_state"
     t.string "ip_address"
+    t.datetime "shift_start_at"
     t.index ["user_id"], name: "index_time_clocks_on_user_id"
   end
 
@@ -417,6 +432,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_07_120000) do
   add_foreign_key "approval_steps", "roles"
   add_foreign_key "approvals", "approval_steps"
   add_foreign_key "breaks", "time_clocks"
+  add_foreign_key "bulk_corrections", "admin_users"
+  add_foreign_key "bulk_corrections", "admin_users", column: "undone_by_id"
   add_foreign_key "clients", "departments"
   add_foreign_key "edit_requests", "time_clocks"
   add_foreign_key "edit_requests", "users"

@@ -132,6 +132,91 @@ class TaskDashboardReportTest < ActiveSupport::TestCase
   # walking the records. The test pins the *invariance* — the same handful of
   # queries whether the department holds three tasks or thirty — rather than an
   # exact number, which would break on any harmless extra memoized load.
+  # ---- Breakdown tables -------------------------------------------------------
+
+  # The fixtures seed a few tasks; the breakdown tests assert exact counts.
+  def clear_tasks
+    TaskWorkSession.delete_all
+    TaskComment.delete_all
+    Task.delete_all
+  end
+
+  def log(task, seconds, at: Time.current)
+    TaskWorkSession.create!(task: task, user: task.assigned_to, started_at: at, ended_at: at + seconds, duration_seconds: seconds)
+  end
+
+  test "the executive breakdown counts each person's tasks by status" do
+    clear_tasks
+    make(title: "A pending")
+    make(title: "A done", status: "completed", ended_at: Time.current)
+    make(title: "B running", status: "in_progress", started_at: 1.minute.ago, assigned_to: users(:exec_web_b))
+
+    rows = report.executive_breakdown.index_by { |row| row[:name] }
+
+    assert_equal({ total: 2, pending: 1, in_progress: 0, paused: 0, completed: 1 },
+                 rows[@executive.name].slice(:total, :pending, :in_progress, :paused, :completed))
+    assert_equal 1, rows[users(:exec_web_b).name][:in_progress]
+  end
+
+  test "the executive breakdown lists an executive who has no tasks" do
+    clear_tasks
+    make(title: "Only A")
+
+    row = report.executive_breakdown.find { |r| r[:name] == users(:exec_web_b).name }
+
+    assert_equal 0, row[:total]
+  end
+
+  test "the executive breakdown puts the person with the most tasks first" do
+    clear_tasks
+    make(title: "A one")
+    2.times { |i| make(title: "B #{i}", assigned_to: users(:exec_web_b)) }
+
+    assert_equal users(:exec_web_b).name, report.executive_breakdown.first[:name]
+  end
+
+  test "the executive breakdown reports hours logged in the range and finished-over-budget work" do
+    clear_tasks
+    task = make(title: "Logged", status: "completed", ended_at: Time.current, over_sla: true)
+    log(task, 3600)
+    log(task, 1800, at: 3.weeks.ago)
+
+    row = report.executive_breakdown.find { |r| r[:name] == @executive.name }
+
+    assert_equal 3600, row[:logged_seconds]
+    assert_equal 1, row[:over_sla]
+    assert_equal 0, row[:on_time_rate]
+  end
+
+  test "the client breakdown counts tasks per client and names work with no client" do
+    clear_tasks
+    make(title: "Client task", sprint: sprints(:crm_week_one))
+    make(title: "Client done", sprint: sprints(:crm_week_one), status: "completed", ended_at: Time.current)
+    make(title: "No client")
+
+    rows = report.client_breakdown.index_by { |row| row[:name] }
+
+    assert_equal({ total: 2, open: 1, completed: 1 }, rows["GN Exteriors"].slice(:total, :open, :completed))
+    assert_equal 1, rows["Internal work"][:total]
+  end
+
+  test "the client breakdown reports hours logged for the client in the range" do
+    clear_tasks
+    task = make(title: "Client task", sprint: sprints(:crm_week_one))
+    log(task, 7200)
+
+    assert_equal 7200, report.client_breakdown.find { |r| r[:name] == "GN Exteriors" }[:logged_seconds]
+  end
+
+  test "the breakdowns do not grow their query count with the number of tasks" do
+    @executives.load
+    baseline = count_queries { r = report; r.executive_breakdown; r.client_breakdown }
+
+    20.times { |i| make(title: "Bulk #{i}", sprint: (sprints(:crm_week_one) if i.even?)) }
+
+    assert_equal baseline, count_queries { r = report; r.executive_breakdown; r.client_breakdown }
+  end
+
   test "the summary figures do not grow their query count with the number of tasks" do
     # Warm the executives relation first — it caches its own records, and that
     # one-off load would otherwise show up as a difference between the runs.

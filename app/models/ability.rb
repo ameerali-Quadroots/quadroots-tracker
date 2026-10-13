@@ -13,6 +13,12 @@ class Ability
   # ActiveAdmin page name => subject in Permission::RESOURCES.
   GATED_PAGES = { "KPI" => "Kpi", "Analytics" => "Analytics" }.freeze
 
+  # ActiveAdmin page name => [subject whose "update" permission opens it, its page_actions].
+  BULK_PAGES = {
+    "Shift Timings"   => ["User", %i[apply]],
+    "Bulk Correction" => ["TimeClock", %i[apply undo]]
+  }.freeze
+
   def initialize(user)
     return if user.blank?
 
@@ -51,6 +57,17 @@ class Ability
     GATED_PAGES.each do |page_name, subject|
       if role.can?(:read, subject)
         can :export, ActiveAdmin::Page, name: page_name
+      else
+        cannot :read, ActiveAdmin::Page, name: page_name
+      end
+    end
+
+    # Bulk tools follow the "Edit ..." box of what they rewrite rather than
+    # having one of their own: Shift Timings changes employees' shift_time,
+    # Bulk Correction changes time clocks' late status.
+    BULK_PAGES.each do |page_name, (subject, actions)|
+      if role.can?(:update, subject)
+        can actions, ActiveAdmin::Page, name: page_name
       else
         cannot :read, ActiveAdmin::Page, name: page_name
       end

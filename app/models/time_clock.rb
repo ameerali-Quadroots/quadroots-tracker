@@ -8,6 +8,8 @@ class TimeClock < ApplicationRecord
 
   accepts_nested_attributes_for :breaks, allow_destroy: true
 
+  before_save :store_shift_start, if: -> { clock_in.present? && (shift_start_at.blank? || will_save_change_to_clock_in?) }
+
   # def break_duration
   #   breaks.sum do |b|
   #     if b.break_in.present? && b.break_out.present?
@@ -157,16 +159,32 @@ end
 
 
 
-  # The datetime the employee's shift was supposed to start for this record,
-  # based on the employee's configured shift_time (defaults to 18:00).
+  # The datetime the employee's shift was supposed to start for this record.
+  # Fixed when the row is saved (shift_start_at), so changing the employee's
+  # shift_time later - a seasonal move from 6 PM to 8 PM, say - does not shift
+  # past records onto another day. Rows without a stored value fall back to the
+  # employee's current shift_time (defaults to 18:00).
   def shift_start
     return nil if clock_in.blank?
 
-    st = employee&.shift_time || Time.zone.parse("18:00")
+    shift_start_at || shift_start_for(employee&.shift_time)
+  end
+
+  # The shift start for this clock-in, given the time of day the shift begins.
+  def shift_start_for(time_of_day)
+    return nil if clock_in.blank?
+
+    st = time_of_day || Time.zone.parse("18:00")
     candidate = clock_in.change(hour: st.hour, min: st.min, sec: 0)
     # Overnight shift: clocked in in the early morning belongs to the previous day's shift
     candidate -= 1.day if clock_in < candidate - 1.hour
     candidate
+  end
+
+  # A corrected clock-in keeps the start time the shift already had; only a
+  # brand new row takes the employee's current shift_time.
+  def store_shift_start
+    self.shift_start_at = shift_start_for(shift_start_at || employee&.shift_time)
   end
 
   # The calendar day this shift belongs to: the day it was due to start. The

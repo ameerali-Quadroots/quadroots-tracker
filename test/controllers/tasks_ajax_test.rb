@@ -29,7 +29,7 @@ class TasksAjaxTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert envelope["ok"]
-    assert_equal %w[#tm-region-summary #tm-region-charts #tm-region-tasks
+    assert_equal %w[#tm-region-summary #tm-region-charts #tm-region-breakdown #tm-region-tasks
                     #tm-region-team-hours #tm-region-sprints].sort,
                  envelope["regions"].keys.sort
   end
@@ -241,7 +241,8 @@ class TasksAjaxTest < ActionDispatch::IntegrationTest
     patch task_path(@task), headers: ajax_headers, params: { task: { priority: "urgent" } }
 
     assert_response :success
-    assert_equal %w[#tm-region-summary #tm-region-charts #tm-region-tasks].sort,
+    # The breakdown tables count tasks by status, so a change to a task touches them too.
+    assert_equal %w[#tm-region-summary #tm-region-charts #tm-region-breakdown #tm-region-tasks].sort,
                  envelope["regions"].keys.sort
     assert_not_includes envelope["regions"].keys, "#tm-region-team-hours"
   end

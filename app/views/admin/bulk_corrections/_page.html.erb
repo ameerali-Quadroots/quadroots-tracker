@@ -1,0 +1,234 @@
+<%#
+  Bulk late-mark correction.
+  Written in Tailwind (config/tailwind.config.js); .tw opts in to the scoped
+  reset. The bulk-correction-* class names are hooks for the tests and the
+  script at the bottom, not styling.
+%>
+<%
+  field  = "h-9 rounded-md border border-input bg-background px-3 font-sans text-sm text-foreground shadow-xs " \
+           "focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-ring"
+  card   = "rounded-lg border bg-background p-5 shadow-card"
+  label  = "mb-1.5 block text-[13px] font-medium text-foreground"
+  th     = "border-b bg-primary-soft px-4 py-2.5 text-left text-[12.5px] font-semibold text-primary-soft-foreground"
+  td     = "border-b px-4 py-2.5 align-middle text-sm text-foreground"
+  option = "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm text-foreground hover:border-primary"
+  h3     = "m-0 mb-1 text-base font-semibold text-foreground"
+  hint   = "m-0 mb-4 text-sm text-muted-foreground"
+%>
+
+<div class="tw bulk-correction font-sans">
+  <%# Step 1: which day, which employees %>
+  <%= form_tag admin_bulk_correction_path, method: :get, class: "#{card} bulk-correction-filter mb-6" do %>
+    <h3 class="<%= h3 %>">Remove late marks for a day</h3>
+    <p class="<%= hint %>">
+      For days when being late was not the employee's fault, such as the server or the internet being down.
+      Only the late mark is removed: clock-in times and worked hours stay as recorded, and no edit request is used.
+    </p>
+
+    <div class="mb-4 flex flex-wrap items-end gap-3">
+      <div>
+        <label for="correction_date" class="<%= label %>">Shift date</label>
+        <%= text_field_tag :date, date.iso8601, id: "correction_date", class: "datepicker #{field}" %>
+      </div>
+      <% if all_allowed %>
+        <div>
+          <span class="<%= label %>">Employees</span>
+          <div class="flex flex-wrap gap-2">
+            <label class="<%= option %>"><%= radio_button_tag :scope, "all", everyone %> All employees</label>
+            <label class="<%= option %>"><%= radio_button_tag :scope, "departments", !everyone %> Selected departments</label>
+          </div>
+        </div>
+      <% else %>
+        <%= hidden_field_tag :scope, "departments" %>
+      <% end %>
+    </div>
+
+    <div class="bulk-correction-departments mb-4">
+      <span class="<%= label %>">Departments</span>
+      <% if departments.empty? %>
+        <p class="m-0 text-sm text-muted-foreground">You have no departments assigned.</p>
+      <% else %>
+        <div class="flex flex-wrap gap-2">
+          <% departments.each do |department| %>
+            <label class="<%= option %>">
+              <%= check_box_tag "department_ids[]", department.id, chosen_ids.include?(department.id),
+                                id: "correction_department_#{department.id}" %>
+              <%= department.name %>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%= submit_tag "Show late employees", name: nil %>
+  <% end %>
+
+  <%# Step 2: review and apply %>
+  <% if preview %>
+    <% late = preview.late_clocks %>
+    <% missing = preview.missing_employees %>
+    <%= form_tag admin_bulk_correction_apply_path, method: :post, class: "#{card} bulk-correction-apply mb-6 !p-0 overflow-hidden" do %>
+      <%= hidden_field_tag :date, date.iso8601, id: nil %>
+      <%= hidden_field_tag :scope, everyone ? "all" : "departments", id: nil %>
+      <% chosen_ids.each do |id| %><%= hidden_field_tag "department_ids[]", id, id: nil %><% end %>
+
+      <div class="px-5 pt-5">
+        <h3 class="<%= h3 %>">Late on <%= date.strftime("%A, %d %b %Y") %></h3>
+        <p class="<%= hint %>">
+          <%= preview.scope_label %>: <%= pluralize(late.size, "late employee") %>.
+          Untick anyone who should stay late.
+        </p>
+      </div>
+
+      <% if late.empty? %>
+        <p class="m-0 px-5 pb-5 text-sm text-muted-foreground">Nobody is marked late for this day.</p>
+      <% else %>
+        <table class="bulk-correction-late w-full border-collapse">
+          <thead>
+            <tr>
+              <th class="<%= th %> w-10">
+                <input type="checkbox" class="bulk-correction-toggle" checked aria-label="Select all">
+              </th>
+              <th class="<%= th %>">Employee</th>
+              <th class="<%= th %>">Department</th>
+              <th class="<%= th %>">Shift start</th>
+              <th class="<%= th %>">Clock in</th>
+              <th class="<%= th %> text-right">Late by</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% late.each do |tc| %>
+              <tr>
+                <td class="<%= td %>">
+                  <%= check_box_tag "time_clock_ids[]", tc.id, true, id: "correction_clock_#{tc.id}",
+                                    aria: { label: "Correct #{tc.employee.name}" } %>
+                </td>
+                <td class="<%= td %> font-medium"><%= tc.employee.name %></td>
+                <td class="<%= td %>"><%= tc.employee.department %></td>
+                <td class="<%= td %> tabular-nums"><%= tc.shift_start.strftime("%I:%M %p") %></td>
+                <td class="<%= td %> tabular-nums"><%= tc.clock_in.strftime("%I:%M %p") %></td>
+                <td class="<%= td %> text-right tabular-nums"><%= tc.late_minutes %> min</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+
+        <div class="flex flex-wrap items-end gap-3 p-5">
+          <div class="min-w-[280px] flex-1">
+            <label for="correction_reason" class="<%= label %>">Reason</label>
+            <%= text_field_tag :reason, nil, id: "correction_reason", required: true, maxlength: 200,
+                               placeholder: "e.g. Server was down", class: "#{field} w-full" %>
+          </div>
+          <%= submit_tag "Remove late marks", name: nil, class: "bulk-correction-submit" %>
+          <p class="bulk-correction-count m-0 pb-2 text-sm text-muted-foreground" aria-live="polite"></p>
+        </div>
+      <% end %>
+
+      <% if missing.any? %>
+        <div class="bulk-correction-missing border-t px-5 py-4">
+          <details>
+            <summary class="cursor-pointer text-sm font-medium text-foreground">
+              No record for this day (<%= missing.size %>) - not changed
+            </summary>
+            <p class="m-0 mt-2 text-sm text-muted-foreground">
+              These employees did not clock in at all, so there is nothing to correct. On leave, absent or unable to reach the tracker:
+              <%= missing.map { |user| user.department.present? ? "#{user.name.to_s.strip} (#{user.department})" : user.name.to_s.strip }.to_sentence %>.
+            </p>
+          </details>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%# History and undo %>
+  <div class="<%= card %> !p-0 overflow-hidden">
+    <h3 class="m-0 px-5 py-4 text-base font-semibold text-foreground">Recent corrections</h3>
+    <table class="bulk-correction-history w-full border-collapse">
+      <thead>
+        <tr>
+          <th class="<%= th %>">Shift date</th>
+          <th class="<%= th %>">Employees</th>
+          <th class="<%= th %> text-right">Corrected</th>
+          <th class="<%= th %>">Reason</th>
+          <th class="<%= th %>">By</th>
+          <th class="<%= th %>"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% history.each do |correction| %>
+          <tr>
+            <td class="<%= td %> whitespace-nowrap tabular-nums"><%= correction.shift_date.strftime("%d %b %Y") %></td>
+            <td class="<%= td %>"><%= correction.scope_label %></td>
+            <td class="<%= td %> text-right tabular-nums"><%= correction.time_clock_ids.size %></td>
+            <td class="<%= td %>"><%= correction.reason %></td>
+            <td class="<%= td %>">
+              <%= correction.admin_user.email %>
+              <div class="text-[12.5px] text-muted-foreground"><%= correction.created_at.strftime("%d %b %Y, %I:%M %p") %></div>
+            </td>
+            <td class="<%= td %> text-right">
+              <% if correction.undone? %>
+                <span class="text-[12.5px] text-muted-foreground">
+                  Undone<%= " by #{correction.undone_by.email}" if correction.undone_by %>, <%= correction.undone_at.strftime("%d %b %Y") %>
+                </span>
+              <% elsif correction_undoable?(correction) %>
+                <%= button_to "Undo", admin_bulk_correction_undo_path, params: { id: correction.id }, method: :post,
+                              form: { data: { confirm: "Put these #{pluralize(correction.time_clock_ids.size, 'employee')} back to late?" } } %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+        <% if history.empty? %>
+          <tr><td class="<%= td %> text-muted-foreground" colspan="6">No bulk corrections yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Hide the department list for "All employees"; keep the selected count and
+  // the select-all box in step; confirm before applying.
+  (function () {
+    var filter = document.querySelector(".bulk-correction-filter");
+    if (filter) {
+      var allRadio = filter.querySelector("input[name='scope'][value='all']");
+      var departments = filter.querySelector(".bulk-correction-departments");
+      var sync = function () { departments.style.display = allRadio && allRadio.checked ? "none" : ""; };
+      filter.addEventListener("change", sync);
+      sync();
+    }
+
+    var form = document.querySelector(".bulk-correction-apply");
+    var toggle = form && form.querySelector(".bulk-correction-toggle");
+    if (!toggle) return;
+
+    var boxes = form.querySelectorAll("input[name='time_clock_ids[]']");
+    var counter = form.querySelector(".bulk-correction-count");
+
+    function selected() {
+      var n = 0;
+      boxes.forEach(function (box) { if (box.checked) n += 1; });
+      return n;
+    }
+
+    function refresh() {
+      var n = selected();
+      toggle.checked = n === boxes.length;
+      toggle.indeterminate = n > 0 && n < boxes.length;
+      counter.textContent = n === 0 ? "Nobody selected." : n + (n === 1 ? " employee selected." : " employees selected.");
+    }
+
+    toggle.addEventListener("change", function () {
+      boxes.forEach(function (box) { box.checked = toggle.checked; });
+      refresh();
+    });
+    boxes.forEach(function (box) { box.addEventListener("change", refresh); });
+
+    form.addEventListener("submit", function (event) {
+      var n = selected();
+      if (n === 0) { event.preventDefault(); counter.textContent = "Tick at least one employee."; return; }
+      if (!window.confirm("Remove the late mark for " + n + (n === 1 ? " employee?" : " employees?"))) event.preventDefault();
+    });
+    refresh();
+  })();
+</script>
