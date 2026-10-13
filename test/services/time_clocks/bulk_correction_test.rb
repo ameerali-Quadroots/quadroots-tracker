@@ -39,6 +39,36 @@ class TimeClocks::BulkCorrectionTest < ActiveSupport::TestCase
                                               .late_clocks.map(&:id), after_midnight.id
   end
 
+  test "a clocked-in-before time keeps only the late shifts that came in earlier" do
+    filtered = TimeClocks::BulkCorrection.new(shift_date: DAY, departments: [departments(:web)], clocked_in_before: "19:00")
+
+    assert_equal [@late_a.id], filtered.late_clocks.map(&:id)
+    assert_equal "Web, clocked in before 07:00 PM", filtered.scope_label
+  end
+
+  test "a morning clocked-in-before time falls after midnight" do
+    after_midnight = TimeClock.create!(employee: users(:manager_web), status: "late",
+                                       clock_in: Time.zone.local(2026, 9, 8, 0, 30))
+    filtered = TimeClocks::BulkCorrection.new(shift_date: DAY, departments: [departments(:web)], clocked_in_before: "01:00")
+
+    assert_equal [@late_a, @late_b, after_midnight].map(&:id).sort, filtered.late_clocks.map(&:id).sort
+  end
+
+  test "ids after the clocked-in-before time are not corrected" do
+    filtered = TimeClocks::BulkCorrection.new(shift_date: DAY, departments: [departments(:web)], clocked_in_before: "19:00")
+    result = filtered.apply(time_clock_ids: [@late_a.id, @late_b.id], reason: "Server down", admin: @admin)
+
+    assert_equal 1, result.corrected
+    assert_equal "late", @late_b.reload.status
+  end
+
+  test "an unreadable clocked-in-before time is ignored" do
+    filtered = TimeClocks::BulkCorrection.new(shift_date: DAY, departments: [departments(:web)], clocked_in_before: "25:99")
+
+    assert_nil filtered.clocked_in_before
+    assert_equal [@late_a, @late_b].map(&:id).sort, filtered.late_clocks.map(&:id).sort
+  end
+
   test "lists employees with no record for the day" do
     @late_b.destroy
 
