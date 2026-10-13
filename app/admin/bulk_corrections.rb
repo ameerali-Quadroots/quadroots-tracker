@@ -7,7 +7,7 @@ ActiveAdmin.register_page "Bulk Correction" do
 
   controller do
     helper_method :correction_departments, :correction_all_allowed?, :correction_everyone?, :correction_date,
-                  :correction_chosen_departments, :correction_preview, :correction_history, :correction_undoable?
+                  :correction_chosen_departments, :correction_before, :correction_preview, :correction_history, :correction_undoable?
 
     private
 
@@ -47,6 +47,12 @@ ActiveAdmin.register_page "Bulk Correction" do
       correction_departments.select { |department| chosen.include?(department.id) }
     end
 
+    # The "clocked in before" time of day (HH:MM) from ?before=, or nil.
+    def correction_before
+      before = params[:before].to_s.strip
+      TimeClocks::BulkCorrection.cutoff_on(correction_date, before) ? before : nil
+    end
+
     # The correction for the current filter, or nil until a scope is chosen
     # (or when a department admin asks for everyone).
     def correction_preview
@@ -54,9 +60,11 @@ ActiveAdmin.register_page "Bulk Correction" do
 
       @correction_preview =
         if correction_everyone?
-          TimeClocks::BulkCorrection.new(shift_date: correction_date, departments: nil) if correction_all_allowed?
+          TimeClocks::BulkCorrection.new(shift_date: correction_date, departments: nil,
+                                         clocked_in_before: correction_before) if correction_all_allowed?
         elsif correction_chosen_departments.any?
-          TimeClocks::BulkCorrection.new(shift_date: correction_date, departments: correction_chosen_departments)
+          TimeClocks::BulkCorrection.new(shift_date: correction_date, departments: correction_chosen_departments,
+                                         clocked_in_before: correction_before)
         end
     end
 
@@ -78,12 +86,13 @@ ActiveAdmin.register_page "Bulk Correction" do
            locals: { departments: correction_departments, all_allowed: correction_all_allowed?,
                      everyone: correction_everyone? && correction_all_allowed?,
                      chosen_ids: correction_chosen_departments.map(&:id), date: correction_date,
+                     before: correction_before,
                      preview: correction_preview, history: correction_history }
   end
 
   page_action :apply, method: :post do
     back = admin_bulk_correction_path(date: correction_date.iso8601, scope: params[:scope],
-                                      department_ids: correction_chosen_departments.map(&:id))
+                                      department_ids: correction_chosen_departments.map(&:id), before: correction_before)
 
     if correction_everyone? && !correction_all_allowed?
       next redirect_to(admin_bulk_correction_path, alert: "Only a super admin can correct all employees at once.")

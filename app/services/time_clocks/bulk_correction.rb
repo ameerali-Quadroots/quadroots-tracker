@@ -17,15 +17,38 @@ module TimeClocks
 
     attr_reader :shift_date
 
+    attr_reader :clocked_in_before
+
     # departments: nil means every employee.
-    def initialize(shift_date:, departments: nil)
+    # clocked_in_before: a time of day ("20:20"), or nil for every late shift.
+    # Only late shifts that clocked in before it are listed - for an outage that
+    # ended at a known time, when everyone who came after it really was late.
+    def initialize(shift_date:, departments: nil, clocked_in_before: nil)
       @shift_date = shift_date
       @departments = departments
+      @clocked_in_before = self.class.cutoff_on(shift_date, clocked_in_before)
     end
 
-    # Late shifts of current employees in scope that belong to the day.
+    # The moment a time of day falls on for a shift day. Shifts start in the
+    # evening and run past midnight, so a morning time (before noon) is the next
+    # calendar day. nil for a blank or unreadable time.
+    def self.cutoff_on(shift_date, time_of_day)
+      match = time_of_day.to_s.strip.match(/\A(\d{1,2}):(\d{2})\z/)
+      return nil unless match
+
+      hour = match[1].to_i
+      min = match[2].to_i
+      return nil if hour > 23 || min > 59
+
+      day = hour < 12 ? shift_date + 1 : shift_date
+      Time.zone.local(day.year, day.month, day.day, hour, min)
+    end
+
+    # Late shifts of current employees in scope that belong to the day (and
+    # clocked in before the cut-off, when there is one).
     def late_clocks
       @late_clocks ||= clocks_on_day.select { |tc| tc.status == "late" }
+                                    .select { |tc| clocked_in_before.nil? || tc.clock_in < clocked_in_before }
                                     .sort_by { |tc| tc.employee.name.to_s.strip.downcase }
     end
 
@@ -58,7 +81,8 @@ module TimeClocks
     end
 
     def scope_label
-      @departments.nil? ? "All employees" : @departments.map(&:name).to_sentence
+      label = @departments.nil? ? "All employees" : @departments.map(&:name).to_sentence
+      clocked_in_before ? "#{label}, clocked in before #{clocked_in_before.strftime('%I:%M %p')}" : label
     end
 
     private

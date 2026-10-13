@@ -30,6 +30,10 @@
         <label for="correction_date" class="<%= label %>">Shift date</label>
         <%= text_field_tag :date, date.iso8601, id: "correction_date", class: "datepicker #{field}" %>
       </div>
+      <div>
+        <label for="correction_before" class="<%= label %>">Clocked in before <span class="font-normal text-muted-foreground">(optional)</span></label>
+        <%= time_field_tag :before, before, id: "correction_before", class: field %>
+      </div>
       <% if all_allowed %>
         <div>
           <span class="<%= label %>">Employees</span>
@@ -70,6 +74,7 @@
     <%= form_tag admin_bulk_correction_apply_path, method: :post, class: "#{card} bulk-correction-apply mb-6 !p-0 overflow-hidden" do %>
       <%= hidden_field_tag :date, date.iso8601, id: nil %>
       <%= hidden_field_tag :scope, everyone ? "all" : "departments", id: nil %>
+      <%= hidden_field_tag :before, before, id: nil if before %>
       <% chosen_ids.each do |id| %><%= hidden_field_tag "department_ids[]", id, id: nil %><% end %>
 
       <div class="px-5 pt-5">
