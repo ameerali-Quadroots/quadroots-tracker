@@ -618,6 +618,8 @@ function generateCalendar(year, month, timeClocks, calendarElement) {
       if (clockEntry) {
         if (clockEntry.status === 'late') {
           className = 'calendar-late';
+        } else if (clockEntry.status === 'on_time' && clockEntry.clock_in_corrected_at) {
+          className = 'calendar-corrected';
         } else if (clockEntry.status === 'on_time') {
           className = 'calendar-on-time';
         }

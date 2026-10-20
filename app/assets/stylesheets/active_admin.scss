@@ -1460,6 +1460,7 @@ body.index #sidebar .sidebar_section > h3 { display: none; }
   &.error, &.status-error, &.rejected, &.late, &.absent, &.downtime { @include badge(#FEE2E2, #B91C1C, #FCA5A5); }
   &.warning, &.warn, &.status-warning, &.pending, &.on_break, &.half_day { @include badge(#FEF3C7, #B45309, #FCD34D); }
   &.meeting { @include badge(#DBEAFE, #1D4ED8, #93C5FD); }
+  &.corrected { @include badge(#FFF7ED, #C2410C, #FDBA74); }
   &.info { @include badge(#F4ECF8, #56206C, #D2B5E0); }
 
   // Someone working right now gets a live pulse on the dot.
@@ -1474,6 +1475,7 @@ body.index #sidebar .sidebar_section > h3 { display: none; }
 // Calendar day colouring (custom timesheet calendar)
 .calendar-late    { background-color: #E74C3C !important; }
 .calendar-on-time { background-color: #27AE60 !important; }
+.calendar-corrected { background-color: #EA580C !important; }
 
 // =============================================================================
 //  SCOPES  /  PAGINATION  /  BATCH ACTIONS

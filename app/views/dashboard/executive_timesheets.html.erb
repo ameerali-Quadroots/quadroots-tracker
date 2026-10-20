@@ -105,6 +105,8 @@
               "half-day"
             elsif record&.status == "late"
               "late"
+            elsif record&.corrected?
+              "corrected"
             elsif record
               "on-time"
             else
@@ -119,6 +121,8 @@
               "HALF DAY"
             elsif record&.status == "late"
               "LATE"
+            elsif record&.corrected?
+              "CORRECTED"
             elsif record
               "ON TIME"
             end
@@ -150,6 +154,7 @@
   <!-- Legend -->
   <div class="legend">
     <div><span class="box on-time"></span> On Time</div>
+    <div><span class="box corrected"></span> On Time · Corrected</div>
     <div><span class="box late"></span> Late</div>
     <div><span class="box half-day"></span> Half Day</div>
     <div><span class="box late-half-day"></span> Late + Half Day</div>
@@ -215,6 +220,7 @@
   }
 
   .day.on-time       { background: linear-gradient(135deg, #27ae60, #2ecc71); color:#fff; border:none; box-shadow:0 2px 8px rgba(39,174,96,0.3); }
+  .day.corrected     { background: linear-gradient(135deg, #fb923c, #ea580c); color:#fff; border:none; box-shadow:0 2px 8px rgba(234,88,12,0.3); }
   .day.late          { background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; border:none; box-shadow:0 2px 8px rgba(231,76,60,0.3); }
   .day.half-day      { background: linear-gradient(135deg, #f59e0b, #f97316); color:#fff; border:none; box-shadow:0 2px 8px rgba(245,158,11,0.3); }
   .day.late-half-day { background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%); color:#fff; border:none; box-shadow:0 2px 8px rgba(231,76,60,0.25); }
@@ -235,6 +241,7 @@
     border-radius: 5px; margin-right: 6px; vertical-align: middle;
   }
   .legend .box.on-time       { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+  .legend .box.corrected     { background: linear-gradient(135deg, #fb923c, #ea580c); }
   .legend .box.late          { background: linear-gradient(135deg, #e74c3c, #c0392b); }
   .legend .box.half-day      { background: linear-gradient(135deg, #f59e0b, #f97316); }
   .legend .box.late-half-day { background: linear-gradient(135deg, #e74c3c 45%, #f59e0b 55%); }
@@ -257,7 +264,7 @@
     'all':       null,
     'late':      ['late', 'late-half-day'],
     'half-day':  ['half-day', 'late-half-day'],
-    'on-time':   ['on-time'],
+    'on-time':   ['on-time', 'corrected'],
   };
 
   const labelMap = {

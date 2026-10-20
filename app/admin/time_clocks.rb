@@ -280,7 +280,11 @@ end
       when "late"
         status_tag "Late", class: "late"
       when "on_time"
-        status_tag "On Time", class: "on_time"
+        if tc.corrected?
+          status_tag "On Time · Corrected", class: "corrected"
+        else
+          status_tag "On Time", class: "on_time"
+        end
       else
         status_tag tc.status || "N/A", class: "status-default"
       end

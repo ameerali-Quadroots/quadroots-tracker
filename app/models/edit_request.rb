@@ -42,7 +42,13 @@ class EditRequest < ApplicationRecord
 
     case request_type
     when "Clock tower not working"
-      time_clock.update(clock_in: requested_clock_in, status: "on_time")
+      # Only reached once the whole chain (manager, then admin) has approved.
+      # The status follows the corrected time: a clock-in still past the shift
+      # start stays late. Direct edits in the admin panel never pass through
+      # here, so whatever status the admin sets there is kept.
+      time_clock.clock_in = requested_clock_in
+      time_clock.store_shift_start
+      time_clock.update(status: time_clock.computed_status, clock_in_corrected_at: Time.current)
     when "Forgot to end break", "Forgot to add break"
       time_clock.breaks
                 .where(break_type: break_reason)

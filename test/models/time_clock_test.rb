@@ -189,4 +189,48 @@ class TimeClockTest < ActiveSupport::TestCase
 
     assert_equal Time.zone.local(2026, 9, 7, 18, 0), TimeClock.find(tc.id).shift_start
   end
+
+  # ---- Late / on time after a clock-in correction ---------------------------
+  # Only a clock-tower request approved through the chain re-decides the
+  # status; a direct edit in the admin panel keeps whatever was saved.
+
+  def clock_tower_request(tc, requested_at)
+    EditRequest.new(user: tc.employee, time_clock: tc, request_type: "Clock tower not working",
+                    reason: "Tower down", requested_clock_in: requested_at)
+  end
+
+  test "an approved clock tower request to a late time marks the shift late" do
+    tc = TimeClock.create!(employee: users(:exec_web_a), status: "on_time", clock_in: Time.zone.local(2026, 9, 7, 18, 0))
+
+    clock_tower_request(tc, Time.zone.local(2026, 9, 7, 18, 25)).apply_to_time_clock!
+
+    assert_equal "late", tc.reload.status
+    assert_equal Time.zone.local(2026, 9, 7, 18, 25), tc.clock_in
+  end
+
+  test "an approved clock tower request marks the shift as corrected" do
+    tc = TimeClock.create!(employee: users(:exec_web_a), status: "late", clock_in: Time.zone.local(2026, 9, 7, 18, 30))
+    assert_not tc.corrected?
+
+    clock_tower_request(tc, Time.zone.local(2026, 9, 7, 17, 55)).apply_to_time_clock!
+
+    assert tc.reload.corrected?
+  end
+
+  test "an approved clock tower request to an on-time clock-in marks the shift on time" do
+    tc = TimeClock.create!(employee: users(:exec_web_a), status: "late", clock_in: Time.zone.local(2026, 9, 7, 18, 30))
+
+    clock_tower_request(tc, Time.zone.local(2026, 9, 7, 17, 55)).apply_to_time_clock!
+
+    assert_equal "on_time", tc.reload.status
+  end
+
+  test "a direct edit of the clock-in keeps the saved status" do
+    tc = TimeClock.create!(employee: users(:exec_web_a), status: "on_time", clock_in: Time.zone.local(2026, 9, 7, 18, 0))
+
+    tc.update!(clock_in: Time.zone.local(2026, 9, 7, 18, 40))
+
+    assert_equal "on_time", tc.reload.status
+    assert_not tc.corrected?
+  end
 end

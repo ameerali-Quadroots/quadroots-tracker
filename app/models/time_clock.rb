@@ -11,6 +11,9 @@ class TimeClock < ApplicationRecord
 
   accepts_nested_attributes_for :breaks, allow_destroy: true
 
+  # Clocking in more than this long after the shift start counts as late.
+  LATE_AFTER = 1.minute
+
   before_save :store_shift_start, if: -> { clock_in.present? && (shift_start_at.blank? || will_save_change_to_clock_in?) }
 
   # def break_duration
@@ -220,6 +223,20 @@ end
     from = dates.begin.in_time_zone.beginning_of_day
     to   = (dates.end + 1).in_time_zone.beginning_of_day + 12.hours
     where(clock_in: from..to).includes(:employee).select { |tc| dates.cover?(tc.shift_date) }
+  end
+
+  # "late" or "on_time" for the current clock_in.
+  def computed_status
+    return nil if clock_in.blank? || shift_start.blank?
+
+    clock_in > shift_start + LATE_AFTER ? "late" : "on_time"
+  end
+
+  # The clock-in was moved by an approved "Clock tower not working" request.
+  # The status still says on_time/late (so counts and rates are unchanged);
+  # this only lets the timesheets flag it as corrected.
+  def corrected?
+    clock_in_corrected_at.present?
   end
 
   # How many whole minutes late the employee clocked in (0 if on time / early).

@@ -46,6 +46,10 @@
               <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
                 <% if tc.status == "late" %>
                   <span class="badge badge-premium bg-danger">Late</span>
+                <% elsif tc.status == "on_time" && tc.corrected? %>
+                  <span class="badge badge-premium" style="background:#FFF7ED;color:#EA580C;border:1px solid #FED7AA;">
+                    <i class="bi bi-pencil-square me-1"></i>On Time · Corrected
+                  </span>
                 <% elsif tc.status == "on_time" %>
                   <span class="badge badge-premium bg-success">On Time</span>
                 <% else %>

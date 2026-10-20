@@ -370,6 +370,7 @@
     &:hover:not(.empty):not(.calendar-off):not(.calendar-future) { transform: translateY(-1px); border-color: var(--app-primary); box-shadow: 0 6px 14px -8px var(--app-primary-glow); }
     &.calendar-on-time { background: #DCFCE7; border-color: #86EFAC; color: #15803D; font-weight: 600; }
     &.calendar-late    { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; font-weight: 600; }
+    &.calendar-corrected { background: #FFF7ED; border-color: #FDBA74; color: #C2410C; font-weight: 600; }
     &.calendar-off     { background: #F6F2F9; border-color: transparent; color: #A69BAE; }
     &.calendar-future  { background: #FFFFFF; border-style: dashed; color: #C4BACB; opacity: 1; }
     &.today {
