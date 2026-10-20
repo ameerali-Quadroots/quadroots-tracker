@@ -20,6 +20,8 @@
       "half-day"
     elsif record.status == "late"
       "late"
+    elsif record.corrected?
+      "corrected"
     else
       "on-time"
     end
@@ -27,6 +29,7 @@
 
   status_label = {
     "on-time"       => "ON TIME",
+    "corrected"     => "CORRECTED",
     "late"          => "LATE",
     "half-day"      => "HALF DAY",
     "late-half-day" => "LATE · ½",
@@ -39,7 +42,7 @@
   count_clockins  = month_records.size
   count_late      = month_statuses.count { |s| s == "late" || s == "late-half-day" }
   count_half      = month_statuses.count { |s| s == "half-day" || s == "late-half-day" }
-  count_on_time   = month_statuses.count { |s| s == "on-time" }
+  count_on_time   = month_statuses.count { |s| s == "on-time" || s == "corrected" }
 %>
 
 <!-- ✅ Page Title -->
@@ -69,6 +72,7 @@
   <div class="ts-status-filter" id="ts-status-filter">
     <button type="button" class="ts-pill active" data-filter="all">All</button>
     <button type="button" class="ts-pill" data-filter="on-time"><span class="dot on-time"></span> On Time</button>
+    <button type="button" class="ts-pill" data-filter="corrected"><span class="dot corrected"></span> Corrected</button>
     <button type="button" class="ts-pill" data-filter="late"><span class="dot late"></span> Late</button>
     <button type="button" class="ts-pill" data-filter="half-day"><span class="dot half-day"></span> Half Day</button>
     <button type="button" class="ts-pill" data-filter="late-half-day"><span class="dot late-half-day"></span> Late + ½</button>
@@ -127,6 +131,7 @@
 <!-- ✅ Legend -->
 <div class="ts-legend">
   <div><span class="dot on-time"></span> On Time</div>
+  <div><span class="dot corrected"></span> On Time · Corrected</div>
   <div><span class="dot late"></span> Late</div>
   <div><span class="dot half-day"></span> Half Day</div>
   <div><span class="dot late-half-day"></span> Late + Half Day</div>
@@ -286,6 +291,7 @@
   }
 
   .ts-day.on-time       { background: #22a565; color: #fff; border-color: transparent; }
+  .ts-day.corrected     { background: #ea580c; color: #fff; border-color: transparent; }
   .ts-day.late          { background: #e23b3b; color: #fff; border-color: transparent; }
   .ts-day.half-day      { background: #f0a020; color: #fff; border-color: transparent; }
   .ts-day.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); color: #fff; border-color: transparent; }
@@ -316,6 +322,7 @@
   }
 
   .ts-legend .dot.on-time       { background: #22a565; }
+  .ts-legend .dot.corrected     { background: #ea580c; }
   .ts-legend .dot.late          { background: #e23b3b; }
   .ts-legend .dot.half-day      { background: #f0a020; }
   .ts-legend .dot.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); }
@@ -392,6 +399,7 @@
   }
 
   .ts-pill .dot.on-time       { background: #22a565; }
+  .ts-pill .dot.corrected     { background: #ea580c; }
   .ts-pill .dot.late          { background: #e23b3b; }
   .ts-pill .dot.half-day      { background: #f0a020; }
   .ts-pill .dot.late-half-day { background: linear-gradient(135deg, #e23b3b 50%, #f0a020 50%); }
