@@ -4,11 +4,11 @@
     silently dropped everyone who clocked in before 18:30 (counting them as
     Offline and excluding them from On Time / Late). We now bucket each user's
     clock against THEIR own shift cycle, mirroring TimeClocksController#clock_in.
-    `anchor` is the date the current cycle started on (the evening shift runs
-    past midnight to ~04:00, so before 4am we anchor to the previous day). %>
+    A cycle stays current until the employee's next shift is about to start, so
+    there is no fixed cutoff hour however late the shift runs. %>
 <%
   now = Time.zone.now
-  anchor = now.hour < 4 ? (now - 1.day) : now
+  cycle = TimeClock.new(clock_in: now)
   default_shift = Time.zone.parse("18:00")
   win_starts = []   # actual shift starts, for the header display
   win_ends   = []
@@ -32,7 +32,7 @@
       users = User.includes(time_clocks: :breaks).where(department: dept, employeed: true)
       users.each do |user|
         st = user.shift_time || default_shift
-        u_start = anchor.change(hour: st.hour, min: st.min, sec: 0)
+        u_start = cycle.shift_start_for(st)
         u_window = (u_start - 30.minutes)..(u_start + 9.hours)   # 30-min early grace, 9-hour shift
         win_starts << u_start
         win_ends   << (u_start + 9.hours)
@@ -81,7 +81,7 @@
     on_time_ratio = total_today_attendances > 0 ? ((today_on_time_count.to_f / total_today_attendances) * 100).round : 0
 
     # Header display window spans the earliest shift start to the latest end.
-    shift_start = win_starts.min || anchor.change(hour: default_shift.hour, min: default_shift.min, sec: 0)
+    shift_start = win_starts.min || cycle.shift_start_for(default_shift)
     shift_end   = win_ends.max   || (shift_start + 9.hours)
   %>
 

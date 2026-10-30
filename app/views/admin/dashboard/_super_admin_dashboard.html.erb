@@ -2,18 +2,11 @@
 <%= render partial: "admin/dashboard/live_state_auto", locals: { departments: User.distinct.pluck(:department).compact.sort } %>
 
 <%
-  # === Define today's range (3 AM cutoff) ===
-  now = Time.zone.now
-
-  if now.hour < 3
-    # Before 3 AM → treat as previous work day
-    start_time = (now - 1.day).change(hour: 3)
-    end_time = now.change(hour: 3)
-  else
-    # After 3 AM → treat as current day
-    start_time = now.change(hour: 3)
-    end_time = (now + 1.day).change(hour: 3)
-  end
+  # === Define today's range: noon to noon around the current shift day, so
+  # shifts running into the morning are counted whole ===
+  shift_day = TimeClock.shift_date_at(Time.zone.now, nil)
+  start_time = shift_day.in_time_zone.change(hour: 12)
+  end_time = (shift_day + 1).in_time_zone.change(hour: 12)
 
   # === Today's Summary ===
   @late_time_clocks = TimeClock.where(clock_in: start_time..end_time, status: 'late')
